@@ -28,3 +28,14 @@ body {
 * {
   transition: background-color 0.2s, border-color 0.2s, color 0.2s;
 }
+
+/* Glow utility */
+.glow {
+  box-shadow: 0 0 24px 0 color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--background); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--accent); }

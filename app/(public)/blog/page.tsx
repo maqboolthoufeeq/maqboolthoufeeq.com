@@ -2,6 +2,8 @@ import Navbar from '@/components/Navbar'
 import PostCard from '@/components/blog/PostCard'
 import { prisma } from '@/lib/prisma'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata = {
   title: 'Blog — Maqbool Thoufeeq',
   description: 'Articles about web development, TypeScript, and engineering.',

@@ -1,0 +1,30 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #f8fafc;
+  --surface: #ffffff;
+  --border: #e2e8f0;
+  --foreground: #0f172a;
+  --muted: #64748b;
+  --accent: #7c3aed;
+}
+
+.dark {
+  --background: #0d0d0f;
+  --surface: #111118;
+  --border: #1f1f2e;
+  --foreground: #f8fafc;
+  --muted: #6b7280;
+  --accent: #a855f7;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+* {
+  transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+}

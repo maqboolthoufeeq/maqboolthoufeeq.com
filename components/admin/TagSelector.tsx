@@ -12,6 +12,7 @@ type Props = {
 export default function TagSelector({ selectedIds, onChange }: Props) {
   const [tags, setTags] = useState<Tag[]>([])
   const [newTag, setNewTag] = useState('')
+  const [search, setSearch] = useState('')
   const [creating, setCreating] = useState(false)
 
   useEffect(() => {
@@ -40,25 +41,39 @@ export default function TagSelector({ selectedIds, onChange }: Props) {
     }
   }
 
+  const filtered = search.trim()
+    ? tags.filter((t) => t.name.toLowerCase().includes(search.toLowerCase()))
+    : tags
+
   return (
     <div className="space-y-3">
       {tags.length > 0 && (
-        <div className="flex flex-wrap gap-2">
-          {tags.map((tag) => (
-            <button
-              key={tag.id}
-              type="button"
-              onClick={() => toggle(tag.id)}
-              className={`px-3 py-1 text-xs rounded-full border transition-colors ${
-                selectedIds.includes(tag.id)
-                  ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
-                  : 'border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)]'
-              }`}
-            >
-              {tag.name}
-            </button>
-          ))}
-        </div>
+        <>
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search tags…"
+            className="w-full px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)]"
+          />
+          <div className="flex flex-wrap gap-2">
+            {filtered.length > 0 ? filtered.map((tag) => (
+              <button
+                key={tag.id}
+                type="button"
+                onClick={() => toggle(tag.id)}
+                className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                  selectedIds.includes(tag.id)
+                    ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
+                    : 'border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)]'
+                }`}
+              >
+                {tag.name}
+              </button>
+            )) : (
+              <p className="text-xs text-[var(--muted)]">No tags match "{search}"</p>
+            )}
+          </div>
+        </>
       )}
       <form onSubmit={handleCreate} className="flex gap-2">
         <input

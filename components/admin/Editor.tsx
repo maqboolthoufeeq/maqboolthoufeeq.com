@@ -8,7 +8,7 @@ import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import Image from '@tiptap/extension-image'
 import Youtube from '@tiptap/extension-youtube'
-import { TextStyle, FontFamily, FontSize } from '@tiptap/extension-text-style'
+import { TextStyle, FontFamily, FontSize, Color } from '@tiptap/extension-text-style'
 
 const VideoNode = Node.create({
   name: 'video',
@@ -38,8 +38,13 @@ const ResizableImage = Image.extend({
 
 const FONTS = [
   { label: 'Default', value: '' },
-  { label: 'Serif', value: 'Georgia, serif' },
+  { label: 'Arial', value: 'Arial, sans-serif' },
+  { label: 'Georgia', value: 'Georgia, serif' },
+  { label: 'Verdana', value: 'Verdana, sans-serif' },
+  { label: 'Trebuchet', value: 'Trebuchet MS, sans-serif' },
+  { label: 'Courier', value: 'Courier New, monospace' },
   { label: 'Mono', value: 'ui-monospace, monospace' },
+  { label: 'Impact', value: 'Impact, sans-serif' },
 ]
 
 const SIZES = [
@@ -50,7 +55,12 @@ const SIZES = [
   { label: 'XL', value: '24px' },
 ]
 
-type Panel = 'link' | 'imgUrl' | 'ytUrl' | 'font' | 'size' | null
+const COLORS = [
+  '#000000', '#6b7280', '#ef4444', '#f97316',
+  '#eab308', '#22c55e', '#3b82f6', '#a855f7', '#ec4899',
+]
+
+type Panel = 'link' | 'imgUrl' | 'ytUrl' | 'font' | 'size' | 'color' | null
 type Pos = { top: number; left: number }
 type Props = { content: string; onChange: (html: string) => void }
 
@@ -78,6 +88,7 @@ export default function Editor({ content, onChange }: Props) {
       TextStyle,
       FontFamily,
       FontSize,
+      Color,
     ],
     content,
     onUpdate: ({ editor: ed }) => onChange(ed.getHTML()),
@@ -122,6 +133,10 @@ export default function Editor({ content, onChange }: Props) {
       const { from, to } = ed.state.selection
       setSavedSel({ from, to })
       setInputVal(ed.getAttributes('link').href ?? '')
+    } else if (p === 'color') {
+      const { from, to } = ed.state.selection
+      setSavedSel({ from, to })
+      setInputVal(ed.getAttributes('textStyle').color ?? '')
     } else {
       setInputVal('')
     }
@@ -189,6 +204,7 @@ export default function Editor({ content, onChange }: Props) {
 
   const currentFont = ed.getAttributes('textStyle').fontFamily as string | undefined
   const currentSize = ed.getAttributes('textStyle').fontSize as string | undefined
+  const currentColor = ed.getAttributes('textStyle').color as string | undefined
 
   let bubbleInner: React.ReactNode
 
@@ -238,6 +254,52 @@ export default function Editor({ content, onChange }: Props) {
         <button type="button" onClick={closePanel} className="text-[var(--muted)] text-xs cursor-pointer">✕</button>
       </>
     )
+  } else if (panel === 'color') {
+    const isValidHex = /^#[0-9a-fA-F]{3,8}$/.test(inputVal)
+    const applyColor = (color: string) => {
+      const chain = ed.chain().focus()
+      if (savedSel) chain.setTextSelection(savedSel)
+      ;(chain as any).setColor(color).run()
+    }
+    bubbleInner = (
+      <>
+        {COLORS.map(c => (
+          <button key={c} type="button" onMouseDown={e => e.preventDefault()}
+            onClick={() => { applyColor(c); closePanel() }}
+            title={c}
+            style={{ background: c }}
+            className={`w-5 h-5 rounded-full border-2 cursor-pointer transition-transform hover:scale-110 ${currentColor === c ? 'border-white shadow-md' : 'border-transparent'}`}
+          />
+        ))}
+        {sep}
+        <label className="relative w-6 h-6 cursor-pointer flex-shrink-0" title="Custom color picker">
+          <span
+            className="block w-6 h-6 rounded-full border-2 border-[var(--border)] overflow-hidden"
+            style={{ background: inputVal || currentColor || '#000000' }}
+          />
+          <input type="color"
+            value={inputVal || currentColor || '#000000'}
+            onChange={e => { setInputVal(e.target.value); applyColor(e.target.value) }}
+            className="absolute inset-0 opacity-0 w-full h-full cursor-pointer"
+          />
+        </label>
+        <input
+          className="w-20 text-xs bg-[var(--background)] border border-[var(--border)] rounded px-2 py-0.5 text-[var(--foreground)] outline-none focus:border-[var(--accent)] font-mono"
+          placeholder="#hex"
+          value={inputVal}
+          onChange={e => setInputVal(e.target.value)}
+          onKeyDown={e => {
+            if (e.key === 'Enter' && isValidHex) { applyColor(inputVal); closePanel() }
+            if (e.key === 'Escape') closePanel()
+          }}
+        />
+        <button type="button" onMouseDown={e => e.preventDefault()}
+          onClick={() => { (ed.chain().focus() as any).unsetColor().run(); closePanel() }}
+          className="text-[var(--muted)] text-xs cursor-pointer px-1 hover:text-red-500"
+        >Reset</button>
+        <button type="button" onClick={closePanel} className="text-[var(--muted)] text-xs cursor-pointer ml-0.5">✕</button>
+      </>
+    )
   } else {
     bubbleInner = (
       <>
@@ -251,6 +313,11 @@ export default function Editor({ content, onChange }: Props) {
         {sep}
         <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => openPanel('font')} className={fBtn(!!currentFont)} title="Font family">Aa</button>
         <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => openPanel('size')} className={fBtn(!!currentSize)} title="Font size">Sz</button>
+        <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => openPanel('color')} title="Font color"
+          className={`px-1.5 py-0.5 rounded transition-colors cursor-pointer select-none ${!!currentColor ? 'bg-[var(--accent)]/20' : 'hover:bg-[var(--accent)]/20'}`}
+        >
+          <span className="text-xs font-mono font-bold" style={{ color: currentColor ?? 'var(--foreground)', textDecoration: 'underline', textDecorationColor: currentColor ?? 'var(--muted)', textDecorationThickness: '2px' }}>A</span>
+        </button>
         {sep}
         <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => ed.chain().focus().toggleBulletList().run()} className={fBtn(ed.isActive('bulletList'))}>UL</button>
         <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => ed.chain().focus().toggleOrderedList().run()} className={fBtn(ed.isActive('orderedList'))}>OL</button>

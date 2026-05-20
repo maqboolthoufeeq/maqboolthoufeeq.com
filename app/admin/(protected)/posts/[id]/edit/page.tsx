@@ -174,6 +174,16 @@ export default function EditPostPage() {
             <TagSelector selectedIds={tagIds} onChange={setTagIds} />
           </div>
         </div>
+
+        <div className="flex items-center justify-end gap-3 pt-2">
+          <label className="flex items-center gap-2 text-sm text-[var(--muted)] cursor-pointer">
+            <input type="checkbox" checked={published} onChange={(e) => setPublished(e.target.checked)} className="accent-[var(--accent)]" />
+            Publish
+          </label>
+          <button onClick={handleSave} disabled={saving} className="px-4 py-2 text-sm bg-[var(--accent)] text-white rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity">
+            {saving ? 'Saving…' : 'Save'}
+          </button>
+        </div>
       </main>
     </div>
   )

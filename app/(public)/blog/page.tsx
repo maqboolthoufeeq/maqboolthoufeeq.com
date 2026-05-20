@@ -1,6 +1,11 @@
 import Navbar from '@/components/Navbar'
 import PostCard from '@/components/blog/PostCard'
 import { prisma } from '@/lib/prisma'
+import type { Prisma } from '@prisma/client'
+
+type PostPreview = Prisma.PostGetPayload<{
+  select: { id: true; title: true; slug: true; excerpt: true; content: true; publishedAt: true }
+}>
 
 export const dynamic = 'force-dynamic'
 
@@ -27,7 +32,7 @@ export default async function BlogPage() {
           <p className="text-[var(--muted)]">No posts yet. Check back soon.</p>
         ) : (
           <ul className="space-y-6">
-            {posts.map((post) => (
+            {posts.map((post: PostPreview) => (
               <li key={post.id}>
                 <PostCard post={post} />
               </li>

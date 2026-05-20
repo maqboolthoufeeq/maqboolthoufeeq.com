@@ -13,7 +13,7 @@ export default function PostContent({ html }: { html: string }) {
 
   return (
     <div
-      className="prose prose-invert max-w-none"
+      className="prose dark:prose-invert max-w-none"
       // eslint-disable-next-line react/no-danger
       dangerouslySetInnerHTML={{ __html: clean }}
     />

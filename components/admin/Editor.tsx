@@ -3,7 +3,6 @@
 import { useEditor, EditorContent } from '@tiptap/react'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
-import Link from '@tiptap/extension-link'
 import Image from '@tiptap/extension-image'
 
 type Props = {
@@ -13,17 +12,17 @@ type Props = {
 
 export default function Editor({ content, onChange }: Props) {
   const editor = useEditor({
+    immediatelyRender: false,
     extensions: [
-      StarterKit,
+      StarterKit.configure({ link: { openOnClick: false } }),
       Placeholder.configure({ placeholder: 'Start writing…' }),
-      Link.configure({ openOnClick: false }),
       Image,
     ],
     content,
     onUpdate: ({ editor }) => onChange(editor.getHTML()),
     editorProps: {
       attributes: {
-        class: 'min-h-[300px] p-4 focus:outline-none text-[var(--foreground)] prose prose-invert max-w-none',
+        class: 'min-h-[300px] p-4 focus:outline-none text-[var(--foreground)] prose dark:prose-invert max-w-none',
       },
     },
   })

@@ -32,17 +32,26 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     rest.createdAt = new Date(createdAt)
   }
 
-  const post = await prisma.post.update({
-    where: { id },
-    data: {
-      ...rest,
-      ...(Array.isArray(tagIds)
-        ? { tags: { set: tagIds.map((tid: string) => ({ id: tid })) } }
-        : {}),
-    },
-    include: { tags: true },
-  })
-  return NextResponse.json(post)
+  try {
+    if (Array.isArray(tagIds)) {
+      await prisma.post.update({ where: { id }, data: { tags: { set: [] } } })
+    }
+
+    const post = await prisma.post.update({
+      where: { id },
+      data: {
+        ...rest,
+        ...(Array.isArray(tagIds)
+          ? { tags: { connect: tagIds.map((tid: string) => ({ id: tid })) } }
+          : {}),
+      },
+      include: { tags: true },
+    })
+    return NextResponse.json(post)
+  } catch (err) {
+    console.error('PATCH /api/posts/[id]', err)
+    return NextResponse.json({ error: 'Failed to update post' }, { status: 500 })
+  }
 }
 
 export async function DELETE(_req: NextRequest, { params }: Ctx) {

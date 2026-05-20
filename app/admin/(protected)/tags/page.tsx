@@ -13,6 +13,7 @@ type Tag = {
 export default function TagsPage() {
   const [tags, setTags] = useState<Tag[]>([])
   const [loading, setLoading] = useState(true)
+  const [query, setQuery] = useState('')
   const [newName, setNewName] = useState('')
   const [creating, setCreating] = useState(false)
   const [editId, setEditId] = useState<string | null>(null)
@@ -99,8 +100,18 @@ export default function TagsPage() {
         ) : tags.length === 0 ? (
           <p className="text-[var(--muted)] text-sm">No tags yet.</p>
         ) : (
+          <div className="space-y-3">
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search tags…"
+              className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)]"
+            />
+            {tags.filter((t) => !query.trim() || t.name.toLowerCase().includes(query.toLowerCase())).length === 0 ? (
+              <p className="text-[var(--muted)] text-sm">No tags match "{query}".</p>
+            ) : (
           <ul className="space-y-2">
-            {tags.map((tag) => (
+            {tags.filter((t) => !query.trim() || t.name.toLowerCase().includes(query.toLowerCase())).map((tag) => (
               <li key={tag.id} className="flex items-center gap-3 p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
                 {editId === tag.id ? (
                   <div className="flex-1 flex gap-2">
@@ -136,6 +147,8 @@ export default function TagsPage() {
               </li>
             ))}
           </ul>
+            )}
+          </div>
         )}
       </main>
     </div>

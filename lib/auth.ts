@@ -1,31 +1,21 @@
 import NextAuth from 'next-auth'
 import Credentials from 'next-auth/providers/credentials'
-import bcrypt from 'bcryptjs'
+import { verifyPreAuthToken } from './admin-auth'
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
     Credentials({
       credentials: {
-        email: { label: 'Email', type: 'email' },
-        password: { label: 'Password', type: 'password' },
+        preAuthToken: { label: 'Pre-auth token', type: 'text' },
       },
       async authorize(credentials) {
-        const email = credentials?.email as string | undefined
-        const password = credentials?.password as string | undefined
+        const token = credentials?.preAuthToken as string | undefined
+        if (!token) return null
 
-        if (!email || !password) return null
-        if (email !== process.env.ADMIN_EMAIL) return null
+        const valid = await verifyPreAuthToken(token)
+        if (!valid) return null
 
-        const hash = process.env.ADMIN_PASSWORD_HASH
-        if (!hash) {
-          // Dev fallback: plain text comparison against ADMIN_PASSWORD
-          if (password !== process.env.ADMIN_PASSWORD) return null
-        } else {
-          const valid = await bcrypt.compare(password, hash)
-          if (!valid) return null
-        }
-
-        return { id: '1', email, name: 'Admin' }
+        return { id: '1', email: process.env.ADMIN_EMAIL ?? 'admin', name: 'Admin' }
       },
     }),
   ],

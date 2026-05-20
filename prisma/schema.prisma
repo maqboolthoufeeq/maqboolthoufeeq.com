@@ -48,3 +48,28 @@ model SiteContent {
   value     Json
   updatedAt DateTime @updatedAt
 }
+
+// Stores OTP codes, password reset tokens, and pre-auth tokens
+model AdminToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  type      String   // 'otp' | 'reset' | 'preauth'
+  expiresAt DateTime
+  used      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+// Tracks browsers that have completed OTP verification
+model AdminBrowser {
+  id        String   @id @default(cuid())
+  browserId String   @unique
+  createdAt DateTime @default(now())
+  lastUsed  DateTime @default(now())
+}
+
+// Stores admin password hash (overrides env var when set)
+model AdminSettings {
+  id           String   @id @default("singleton")
+  passwordHash String?
+  updatedAt    DateTime @updatedAt
+}

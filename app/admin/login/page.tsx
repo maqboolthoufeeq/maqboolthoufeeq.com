@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { signIn } from 'next-auth/react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -16,21 +17,47 @@ export default function LoginPage() {
     setError('')
     setLoading(true)
 
-    const res = await signIn('credentials', { email, password, redirect: false })
-    setLoading(false)
+    try {
+      const res = await fetch('/api/admin/pre-login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      })
+      const data = await res.json()
 
-    if (res?.error) {
-      setError('Invalid email or password')
-    } else {
-      router.push('/admin')
-      router.refresh()
+      if (!res.ok) {
+        setError(data.error ?? 'Invalid email or password')
+        return
+      }
+
+      if (data.requiresOtp) {
+        router.push('/admin/otp')
+        return
+      }
+
+      if (data.preAuthToken) {
+        const result = await signIn('credentials', { preAuthToken: data.preAuthToken, redirect: false })
+        if (result?.error) {
+          setError('Sign-in failed. Please try again.')
+        } else {
+          router.push('/admin')
+          router.refresh()
+        }
+      }
+    } catch {
+      setError('Something went wrong. Please try again.')
+    } finally {
+      setLoading(false)
     }
   }
+
+  const inputCls = 'w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)] transition-colors'
 
   return (
     <main className="min-h-screen flex items-center justify-center px-4 bg-[var(--background)]">
       <div className="w-full max-w-sm">
-        <h1 className="text-2xl font-bold text-[var(--foreground)] mb-8 text-center">Admin Login</h1>
+        <h1 className="text-2xl font-bold text-[var(--foreground)] mb-2 text-center">Admin Login</h1>
+        <p className="text-sm text-[var(--muted)] text-center mb-8">Sign in to manage your site</p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -42,7 +69,7 @@ export default function LoginPage() {
               onChange={(e) => setEmail(e.target.value)}
               required
               autoComplete="email"
-              className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)] transition-colors"
+              className={inputCls}
             />
           </div>
 
@@ -55,7 +82,7 @@ export default function LoginPage() {
               onChange={(e) => setPassword(e.target.value)}
               required
               autoComplete="current-password"
-              className="w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)] transition-colors"
+              className={inputCls}
             />
           </div>
 
@@ -68,6 +95,12 @@ export default function LoginPage() {
           >
             {loading ? 'Signing in…' : 'Sign in'}
           </button>
+
+          <div className="text-center">
+            <Link href="/admin/forgot-password" className="text-sm text-[var(--muted)] hover:text-[var(--accent)] transition-colors">
+              Forgot password?
+            </Link>
+          </div>
         </form>
       </div>
     </main>

@@ -1,11 +1,14 @@
 import Navbar from '@/components/Navbar'
 import PostCard from '@/components/blog/PostCard'
 import { prisma } from '@/lib/prisma'
-import type { Prisma } from '@prisma/client'
-
-type PostPreview = Prisma.PostGetPayload<{
-  select: { id: true; title: true; slug: true; excerpt: true; content: true; publishedAt: true }
-}>
+type PostPreview = {
+  id: string
+  title: string
+  slug: string
+  excerpt: string | null
+  content: string
+  publishedAt: Date | null
+}
 
 export const dynamic = 'force-dynamic'
 

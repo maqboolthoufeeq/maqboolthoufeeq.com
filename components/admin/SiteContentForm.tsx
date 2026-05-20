@@ -2,7 +2,21 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
-import type { HeroContent, AboutContent, ContactContent, FooterContent, ContactLink, NavbarContent, NavLink, ImageShape, ImageSize, SectionVisibility } from '@/lib/site-content'
+import type { HeroContent, AboutContent, ContactContent, FooterContent, ContactLink, NavbarContent, NavLink, ImageShape, ImageSize, SectionVisibility, SocialLink } from '@/lib/site-content'
+
+const SOCIAL_PLATFORMS = [
+  { value: 'github', label: 'GitHub' },
+  { value: 'linkedin', label: 'LinkedIn' },
+  { value: 'x', label: 'X (Twitter)' },
+  { value: 'facebook', label: 'Facebook' },
+  { value: 'instagram', label: 'Instagram' },
+  { value: 'youtube', label: 'YouTube' },
+  { value: 'discord', label: 'Discord' },
+  { value: 'devto', label: 'Dev.to' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'website', label: 'Website' },
+  { value: 'email', label: 'Email' },
+]
 
 const inputCls = 'w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)] text-sm'
 const textareaCls = `${inputCls} resize-y`
@@ -79,10 +93,12 @@ export function CollapsibleSection({
 
   return (
     <div className="rounded-xl border border-[var(--border)] overflow-hidden">
-      <button
-        type="button"
+      <div
+        role="button"
+        tabIndex={0}
         onClick={() => setOpen((o) => !o)}
-        className="w-full px-6 py-4 border-b border-[var(--border)] bg-[var(--surface)] flex items-start justify-between gap-4 text-left hover:bg-[var(--surface-hover,var(--surface))] transition-colors"
+        onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen((o) => !o) } }}
+        className="w-full px-6 py-4 border-b border-[var(--border)] bg-[var(--surface)] flex items-start justify-between gap-4 text-left cursor-pointer hover:bg-[var(--surface-hover,var(--surface))] transition-colors select-none"
       >
         <div className="flex items-start gap-3">
           <span
@@ -97,7 +113,7 @@ export function CollapsibleSection({
           </div>
         </div>
         <div onClick={(e) => e.stopPropagation()}>{toggle}</div>
-      </button>
+      </div>
       {open && <div className="px-6 py-6">{children}</div>}
     </div>
   )
@@ -264,6 +280,7 @@ export function NavbarForm({ initial }: { initial: NavbarContent }) {
 
 export function HeroForm({ initial }: { initial: HeroContent }) {
   const [form, setForm] = useState(initial)
+  const [socialLinks, setSocialLinks] = useState<SocialLink[]>(initial.socialLinks ?? [])
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
   const [uploading, setUploading] = useState(false)
@@ -271,6 +288,32 @@ export function HeroForm({ initial }: { initial: HeroContent }) {
 
   function set(field: keyof HeroContent, value: string) {
     setForm((p) => ({ ...p, [field]: value }))
+    setSaved(false)
+  }
+
+  function setSocial(i: number, field: keyof SocialLink, value: string) {
+    setSocialLinks((prev) => prev.map((l, idx) => (idx === i ? { ...l, [field]: value } : l)))
+    setSaved(false)
+  }
+
+  function addSocial() {
+    setSocialLinks((l) => [...l, { platform: 'github', href: '' }])
+    setSaved(false)
+  }
+
+  function removeSocial(i: number) {
+    setSocialLinks((l) => l.filter((_, idx) => idx !== i))
+    setSaved(false)
+  }
+
+  function moveSocial(i: number, dir: -1 | 1) {
+    setSocialLinks((prev) => {
+      const next = [...prev]
+      const swap = i + dir
+      if (swap < 0 || swap >= next.length) return prev
+      ;[next[i], next[swap]] = [next[swap], next[i]]
+      return next
+    })
     setSaved(false)
   }
 
@@ -291,7 +334,7 @@ export function HeroForm({ initial }: { initial: HeroContent }) {
     setSaving(true)
     setError('')
     try {
-      await save('hero', form)
+      await save('hero', { ...form, socialLinks })
       setSaved(true)
     } catch {
       setError('Failed to save')
@@ -428,6 +471,48 @@ export function HeroForm({ initial }: { initial: HeroContent }) {
             <input value={form.cta2Href} onChange={(e) => set('cta2Href', e.target.value)} placeholder="/#contact or https://…" className={inputCls} />
           </Field>
         </div>
+      </div>
+
+      <div className="space-y-2">
+        <label className="block text-sm text-[var(--muted)]">Social links (icon buttons below CTAs)</label>
+        {socialLinks.map((link, i) => (
+          <div key={i} className="p-3 rounded-lg border border-[var(--border)] bg-[var(--background)] space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-[var(--muted)]">Link {i + 1}</span>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={() => moveSocial(i, -1)} disabled={i === 0} className="text-xs text-[var(--muted)] hover:text-[var(--foreground)] disabled:opacity-20 px-1">▲</button>
+                <button type="button" onClick={() => moveSocial(i, 1)} disabled={i === socialLinks.length - 1} className="text-xs text-[var(--muted)] hover:text-[var(--foreground)] disabled:opacity-20 px-1">▼</button>
+                <button type="button" onClick={() => removeSocial(i)} className="text-xs text-[var(--muted)] hover:text-red-400 px-1">Remove</button>
+              </div>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-[var(--muted)] mb-1">Platform</label>
+                <select
+                  value={link.platform}
+                  onChange={(e) => setSocial(i, 'platform', e.target.value)}
+                  className={inputCls}
+                >
+                  {SOCIAL_PLATFORMS.map((p) => (
+                    <option key={p.value} value={p.value}>{p.label}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-xs text-[var(--muted)] mb-1">URL</label>
+                <input
+                  value={link.href}
+                  onChange={(e) => setSocial(i, 'href', e.target.value)}
+                  placeholder="https://…"
+                  className={inputCls}
+                />
+              </div>
+            </div>
+          </div>
+        ))}
+        <button type="button" onClick={addSocial} className="text-sm text-[var(--accent)] hover:underline">
+          + Add social link
+        </button>
       </div>
 
       <SaveButton saving={saving} saved={saved} />

@@ -3,6 +3,11 @@ import { prisma } from './prisma'
 export type ImageShape = 'circle' | 'rounded' | 'square'
 export type ImageSize = 'sm' | 'md' | 'lg'
 
+export interface SocialLink {
+  platform: string
+  href: string
+}
+
 export interface HeroContent {
   greeting: string
   name: string
@@ -17,6 +22,7 @@ export interface HeroContent {
   imageVisible: boolean
   imageShape: ImageShape
   imageSize: ImageSize
+  socialLinks: SocialLink[]
 }
 
 export interface AboutContent {
@@ -84,6 +90,7 @@ const DEFAULTS = {
     imageVisible: true as boolean,
     imageShape: 'circle' as ImageShape,
     imageSize: 'md' as ImageSize,
+    socialLinks: [] as SocialLink[],
   } satisfies HeroContent,
 
   about: {

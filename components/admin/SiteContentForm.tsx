@@ -60,6 +60,49 @@ async function uploadFile(file: File): Promise<string> {
   return url
 }
 
+// ─── Collapsible Section Card ─────────────────────────────────────────────────
+
+export function CollapsibleSection({
+  title,
+  description,
+  children,
+  toggle,
+  defaultOpen = true,
+}: {
+  title: string
+  description: string
+  children: React.ReactNode
+  toggle?: React.ReactNode
+  defaultOpen?: boolean
+}) {
+  const [open, setOpen] = useState(defaultOpen)
+
+  return (
+    <div className="rounded-xl border border-[var(--border)] overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full px-6 py-4 border-b border-[var(--border)] bg-[var(--surface)] flex items-start justify-between gap-4 text-left hover:bg-[var(--surface-hover,var(--surface))] transition-colors"
+      >
+        <div className="flex items-start gap-3">
+          <span
+            className="mt-0.5 text-[var(--muted)] transition-transform duration-200"
+            style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}
+          >
+            ▶
+          </span>
+          <div>
+            <h2 className="font-semibold text-[var(--foreground)]">{title}</h2>
+            <p className="text-sm text-[var(--muted)] mt-0.5">{description}</p>
+          </div>
+        </div>
+        <div onClick={(e) => e.stopPropagation()}>{toggle}</div>
+      </button>
+      {open && <div className="px-6 py-6">{children}</div>}
+    </div>
+  )
+}
+
 // ─── Section Visibility Toggle ───────────────────────────────────────────────
 
 export function SectionToggle({ sectionKey, initialSections }: {

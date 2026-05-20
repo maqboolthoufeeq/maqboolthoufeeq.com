@@ -11,6 +11,6 @@ export async function uploadImage(file: File): Promise<string> {
     throw new Error('Image must be smaller than 5 MB')
   }
 
-  const { url } = await put(file.name, file, { access: 'public' })
+  const { url } = await put(file.name, file, { access: 'public', allowOverwrite: true })
   return url
 }

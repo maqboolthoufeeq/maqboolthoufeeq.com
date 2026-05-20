@@ -1,0 +1,80 @@
+'use client'
+
+import { useState, useEffect } from 'react'
+
+type Tag = { id: string; name: string; slug: string }
+
+type Props = {
+  selectedIds: string[]
+  onChange: (ids: string[]) => void
+}
+
+export default function TagSelector({ selectedIds, onChange }: Props) {
+  const [tags, setTags] = useState<Tag[]>([])
+  const [newTag, setNewTag] = useState('')
+  const [creating, setCreating] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/tags').then((r) => r.json()).then(setTags)
+  }, [])
+
+  function toggle(id: string) {
+    onChange(selectedIds.includes(id) ? selectedIds.filter((x) => x !== id) : [...selectedIds, id])
+  }
+
+  async function handleCreate(e: React.FormEvent) {
+    e.preventDefault()
+    if (!newTag.trim()) return
+    setCreating(true)
+    const res = await fetch('/api/tags', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: newTag.trim() }),
+    })
+    setCreating(false)
+    if (res.ok) {
+      const tag: Tag = await res.json()
+      setTags((prev) => [...prev, tag].sort((a, b) => a.name.localeCompare(b.name)))
+      onChange([...selectedIds, tag.id])
+      setNewTag('')
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      {tags.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {tags.map((tag) => (
+            <button
+              key={tag.id}
+              type="button"
+              onClick={() => toggle(tag.id)}
+              className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                selectedIds.includes(tag.id)
+                  ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
+                  : 'border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)]'
+              }`}
+            >
+              {tag.name}
+            </button>
+          ))}
+        </div>
+      )}
+      <form onSubmit={handleCreate} className="flex gap-2">
+        <input
+          value={newTag}
+          onChange={(e) => setNewTag(e.target.value)}
+          placeholder="New tag name…"
+          className="flex-1 px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)]"
+        />
+        <button
+          type="submit"
+          disabled={creating || !newTag.trim()}
+          className="px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)] disabled:opacity-40 transition-colors"
+        >
+          {creating ? '…' : '+ Add'}
+        </button>
+      </form>
+    </div>
+  )
+}

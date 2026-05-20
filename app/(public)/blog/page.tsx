@@ -8,6 +8,7 @@ type PostPreview = {
   excerpt: string | null
   content: string
   publishedAt: Date | null
+  tags: { id: string; name: string; slug: string }[]
 }
 
 export const dynamic = 'force-dynamic'
@@ -21,7 +22,10 @@ export default async function BlogPage() {
   const posts = await prisma.post.findMany({
     where: { published: true },
     orderBy: { publishedAt: 'desc' },
-    select: { id: true, title: true, slug: true, excerpt: true, content: true, publishedAt: true },
+    select: {
+      id: true, title: true, slug: true, excerpt: true, content: true, publishedAt: true,
+      tags: { select: { id: true, name: true, slug: true } },
+    },
   })
 
   return (

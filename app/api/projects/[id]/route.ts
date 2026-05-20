@@ -6,7 +6,7 @@ type Ctx = { params: Promise<{ id: string }> }
 
 export async function GET(_req: NextRequest, { params }: Ctx) {
   const { id } = await params
-  const project = await prisma.project.findUnique({ where: { id } })
+  const project = await prisma.project.findUnique({ where: { id }, include: { tags: true } })
   if (!project) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   return NextResponse.json(project)
 }
@@ -17,8 +17,18 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
 
   const { id } = await params
   const body = await req.json()
+  const { tagIds, ...rest } = body
 
-  const project = await prisma.project.update({ where: { id }, data: body })
+  const project = await prisma.project.update({
+    where: { id },
+    data: {
+      ...rest,
+      ...(Array.isArray(tagIds)
+        ? { tags: { set: tagIds.map((tid: string) => ({ id: tid })) } }
+        : {}),
+    },
+    include: { tags: true },
+  })
   return NextResponse.json(project)
 }
 

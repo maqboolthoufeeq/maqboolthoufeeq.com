@@ -6,8 +6,11 @@ import About from '@/components/sections/About'
 import Projects from '@/components/sections/Projects'
 import BlogPreview from '@/components/sections/BlogPreview'
 import Contact from '@/components/sections/Contact'
+import { getSiteContent } from '@/lib/site-content'
 
-export default function Home() {
+export default async function Home() {
+  const footer = await getSiteContent('footer')
+
   return (
     <>
       <Navbar />
@@ -19,7 +22,7 @@ export default function Home() {
         <Contact />
       </main>
       <footer className="border-t border-[var(--border)] py-6 text-center text-xs text-[var(--muted)]">
-        © {new Date().getFullYear()} Maqbool Thoufeeq. Built with Next.js.
+        © {new Date().getFullYear()} {footer.copyrightName}
       </footer>
     </>
   )

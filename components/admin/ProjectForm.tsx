@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import TagSelector from '@/components/admin/TagSelector'
 
 type FormData = {
   title: string
@@ -15,7 +16,7 @@ type FormData = {
 
 type Props = {
   projectId?: string
-  initial?: Partial<FormData>
+  initial?: Partial<FormData & { tagIds: string[] }>
 }
 
 export default function ProjectForm({ projectId, initial }: Props) {
@@ -29,6 +30,7 @@ export default function ProjectForm({ projectId, initial }: Props) {
     imageUrl: initial?.imageUrl ?? '',
     featured: initial?.featured ?? false,
   })
+  const [tagIds, setTagIds] = useState<string[]>(initial?.tagIds ?? [])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [uploading, setUploading] = useState(false)
@@ -64,6 +66,7 @@ export default function ProjectForm({ projectId, initial }: Props) {
       liveUrl: form.liveUrl || null,
       repoUrl: form.repoUrl || null,
       imageUrl: form.imageUrl || null,
+      tagIds,
     }
 
     const url = projectId ? `/api/projects/${projectId}` : '/api/projects'
@@ -131,6 +134,11 @@ export default function ProjectForm({ projectId, initial }: Props) {
           </label>
         </div>
       </Field>
+
+      <div>
+        <label className="block text-sm text-[var(--muted)] mb-2">Tags</label>
+        <TagSelector selectedIds={tagIds} onChange={setTagIds} />
+      </div>
 
       <label className="flex items-center gap-2 text-sm text-[var(--muted)] cursor-pointer">
         <input type="checkbox" checked={form.featured} onChange={(e) => set('featured', e.target.checked)} className="accent-[var(--accent)]" />

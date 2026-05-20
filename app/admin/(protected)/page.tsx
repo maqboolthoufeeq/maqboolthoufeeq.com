@@ -3,10 +3,11 @@ import { signOut } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
 export default async function AdminDashboard() {
-  const [postCount, publishedCount, projectCount] = await Promise.all([
+  const [postCount, publishedCount, projectCount, tagCount] = await Promise.all([
     prisma.post.count(),
     prisma.post.count({ where: { published: true } }),
     prisma.project.count(),
+    prisma.tag.count(),
   ])
 
   return (
@@ -26,15 +27,18 @@ export default async function AdminDashboard() {
       </header>
 
       <main className="max-w-4xl mx-auto px-6 py-10">
-        <div className="grid sm:grid-cols-3 gap-4 mb-10">
+        <div className="grid sm:grid-cols-4 gap-4 mb-10">
           <StatCard label="Total posts" value={postCount} />
           <StatCard label="Published posts" value={publishedCount} />
           <StatCard label="Projects" value={projectCount} />
+          <StatCard label="Tags" value={tagCount} />
         </div>
 
         <div className="grid sm:grid-cols-2 gap-4">
           <AdminLink href="/admin/posts" title="Manage Posts" description="Create, edit, and publish blog posts" />
           <AdminLink href="/admin/projects" title="Manage Projects" description="Add and order portfolio projects" />
+          <AdminLink href="/admin/site-content" title="Edit Landing Page" description="Update hero, about, contact, and footer content" />
+          <AdminLink href="/admin/tags" title="Manage Tags" description="Create and organise tags for posts and projects" />
         </div>
       </main>
     </div>

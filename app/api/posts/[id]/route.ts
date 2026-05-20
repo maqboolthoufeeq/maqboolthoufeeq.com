@@ -8,7 +8,7 @@ export async function GET(_req: NextRequest, { params }: Ctx) {
   const session = await auth()
   const { id } = await params
 
-  const post = await prisma.post.findUnique({ where: { id } })
+  const post = await prisma.post.findUnique({ where: { id }, include: { tags: true } })
   if (!post) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   if (!post.published && !session) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
@@ -21,12 +21,27 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
 
   const { id } = await params
   const body = await req.json()
+  const { tagIds, createdAt, publishedAt, ...rest } = body
 
-  if (body.published === true) {
-    body.publishedAt = body.publishedAt ?? new Date()
+  if (rest.published === true && publishedAt === undefined) {
+    rest.publishedAt = new Date()
+  } else if (publishedAt !== undefined) {
+    rest.publishedAt = publishedAt ? new Date(publishedAt) : null
+  }
+  if (createdAt !== undefined && createdAt) {
+    rest.createdAt = new Date(createdAt)
   }
 
-  const post = await prisma.post.update({ where: { id }, data: body })
+  const post = await prisma.post.update({
+    where: { id },
+    data: {
+      ...rest,
+      ...(Array.isArray(tagIds)
+        ? { tags: { set: tagIds.map((tid: string) => ({ id: tid })) } }
+        : {}),
+    },
+    include: { tags: true },
+  })
   return NextResponse.json(post)
 }
 

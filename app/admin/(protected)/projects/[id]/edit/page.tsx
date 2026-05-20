@@ -7,7 +7,7 @@ type Props = { params: Promise<{ id: string }> }
 
 export default async function EditProjectPage({ params }: Props) {
   const { id } = await params
-  const project = await prisma.project.findUnique({ where: { id } })
+  const project = await prisma.project.findUnique({ where: { id }, include: { tags: true } })
   if (!project) notFound()
 
   const initial = {
@@ -18,6 +18,7 @@ export default async function EditProjectPage({ params }: Props) {
     repoUrl: project.repoUrl ?? '',
     imageUrl: project.imageUrl ?? '',
     featured: project.featured,
+    tagIds: project.tags.map((t) => t.id),
   }
 
   return (

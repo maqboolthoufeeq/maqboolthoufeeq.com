@@ -8,6 +8,7 @@ export default async function Projects() {
     where: { featured: true },
     orderBy: { order: 'asc' },
     take: 6,
+    include: { tags: { select: { id: true, name: true } } },
   })
 
   return (
@@ -32,13 +33,22 @@ export default async function Projects() {
               <div className="p-5 flex flex-col flex-1">
                 <h3 className="font-semibold text-[var(--foreground)] mb-1">{p.title}</h3>
                 <p className="text-sm text-[var(--muted)] mb-4 flex-1">{p.description}</p>
-                <div className="flex flex-wrap gap-1.5 mb-4">
+                <div className="flex flex-wrap gap-1.5 mb-3">
                   {p.tech.map((t) => (
                     <span key={t} className="text-xs px-2 py-0.5 rounded-full bg-[var(--background)] border border-[var(--border)] text-[var(--muted)]">
                       {t}
                     </span>
                   ))}
                 </div>
+                {p.tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    {p.tags.map((tag) => (
+                      <span key={tag.id} className="text-xs px-2 py-0.5 rounded-full border border-[var(--accent)] text-[var(--accent)]">
+                        #{tag.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
                 <div className="flex gap-3">
                   {p.liveUrl && (
                     <Link href={p.liveUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-sm text-[var(--accent)] hover:underline">

@@ -18,6 +18,7 @@ model Project {
   featured    Boolean  @default(false)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+  tags        Tag[]    @relation("ProjectTags")
 }
 
 model Post {
@@ -26,8 +27,24 @@ model Post {
   slug        String    @unique
   excerpt     String?
   content     String
+  coverImage  String?
   published   Boolean   @default(false)
   publishedAt DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
+  tags        Tag[]     @relation("PostTags")
+}
+
+model Tag {
+  id       String    @id @default(cuid())
+  name     String    @unique
+  slug     String    @unique
+  posts    Post[]    @relation("PostTags")
+  projects Project[] @relation("ProjectTags")
+}
+
+model SiteContent {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
 }

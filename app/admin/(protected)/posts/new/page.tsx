@@ -2,8 +2,12 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import Link from 'next/link'
 import Editor from '@/components/admin/Editor'
+import TagSelector from '@/components/admin/TagSelector'
+
+const inputCls = 'w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)]'
 
 export default function NewPostPage() {
   const router = useRouter()
@@ -11,8 +15,25 @@ export default function NewPostPage() {
   const [excerpt, setExcerpt] = useState('')
   const [content, setContent] = useState('')
   const [published, setPublished] = useState(false)
+  const [coverImage, setCoverImage] = useState('')
+  const [publishedAt, setPublishedAt] = useState('')
+  const [createdAt, setCreatedAt] = useState('')
+  const [tagIds, setTagIds] = useState<string[]>([])
   const [saving, setSaving] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
+
+  async function handleImageUpload(file: File) {
+    setUploading(true)
+    const fd = new FormData()
+    fd.append('file', file)
+    const res = await fetch('/api/upload', { method: 'POST', body: fd })
+    setUploading(false)
+    if (res.ok) {
+      const { url } = await res.json()
+      setCoverImage(url)
+    }
+  }
 
   async function handleSave() {
     if (!title.trim() || !content.trim()) {
@@ -25,7 +46,16 @@ export default function NewPostPage() {
     const res = await fetch('/api/posts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ title, excerpt, content, published }),
+      body: JSON.stringify({
+        title,
+        excerpt,
+        content,
+        published,
+        coverImage: coverImage || null,
+        publishedAt: publishedAt || null,
+        createdAt: createdAt || null,
+        tagIds,
+      }),
     })
 
     setSaving(false)
@@ -73,10 +103,51 @@ export default function NewPostPage() {
           placeholder="Short excerpt (optional)"
           value={excerpt}
           onChange={(e) => setExcerpt(e.target.value)}
-          className="w-full text-sm px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)]"
+          className={inputCls}
         />
 
+        <div>
+          <label className="block text-sm text-[var(--muted)] mb-1">Cover image</label>
+          <div className="flex gap-2 items-start">
+            <input
+              value={coverImage}
+              onChange={(e) => setCoverImage(e.target.value)}
+              placeholder="https://… or upload"
+              className={`${inputCls} flex-1`}
+            />
+            <label className="cursor-pointer px-3 py-2 text-sm border border-[var(--border)] rounded-lg text-[var(--muted)] hover:border-[var(--accent)] transition-colors whitespace-nowrap">
+              {uploading ? '…' : 'Upload'}
+              <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageUpload(f) }} />
+            </label>
+          </div>
+          {coverImage && (
+            <div className="mt-2 relative h-40 w-full rounded-lg overflow-hidden border border-[var(--border)]">
+              <Image src={coverImage} alt="Cover preview" fill className="object-cover" unoptimized={coverImage.startsWith('http')} />
+            </div>
+          )}
+        </div>
+
         <Editor content={content} onChange={setContent} />
+
+        <div className="p-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] space-y-4">
+          <h2 className="text-sm font-medium text-[var(--foreground)]">Metadata</h2>
+
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-xs text-[var(--muted)] mb-1">Published At (UTC)</label>
+              <input type="datetime-local" value={publishedAt} onChange={(e) => setPublishedAt(e.target.value)} className={inputCls} />
+            </div>
+            <div>
+              <label className="block text-xs text-[var(--muted)] mb-1">Created At (UTC)</label>
+              <input type="datetime-local" value={createdAt} onChange={(e) => setCreatedAt(e.target.value)} className={inputCls} />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs text-[var(--muted)] mb-2">Tags</label>
+            <TagSelector selectedIds={tagIds} onChange={setTagIds} />
+          </div>
+        </div>
       </main>
     </div>
   )

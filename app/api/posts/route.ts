@@ -12,7 +12,11 @@ export async function GET(req: NextRequest) {
   const posts = await prisma.post.findMany({
     where,
     orderBy: { publishedAt: 'desc' },
-    select: { id: true, title: true, slug: true, excerpt: true, published: true, publishedAt: true, createdAt: true },
+    select: {
+      id: true, title: true, slug: true, excerpt: true, coverImage: true,
+      published: true, publishedAt: true, createdAt: true,
+      tags: { select: { id: true, name: true, slug: true } },
+    },
   })
   return NextResponse.json(posts)
 }
@@ -22,7 +26,7 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
-  const { title, content, excerpt, published } = body
+  const { title, content, excerpt, published, coverImage, createdAt, publishedAt, tagIds } = body
 
   if (!title || !content) {
     return NextResponse.json({ error: 'title and content are required' }, { status: 400 })
@@ -35,9 +39,15 @@ export async function POST(req: NextRequest) {
       slug,
       content,
       excerpt: excerpt ?? null,
+      coverImage: coverImage ?? null,
       published: Boolean(published),
-      publishedAt: published ? new Date() : null,
+      publishedAt: publishedAt ? new Date(publishedAt) : published ? new Date() : null,
+      ...(createdAt ? { createdAt: new Date(createdAt) } : {}),
+      ...(Array.isArray(tagIds) && tagIds.length > 0
+        ? { tags: { connect: tagIds.map((id: string) => ({ id })) } }
+        : {}),
     },
+    include: { tags: true },
   })
   return NextResponse.json(post, { status: 201 })
 }

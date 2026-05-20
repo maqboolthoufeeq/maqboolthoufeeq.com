@@ -2,6 +2,10 @@
 @plugin "@tailwindcss/typography";
 @custom-variant dark (&:where(.dark, .dark *));
 
+@theme {
+  --font-display: var(--font-lora);
+}
+
 :root {
   --background: #f1f5f9;
   --surface: #ffffff;

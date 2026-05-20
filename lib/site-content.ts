@@ -6,6 +6,7 @@ export type ImageSize = 'sm' | 'md' | 'lg'
 export interface HeroContent {
   greeting: string
   name: string
+  lastName: string
   title: string
   description: string
   cta1Label: string
@@ -30,6 +31,7 @@ export interface NavLink {
 
 export interface NavbarContent {
   brandName: string
+  brandTag: string
   links: NavLink[]
 }
 
@@ -59,6 +61,7 @@ export interface SectionVisibility {
 const DEFAULTS = {
   navbar: {
     brandName: 'Maqbool Thoufeeq',
+    brandTag: 'Tharayil',
     links: [
       { href: '/#about', label: 'About' },
       { href: '/#projects', label: 'Projects' },
@@ -70,6 +73,7 @@ const DEFAULTS = {
   hero: {
     greeting: "Hello, I'm",
     name: 'Maqbool Thoufeeq',
+    lastName: 'Tharayil',
     title: 'Full-Stack Developer',
     description: 'I build fast, beautiful web products — from polished frontends to scalable backend systems.',
     cta1Label: 'See my work',

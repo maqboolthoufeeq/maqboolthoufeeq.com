@@ -13,9 +13,16 @@ export default async function Navbar() {
       <nav className="max-w-5xl mx-auto px-4 h-14 flex items-center justify-between">
         <Link
           href="/"
-          className="font-semibold text-[var(--foreground)] hover:text-[var(--accent)] transition-colors"
+          className="flex flex-col leading-tight hover:text-[var(--accent)] transition-colors group"
         >
-          {navbar.brandName}
+          {navbar.brandTag && (
+            <span className="text-[10px] font-medium tracking-widest uppercase text-[var(--accent)] group-hover:text-[var(--accent)]">
+              {navbar.brandTag}
+            </span>
+          )}
+          <span className="font-semibold text-[var(--foreground)] group-hover:text-[var(--accent)] transition-colors">
+            {navbar.brandName}
+          </span>
         </Link>
 
         <div className="flex items-center gap-1">

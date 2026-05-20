@@ -153,6 +153,7 @@ export function SectionToggle({ sectionKey, initialSections }: {
 
 export function NavbarForm({ initial }: { initial: NavbarContent }) {
   const [brandName, setBrandName] = useState(initial.brandName)
+  const [brandTag, setBrandTag] = useState(initial.brandTag ?? '')
   const [links, setLinks] = useState<NavLink[]>(initial.links)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -189,7 +190,7 @@ export function NavbarForm({ initial }: { initial: NavbarContent }) {
     setSaving(true)
     setError('')
     try {
-      await save('navbar', { brandName, links: links.filter((l) => l.label && l.href) })
+      await save('navbar', { brandName, brandTag, links: links.filter((l) => l.label && l.href) })
       setSaved(true)
     } catch {
       setError('Failed to save')
@@ -201,6 +202,14 @@ export function NavbarForm({ initial }: { initial: NavbarContent }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && <p className="text-red-400 text-sm">{error}</p>}
+      <Field label="Brand tag (shown above logo text)">
+        <input
+          value={brandTag}
+          onChange={(e) => { setBrandTag(e.target.value); setSaved(false) }}
+          placeholder="e.g. Tharayil"
+          className={inputCls}
+        />
+      </Field>
       <Field label="Brand name (logo text)">
         <input
           value={brandName}
@@ -391,6 +400,9 @@ export function HeroForm({ initial }: { initial: HeroContent }) {
       </Field>
       <Field label="Name">
         <input value={form.name} onChange={(e) => set('name', e.target.value)} className={inputCls} />
+      </Field>
+      <Field label="Last name (shown smaller below name)">
+        <input value={(form as HeroContent & { lastName?: string }).lastName ?? ''} onChange={(e) => set('lastName' as keyof HeroContent, e.target.value)} placeholder="e.g. Tharayil" className={inputCls} />
       </Field>
       <Field label="Title / role">
         <input value={form.title} onChange={(e) => set('title', e.target.value)} className={inputCls} />

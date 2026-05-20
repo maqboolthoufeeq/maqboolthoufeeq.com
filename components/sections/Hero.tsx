@@ -33,8 +33,18 @@ export default async function Hero() {
     <section id="home" className="max-w-5xl mx-auto px-4 py-24 flex flex-col-reverse sm:flex-row items-center gap-12">
       <div className="flex-1 text-center sm:text-left">
         <p className="text-[var(--accent)] font-mono text-sm mb-3">{hero.greeting}</p>
-        <h1 className="text-4xl sm:text-5xl font-bold text-[var(--foreground)] mb-4 leading-tight">
-          {hero.name}
+        <h1 className="mb-4 leading-none">
+          {hero.lastName && (
+            <span
+              style={{ fontFamily: 'var(--font-lora), serif' }}
+              className="block text-3xl sm:text-4xl italic font-normal tracking-widest mb-1 text-[#94a3b8] dark:text-[#94a3b8]"
+            >
+              {hero.lastName}
+            </span>
+          )}
+          <span className="block text-5xl sm:text-6xl font-bold text-[var(--foreground)] tracking-tight">
+            {hero.name}
+          </span>
         </h1>
         <p className="text-xl text-[var(--muted)] mb-8">{hero.title}</p>
         <p className="text-[var(--muted)] max-w-md mb-10 leading-relaxed">

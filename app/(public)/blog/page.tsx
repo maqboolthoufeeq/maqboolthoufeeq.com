@@ -52,7 +52,7 @@ export default async function BlogPage({
   return (
     <>
       <Navbar />
-      <main className="max-w-3xl mx-auto px-4 py-16">
+      <main className="max-w-5xl mx-auto px-4 py-16">
         <h1 className="text-3xl font-bold text-[var(--foreground)] mb-2">Blog</h1>
         <div className="w-10 h-0.5 bg-[var(--accent)] mb-10" />
 

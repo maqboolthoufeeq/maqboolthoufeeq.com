@@ -95,63 +95,89 @@ export default function ProjectsClient({
     return matchesQ && matchesTag
   })
 
+  const hasFilter = query || activeTag
+
   return (
     <div>
-      <div className="flex items-start justify-between gap-4 mb-8 flex-wrap">
-        <div className="space-y-3 flex-1">
-          <input
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search projects…"
-            className="w-full sm:w-72 px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)]"
-          />
-          {allTags.length > 0 && (
-            <div className="flex flex-wrap gap-2">
-              {allTags.map((tag) => (
-                <button
-                  key={tag.id}
-                  type="button"
-                  onClick={() => setActiveTag(activeTag === tag.id ? '' : tag.id)}
-                  className={[
-                    'text-xs px-3 py-1 rounded-full border transition-colors cursor-pointer',
-                    activeTag === tag.id
-                      ? 'border-[var(--accent)] text-[var(--accent)] bg-[var(--accent)]/10'
-                      : 'border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--foreground)]',
-                  ].join(' ')}
-                >
-                  #{tag.name}
-                </button>
-              ))}
-            </div>
-          )}
+      {/* Search bar — matches blog search style */}
+      <div className="space-y-4 mb-10">
+        <div className="flex items-center gap-2">
+          <form
+            onSubmit={(e) => e.preventDefault()}
+            className="flex gap-2 flex-1"
+          >
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search projects…"
+              className="flex-1 px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)]"
+            />
+            <button
+              type="submit"
+              className="px-4 py-2 text-sm bg-[var(--accent)] text-white rounded-lg hover:opacity-90 transition-opacity cursor-pointer"
+            >
+              Search
+            </button>
+            {hasFilter && (
+              <button
+                type="button"
+                onClick={() => { setQuery(''); setActiveTag('') }}
+                className="px-3 py-2 text-sm text-[var(--muted)] hover:text-[var(--foreground)] rounded-lg border border-[var(--border)] transition-colors cursor-pointer"
+              >
+                Clear
+              </button>
+            )}
+          </form>
+
+          {/* View toggle */}
+          <div className="flex items-center gap-1 rounded-lg border border-[var(--border)] p-1 flex-shrink-0">
+            <button
+              type="button"
+              onClick={() => setView('list')}
+              title="List view"
+              className={`p-1.5 rounded cursor-pointer transition-colors ${
+                view === 'list'
+                  ? 'bg-[var(--accent)] text-white'
+                  : 'text-[var(--muted)] hover:text-[var(--foreground)]'
+              }`}
+            >
+              <List size={16} />
+            </button>
+            <button
+              type="button"
+              onClick={() => setView('grid')}
+              title="Grid view"
+              className={`p-1.5 rounded cursor-pointer transition-colors ${
+                view === 'grid'
+                  ? 'bg-[var(--accent)] text-white'
+                  : 'text-[var(--muted)] hover:text-[var(--foreground)]'
+              }`}
+            >
+              <LayoutGrid size={16} />
+            </button>
+          </div>
         </div>
 
-        <div className="flex items-center gap-1 rounded-lg border border-[var(--border)] p-1 self-start">
-          <button
-            type="button"
-            onClick={() => setView('list')}
-            title="List view"
-            className={`p-1.5 rounded cursor-pointer transition-colors ${
-              view === 'list'
-                ? 'bg-[var(--accent)] text-white'
-                : 'text-[var(--muted)] hover:text-[var(--foreground)]'
-            }`}
-          >
-            <List size={16} />
-          </button>
-          <button
-            type="button"
-            onClick={() => setView('grid')}
-            title="Grid view"
-            className={`p-1.5 rounded cursor-pointer transition-colors ${
-              view === 'grid'
-                ? 'bg-[var(--accent)] text-white'
-                : 'text-[var(--muted)] hover:text-[var(--foreground)]'
-            }`}
-          >
-            <LayoutGrid size={16} />
-          </button>
-        </div>
+        {/* Tag pills */}
+        {allTags.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            {allTags.map((tag) => (
+              <button
+                key={tag.id}
+                type="button"
+                onClick={() => setActiveTag(activeTag === tag.id ? '' : tag.id)}
+                className={[
+                  'text-xs px-3 py-1 rounded-full border transition-colors cursor-pointer',
+                  activeTag === tag.id
+                    ? 'border-[var(--accent)] text-[var(--accent)] bg-[var(--accent)]/10'
+                    : 'border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--foreground)]',
+                ].join(' ')}
+              >
+                #{tag.name}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {filtered.length === 0 ? (

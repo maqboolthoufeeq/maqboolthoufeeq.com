@@ -1,7 +1,10 @@
 import Navbar from '@/components/Navbar'
 import BlogSearch from '@/components/blog/BlogSearch'
 import BlogListClient from '@/components/blog/BlogListClient'
+import BlogArchive from '@/components/blog/BlogArchive'
+import BlogTagsWidget from '@/components/blog/BlogTagsWidget'
 import { prisma } from '@/lib/prisma'
+import { getSiteContent } from '@/lib/site-content'
 
 export const dynamic = 'force-dynamic'
 
@@ -25,7 +28,7 @@ export default async function BlogPage({
     ...(tag ? { tags: { some: { slug: tag } } } : {}),
   }
 
-  const [posts, total, tags] = await Promise.all([
+  const [posts, total, tags, archivePosts, sections] = await Promise.all([
     prisma.post.findMany({
       where,
       orderBy: { publishedAt: 'desc' },
@@ -47,7 +50,20 @@ export default async function BlogPage({
       orderBy: { name: 'asc' },
       select: { id: true, name: true, slug: true },
     }),
+    prisma.post.findMany({
+      where: { published: true },
+      orderBy: { publishedAt: 'desc' },
+      select: { slug: true, title: true, publishedAt: true },
+    }),
+    getSiteContent('sections'),
   ])
+
+  const archiveData = archivePosts
+    .filter((p) => p.publishedAt !== null)
+    .map((p) => ({ slug: p.slug, title: p.title, publishedAt: p.publishedAt!.toISOString() }))
+
+  const showArchive = sections.blogArchive && archiveData.length > 0
+  const showSidebar = showArchive || tags.length > 0
 
   return (
     <>
@@ -56,14 +72,24 @@ export default async function BlogPage({
         <h1 className="text-3xl font-bold text-[var(--foreground)] mb-2">Blog</h1>
         <div className="w-10 h-0.5 bg-[var(--accent)] mb-10" />
 
-        <BlogSearch tags={tags} initialQ={q} initialTag={tag} />
+        <div className={showSidebar ? 'flex gap-8 items-start' : undefined}>
+          <div className="flex-1 min-w-0">
+            <BlogSearch tags={tags} initialQ={q} initialTag={tag} />
+            <BlogListClient
+              initialPosts={posts}
+              initialHasMore={total > PAGE_SIZE}
+              q={q}
+              tag={tag}
+            />
+          </div>
 
-        <BlogListClient
-          initialPosts={posts}
-          initialHasMore={total > PAGE_SIZE}
-          q={q}
-          tag={tag}
-        />
+          {showSidebar && (
+            <aside className="w-56 flex-shrink-0 sticky top-6 hidden lg:flex lg:flex-col lg:gap-4">
+              {showArchive && <BlogArchive posts={archiveData} />}
+              {tags.length > 0 && <BlogTagsWidget tags={tags} activeTag={tag} />}
+            </aside>
+          )}
+        </div>
       </main>
     </>
   )

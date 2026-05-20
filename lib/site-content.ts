@@ -53,6 +53,7 @@ export interface SectionVisibility {
   projects: boolean
   blogPreview: boolean
   contact: boolean
+  blogArchive: boolean
 }
 
 const DEFAULTS = {
@@ -108,6 +109,7 @@ const DEFAULTS = {
     projects: true as boolean,
     blogPreview: true as boolean,
     contact: true as boolean,
+    blogArchive: true as boolean,
   } satisfies SectionVisibility,
 }
 

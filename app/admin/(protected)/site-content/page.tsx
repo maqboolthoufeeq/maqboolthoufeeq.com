@@ -77,6 +77,16 @@ export default async function SiteContentPage() {
           <ContactForm initial={contact} />
         </CollapsibleSection>
 
+        <CollapsibleSection
+          title="Blog archive"
+          description="Chronological year/month tree shown on the blog page."
+          toggle={<SectionToggle sectionKey="blogArchive" initialSections={sections} />}
+        >
+          <p className="text-sm text-[var(--muted)]">
+            When enabled, a collapsible archive widget appears above the blog post list, grouped by year and month.
+          </p>
+        </CollapsibleSection>
+
         <CollapsibleSection title="Footer" description="Copyright name in the site footer.">
           <FooterForm initial={footer} />
         </CollapsibleSection>

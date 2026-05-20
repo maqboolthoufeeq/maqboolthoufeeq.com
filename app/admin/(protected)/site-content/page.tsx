@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { getSiteContent, SectionVisibility } from '@/lib/site-content'
+import { getSiteContent } from '@/lib/site-content'
 import { NavbarForm, HeroForm, AboutForm, ContactForm, FooterForm, SectionToggle, CollapsibleSection } from '@/components/admin/SiteContentForm'
 
 export default async function SiteContentPage() {

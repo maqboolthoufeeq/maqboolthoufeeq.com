@@ -1,0 +1,7 @@
+#!/bin/sh
+
+# 1. Lint staged files (ESLint on changed TS/TSX only — fast)
+npx lint-staged
+
+# 2. Full TypeScript type check (catches cross-file errors)
+npx tsc --noEmit

@@ -70,7 +70,7 @@ export default function TagSelector({ selectedIds, onChange }: Props) {
                 {tag.name}
               </button>
             )) : (
-              <p className="text-xs text-[var(--muted)]">No tags match "{search}"</p>
+              <p className="text-xs text-[var(--muted)]">No tags match &ldquo;{search}&rdquo;</p>
             )}
           </div>
         </>

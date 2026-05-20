@@ -228,7 +228,7 @@ export default function Editor({ content, onChange }: Props) {
         {FONTS.map(f => (
           <button key={f.label} type="button" onMouseDown={e => e.preventDefault()}
             onClick={() => {
-              f.value ? ed.chain().focus().setFontFamily(f.value).run() : ed.chain().focus().unsetFontFamily().run()
+              if (f.value) { ed.chain().focus().setFontFamily(f.value).run() } else { ed.chain().focus().unsetFontFamily().run() }
               closePanel()
             }}
             className={fBtn(!f.value ? !currentFont : currentFont === f.value)}
@@ -314,7 +314,7 @@ export default function Editor({ content, onChange }: Props) {
         <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => openPanel('font')} className={fBtn(!!currentFont)} title="Font family">Aa</button>
         <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => openPanel('size')} className={fBtn(!!currentSize)} title="Font size">Sz</button>
         <button type="button" onMouseDown={e => e.preventDefault()} onClick={() => openPanel('color')} title="Font color"
-          className={`px-1.5 py-0.5 rounded transition-colors cursor-pointer select-none ${!!currentColor ? 'bg-[var(--accent)]/20' : 'hover:bg-[var(--accent)]/20'}`}
+          className={`px-1.5 py-0.5 rounded transition-colors cursor-pointer select-none ${currentColor ? 'bg-[var(--accent)]/20' : 'hover:bg-[var(--accent)]/20'}`}
         >
           <span className="text-xs font-mono font-bold" style={{ color: currentColor ?? 'var(--foreground)', textDecoration: 'underline', textDecorationColor: currentColor ?? 'var(--muted)', textDecorationThickness: '2px' }}>A</span>
         </button>

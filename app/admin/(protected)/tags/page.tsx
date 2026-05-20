@@ -108,7 +108,7 @@ export default function TagsPage() {
               className="w-full px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)]"
             />
             {tags.filter((t) => !query.trim() || t.name.toLowerCase().includes(query.toLowerCase())).length === 0 ? (
-              <p className="text-[var(--muted)] text-sm">No tags match "{query}".</p>
+              <p className="text-[var(--muted)] text-sm">No tags match &ldquo;{query}&rdquo;.</p>
             ) : (
           <ul className="space-y-2">
             {tags.filter((t) => !query.trim() || t.name.toLowerCase().includes(query.toLowerCase())).map((tag) => (

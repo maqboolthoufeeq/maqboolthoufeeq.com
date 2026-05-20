@@ -119,7 +119,7 @@ export default function ProjectList({ initialProjects }: { initialProjects: Proj
           <Link href="/admin/projects/new" className="text-[var(--accent)] hover:underline">Add one →</Link>
         </p>
       ) : filtered.length === 0 ? (
-        <p className="text-[var(--muted)] text-sm">No projects match "{query}".</p>
+        <p className="text-[var(--muted)] text-sm">No projects match &ldquo;{query}&rdquo;.</p>
       ) : q ? (
         <div className="rounded-xl border border-[var(--border)] overflow-hidden">
           <table className="w-full text-sm">

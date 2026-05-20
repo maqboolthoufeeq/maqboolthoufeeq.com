@@ -1,6 +1,18 @@
 import Image from 'next/image'
 import Link from 'next/link'
 import { getSiteContent } from '@/lib/site-content'
+import { isExternal } from '@/lib/utils'
+
+function CtaLink({ href, className, children }: { href: string; className: string; children: React.ReactNode }) {
+  if (isExternal(href)) {
+    return (
+      <a href={href} target="_blank" rel="noopener noreferrer" className={className}>
+        {children}
+      </a>
+    )
+  }
+  return <Link href={href} className={className}>{children}</Link>
+}
 
 export default async function Hero() {
   const hero = await getSiteContent('hero')
@@ -17,18 +29,18 @@ export default async function Hero() {
           {hero.description}
         </p>
         <div className="flex flex-wrap gap-3 justify-center sm:justify-start">
-          <Link
+          <CtaLink
             href={hero.cta1Href}
             className="px-6 py-2.5 bg-[var(--accent)] text-white rounded-lg font-medium hover:opacity-90 transition-opacity glow"
           >
             {hero.cta1Label}
-          </Link>
-          <Link
+          </CtaLink>
+          <CtaLink
             href={hero.cta2Href}
             className="px-6 py-2.5 border border-[var(--border)] text-[var(--foreground)] rounded-lg font-medium hover:border-[var(--accent)] transition-colors"
           >
             {hero.cta2Label}
-          </Link>
+          </CtaLink>
         </div>
       </div>
 

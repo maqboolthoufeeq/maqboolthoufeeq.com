@@ -17,6 +17,16 @@ export interface AboutContent {
   skills: string[]
 }
 
+export interface NavLink {
+  href: string
+  label: string
+}
+
+export interface NavbarContent {
+  brandName: string
+  links: NavLink[]
+}
+
 export interface ContactLink {
   href: string
   label: string
@@ -32,6 +42,16 @@ export interface FooterContent {
 }
 
 const DEFAULTS = {
+  navbar: {
+    brandName: 'Maqbool Thoufeeq',
+    links: [
+      { href: '/#about', label: 'About' },
+      { href: '/#projects', label: 'Projects' },
+      { href: '/blog', label: 'Blog' },
+      { href: '/#contact', label: 'Contact' },
+    ],
+  } satisfies NavbarContent,
+
   hero: {
     greeting: "Hello, I'm",
     name: 'Maqbool Thoufeeq',

@@ -1,12 +1,14 @@
-import Link from 'next/link'
 import { Code2, ExternalLink, Mail } from 'lucide-react'
 import { getSiteContent } from '@/lib/site-content'
+import { isExternal } from '@/lib/utils'
 
 const ICON_MAP: Record<string, React.ComponentType<{ size: number }>> = {
   Email: Mail,
   GitHub: Code2,
   LinkedIn: ExternalLink,
 }
+
+const linkCls = 'flex items-center gap-2 px-4 py-2 rounded-lg border border-[var(--border)] text-[var(--muted)] hover:text-[var(--foreground)] hover:border-[var(--accent)] transition-all text-sm'
 
 export default async function Contact() {
   const contact = await getSiteContent('contact')
@@ -22,17 +24,19 @@ export default async function Contact() {
         <ul className="flex flex-wrap gap-4">
           {contact.links.map(({ href, label }) => {
             const Icon = ICON_MAP[label] ?? ExternalLink
+            const external = isExternal(href)
+            const isMail = href.startsWith('mailto:')
             return (
               <li key={label}>
-                <Link
+                <a
                   href={href}
-                  target={href.startsWith('mailto') ? undefined : '_blank'}
-                  rel={href.startsWith('mailto') ? undefined : 'noopener noreferrer'}
-                  className="flex items-center gap-2 px-4 py-2 rounded-lg border border-[var(--border)] text-[var(--muted)] hover:text-[var(--foreground)] hover:border-[var(--accent)] transition-all text-sm"
+                  target={external ? '_blank' : undefined}
+                  rel={external ? 'noopener noreferrer' : isMail ? undefined : undefined}
+                  className={linkCls}
                 >
                   <Icon size={16} />
                   {label}
-                </Link>
+                </a>
               </li>
             )
           })}

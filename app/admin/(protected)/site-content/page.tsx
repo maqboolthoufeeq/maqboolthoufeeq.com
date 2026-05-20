@@ -1,9 +1,10 @@
 import Link from 'next/link'
 import { getSiteContent } from '@/lib/site-content'
-import { HeroForm, AboutForm, ContactForm, FooterForm } from '@/components/admin/SiteContentForm'
+import { NavbarForm, HeroForm, AboutForm, ContactForm, FooterForm } from '@/components/admin/SiteContentForm'
 
 export default async function SiteContentPage() {
-  const [hero, about, contact, footer] = await Promise.all([
+  const [navbar, hero, about, contact, footer] = await Promise.all([
+    getSiteContent('navbar'),
     getSiteContent('hero'),
     getSiteContent('about'),
     getSiteContent('contact'),
@@ -19,6 +20,10 @@ export default async function SiteContentPage() {
       </header>
 
       <main className="max-w-2xl mx-auto px-6 py-10 space-y-12">
+        <Section title="Navbar" description="The navigation bar — brand name and links. Add, remove, or reorder links.">
+          <NavbarForm initial={navbar} />
+        </Section>
+
         <Section title="Hero" description="The top section with your name, title, and call-to-action buttons.">
           <HeroForm initial={hero} />
         </Section>

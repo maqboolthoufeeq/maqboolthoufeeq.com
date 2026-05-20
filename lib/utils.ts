@@ -19,3 +19,7 @@ export function readingTime(content: string): number {
   const words = content.trim().split(/\s+/).length
   return Math.max(1, Math.ceil(words / 200))
 }
+
+export function isExternal(href: string): boolean {
+  return href.startsWith('http://') || href.startsWith('https://')
+}

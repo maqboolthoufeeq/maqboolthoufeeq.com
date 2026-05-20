@@ -4,7 +4,7 @@ import { getSiteContent, setSiteContent } from '@/lib/site-content'
 
 type Ctx = { params: Promise<{ key: string }> }
 
-const ALLOWED_KEYS = ['hero', 'about', 'contact', 'footer'] as const
+const ALLOWED_KEYS = ['navbar', 'hero', 'about', 'contact', 'footer'] as const
 type AllowedKey = (typeof ALLOWED_KEYS)[number]
 
 function isAllowedKey(k: string): k is AllowedKey {

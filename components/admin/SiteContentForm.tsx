@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
-import type { HeroContent, AboutContent, ContactContent, FooterContent, ContactLink } from '@/lib/site-content'
+import type { HeroContent, AboutContent, ContactContent, FooterContent, ContactLink, NavbarContent, NavLink } from '@/lib/site-content'
 
 const inputCls = 'w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)] text-sm'
 const textareaCls = `${inputCls} resize-y`
@@ -44,6 +44,108 @@ async function uploadFile(file: File): Promise<string> {
   if (!res.ok) throw new Error('Upload failed')
   const { url } = await res.json()
   return url
+}
+
+// ─── Navbar ──────────────────────────────────────────────────────────────────
+
+export function NavbarForm({ initial }: { initial: NavbarContent }) {
+  const [brandName, setBrandName] = useState(initial.brandName)
+  const [links, setLinks] = useState<NavLink[]>(initial.links)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [error, setError] = useState('')
+
+  function setLink(i: number, field: keyof NavLink, value: string) {
+    setLinks((prev) => prev.map((l, idx) => (idx === i ? { ...l, [field]: value } : l)))
+    setSaved(false)
+  }
+
+  function addLink() {
+    setLinks((l) => [...l, { href: '', label: '' }])
+    setSaved(false)
+  }
+
+  function removeLink(i: number) {
+    setLinks((l) => l.filter((_, idx) => idx !== i))
+    setSaved(false)
+  }
+
+  function moveLink(i: number, dir: -1 | 1) {
+    setLinks((prev) => {
+      const next = [...prev]
+      const swap = i + dir
+      if (swap < 0 || swap >= next.length) return prev
+      ;[next[i], next[swap]] = [next[swap], next[i]]
+      return next
+    })
+    setSaved(false)
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setSaving(true)
+    setError('')
+    try {
+      await save('navbar', { brandName, links: links.filter((l) => l.label && l.href) })
+      setSaved(true)
+    } catch {
+      setError('Failed to save')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {error && <p className="text-red-400 text-sm">{error}</p>}
+      <Field label="Brand name (logo text)">
+        <input
+          value={brandName}
+          onChange={(e) => { setBrandName(e.target.value); setSaved(false) }}
+          className={inputCls}
+        />
+      </Field>
+      <div className="space-y-2">
+        <label className="block text-sm text-[var(--muted)]">Nav links</label>
+        {links.map((link, i) => (
+          <div key={i} className="p-3 rounded-lg border border-[var(--border)] bg-[var(--background)] space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-[var(--muted)]">Link {i + 1}</span>
+              <div className="flex items-center gap-2">
+                <button type="button" onClick={() => moveLink(i, -1)} disabled={i === 0} className="text-xs text-[var(--muted)] hover:text-[var(--foreground)] disabled:opacity-20 px-1">▲</button>
+                <button type="button" onClick={() => moveLink(i, 1)} disabled={i === links.length - 1} className="text-xs text-[var(--muted)] hover:text-[var(--foreground)] disabled:opacity-20 px-1">▼</button>
+                <button type="button" onClick={() => removeLink(i)} className="text-xs text-[var(--muted)] hover:text-red-400 px-1">Remove</button>
+              </div>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-[var(--muted)] mb-1">Label</label>
+                <input
+                  value={link.label}
+                  onChange={(e) => setLink(i, 'label', e.target.value)}
+                  placeholder="e.g. About"
+                  className={inputCls}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-[var(--muted)] mb-1">Link / URL</label>
+                <input
+                  value={link.href}
+                  onChange={(e) => setLink(i, 'href', e.target.value)}
+                  placeholder="/#section or /page"
+                  className={inputCls}
+                />
+              </div>
+            </div>
+          </div>
+        ))}
+        <button type="button" onClick={addLink} className="text-sm text-[var(--accent)] hover:underline">
+          + Add link
+        </button>
+      </div>
+      <SaveButton saving={saving} saved={saved} />
+    </form>
+  )
 }
 
 // ─── Hero ────────────────────────────────────────────────────────────────────
@@ -143,7 +245,7 @@ export function HeroForm({ initial }: { initial: HeroContent }) {
             <input value={form.cta1Label} onChange={(e) => set('cta1Label', e.target.value)} className={inputCls} />
           </Field>
           <Field label="Primary button link">
-            <input value={form.cta1Href} onChange={(e) => set('cta1Href', e.target.value)} placeholder="/#projects" className={inputCls} />
+            <input value={form.cta1Href} onChange={(e) => set('cta1Href', e.target.value)} placeholder="/#projects or https://…" className={inputCls} />
           </Field>
         </div>
         <div className="space-y-2">
@@ -151,7 +253,7 @@ export function HeroForm({ initial }: { initial: HeroContent }) {
             <input value={form.cta2Label} onChange={(e) => set('cta2Label', e.target.value)} className={inputCls} />
           </Field>
           <Field label="Secondary button link">
-            <input value={form.cta2Href} onChange={(e) => set('cta2Href', e.target.value)} placeholder="/#contact" className={inputCls} />
+            <input value={form.cta2Href} onChange={(e) => set('cta2Href', e.target.value)} placeholder="/#contact or https://…" className={inputCls} />
           </Field>
         </div>
       </div>

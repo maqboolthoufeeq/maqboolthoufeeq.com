@@ -3,6 +3,18 @@ import Link from 'next/link'
 import { getSiteContent } from '@/lib/site-content'
 import { isExternal } from '@/lib/utils'
 
+const IMAGE_SIZE = {
+  sm: 'w-32 h-32 sm:w-36 sm:h-36',
+  md: 'w-44 h-44 sm:w-52 sm:h-52',
+  lg: 'w-56 h-56 sm:w-64 sm:h-64',
+}
+
+const IMAGE_SHAPE = {
+  circle: 'rounded-full',
+  rounded: 'rounded-2xl',
+  square: 'rounded-none',
+}
+
 function CtaLink({ href, className, children }: { href: string; className: string; children: React.ReactNode }) {
   if (isExternal(href)) {
     return (
@@ -44,19 +56,25 @@ export default async function Hero() {
         </div>
       </div>
 
-      <div className="flex-shrink-0">
-        <div className="w-44 h-44 sm:w-52 sm:h-52 rounded-full overflow-hidden border-2 border-[var(--accent)] glow">
-          <Image
-            src={hero.imageUrl || '/headshot.jpg'}
-            alt={hero.name}
-            width={208}
-            height={208}
-            className="object-cover w-full h-full"
-            priority
-            unoptimized={hero.imageUrl?.startsWith('http')}
-          />
+      {hero.imageVisible !== false && (
+        <div className="flex-shrink-0">
+          <div className={[
+            IMAGE_SIZE[hero.imageSize ?? 'md'],
+            IMAGE_SHAPE[hero.imageShape ?? 'circle'],
+            'overflow-hidden border-2 border-[var(--accent)] glow',
+          ].join(' ')}>
+            <Image
+              src={hero.imageUrl || '/headshot.jpg'}
+              alt={hero.name}
+              width={208}
+              height={208}
+              className="object-cover w-full h-full"
+              priority
+              unoptimized={hero.imageUrl?.startsWith('http')}
+            />
+          </div>
         </div>
-      </div>
+      )}
     </section>
   )
 }

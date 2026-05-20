@@ -1,5 +1,8 @@
 import { prisma } from './prisma'
 
+export type ImageShape = 'circle' | 'rounded' | 'square'
+export type ImageSize = 'sm' | 'md' | 'lg'
+
 export interface HeroContent {
   greeting: string
   name: string
@@ -10,6 +13,9 @@ export interface HeroContent {
   cta2Label: string
   cta2Href: string
   imageUrl: string
+  imageVisible: boolean
+  imageShape: ImageShape
+  imageSize: ImageSize
 }
 
 export interface AboutContent {
@@ -62,6 +68,9 @@ const DEFAULTS = {
     cta2Label: 'Get in touch',
     cta2Href: '/#contact',
     imageUrl: '/headshot.jpg',
+    imageVisible: true as boolean,
+    imageShape: 'circle' as ImageShape,
+    imageSize: 'md' as ImageSize,
   } satisfies HeroContent,
 
   about: {

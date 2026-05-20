@@ -2,10 +2,21 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
-import type { HeroContent, AboutContent, ContactContent, FooterContent, ContactLink, NavbarContent, NavLink } from '@/lib/site-content'
+import type { HeroContent, AboutContent, ContactContent, FooterContent, ContactLink, NavbarContent, NavLink, ImageShape, ImageSize } from '@/lib/site-content'
 
 const inputCls = 'w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)] text-sm'
 const textareaCls = `${inputCls} resize-y`
+
+const PREVIEW_SIZE: Record<string, string> = {
+  sm: 'w-16 h-16',
+  md: 'w-24 h-24',
+  lg: 'w-32 h-32',
+}
+const PREVIEW_SHAPE: Record<string, string> = {
+  circle: 'rounded-full',
+  rounded: 'rounded-xl',
+  square: 'rounded-none',
+}
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -18,13 +29,16 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 function SaveButton({ saving, saved }: { saving: boolean; saved: boolean }) {
   return (
-    <button
-      type="submit"
-      disabled={saving}
-      className="px-6 py-2.5 bg-[var(--accent)] text-white rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity text-sm"
-    >
-      {saving ? 'Saving…' : saved ? 'Saved!' : 'Save changes'}
-    </button>
+    <div className="flex items-center justify-between pt-5 mt-2 border-t border-[var(--border)]">
+      <button
+        type="submit"
+        disabled={saving}
+        className="px-5 py-2 bg-[var(--accent)] text-white rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity text-sm font-medium"
+      >
+        {saving ? 'Saving…' : 'Save changes'}
+      </button>
+      {saved && <span className="text-sm text-green-400">Saved!</span>}
+    </div>
   )
 }
 
@@ -192,39 +206,96 @@ export function HeroForm({ initial }: { initial: HeroContent }) {
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && <p className="text-red-400 text-sm">{error}</p>}
 
-      <Field label="Profile photo">
-        <div className="flex items-center gap-4">
-          {form.imageUrl && (
-            <div className="w-16 h-16 rounded-full overflow-hidden border border-[var(--border)] flex-shrink-0">
+      <div className="p-4 rounded-lg border border-[var(--border)] bg-[var(--background)] flex flex-col sm:flex-row gap-6 items-start">
+        <div className="flex-shrink-0 flex flex-col items-center gap-2">
+          <span className="text-xs text-[var(--muted)]">Preview</span>
+          {form.imageVisible === false ? (
+            <div className="w-24 h-24 rounded-lg border border-dashed border-[var(--border)] flex items-center justify-center text-xs text-[var(--muted)]">
+              Hidden
+            </div>
+          ) : form.imageUrl ? (
+            <div className={[
+              PREVIEW_SIZE[form.imageSize ?? 'md'],
+              PREVIEW_SHAPE[form.imageShape ?? 'circle'],
+              'overflow-hidden border-2 border-[var(--accent)]',
+            ].join(' ')}>
               <Image
                 src={form.imageUrl}
                 alt="Preview"
-                width={64}
-                height={64}
+                width={96}
+                height={96}
                 className="object-cover w-full h-full"
                 unoptimized={form.imageUrl.startsWith('http')}
               />
             </div>
+          ) : (
+            <div className={[
+              PREVIEW_SIZE[form.imageSize ?? 'md'],
+              PREVIEW_SHAPE[form.imageShape ?? 'circle'],
+              'border border-dashed border-[var(--border)] flex items-center justify-center text-xs text-[var(--muted)]',
+            ].join(' ')}>
+              No image
+            </div>
           )}
-          <div className="flex-1 flex gap-2">
-            <input
-              value={form.imageUrl}
-              onChange={(e) => set('imageUrl', e.target.value)}
-              placeholder="/headshot.jpg or https://…"
-              className={`${inputCls} flex-1`}
-            />
-            <label className="cursor-pointer px-3 py-2 text-sm border border-[var(--border)] rounded-lg text-[var(--muted)] hover:border-[var(--accent)] transition-colors whitespace-nowrap">
-              {uploading ? '…' : 'Upload'}
+        </div>
+
+        <div className="flex-1 space-y-3">
+          <Field label="Profile photo URL">
+            <div className="flex gap-2">
               <input
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageUpload(f) }}
+                value={form.imageUrl}
+                onChange={(e) => set('imageUrl', e.target.value)}
+                placeholder="/headshot.jpg or https://…"
+                className={`${inputCls} flex-1`}
               />
-            </label>
+              <label className="cursor-pointer px-3 py-2 text-sm border border-[var(--border)] rounded-lg text-[var(--muted)] hover:border-[var(--accent)] transition-colors whitespace-nowrap">
+                {uploading ? '…' : 'Upload'}
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => { const f = e.target.files?.[0]; if (f) handleImageUpload(f) }}
+                />
+              </label>
+            </div>
+          </Field>
+
+          <div className="grid grid-cols-3 gap-3">
+            <Field label="Visibility">
+              <select
+                value={form.imageVisible === false ? 'false' : 'true'}
+                onChange={(e) => { setForm((p) => ({ ...p, imageVisible: e.target.value === 'true' })); setSaved(false) }}
+                className={inputCls}
+              >
+                <option value="true">Visible</option>
+                <option value="false">Hidden</option>
+              </select>
+            </Field>
+            <Field label="Shape">
+              <select
+                value={form.imageShape ?? 'circle'}
+                onChange={(e) => set('imageShape', e.target.value as ImageShape)}
+                className={inputCls}
+              >
+                <option value="circle">Circle</option>
+                <option value="rounded">Rounded</option>
+                <option value="square">Square</option>
+              </select>
+            </Field>
+            <Field label="Size">
+              <select
+                value={form.imageSize ?? 'md'}
+                onChange={(e) => set('imageSize', e.target.value as ImageSize)}
+                className={inputCls}
+              >
+                <option value="sm">Small</option>
+                <option value="md">Medium</option>
+                <option value="lg">Large</option>
+              </select>
+            </Field>
           </div>
         </div>
-      </Field>
+      </div>
 
       <Field label="Greeting text">
         <input value={form.greeting} onChange={(e) => set('greeting', e.target.value)} className={inputCls} />

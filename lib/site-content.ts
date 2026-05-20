@@ -47,6 +47,14 @@ export interface FooterContent {
   copyrightName: string
 }
 
+export interface SectionVisibility {
+  hero: boolean
+  about: boolean
+  projects: boolean
+  blogPreview: boolean
+  contact: boolean
+}
+
 const DEFAULTS = {
   navbar: {
     brandName: 'Maqbool Thoufeeq',
@@ -93,6 +101,14 @@ const DEFAULTS = {
   footer: {
     copyrightName: 'Maqbool Thoufeeq',
   } satisfies FooterContent,
+
+  sections: {
+    hero: true as boolean,
+    about: true as boolean,
+    projects: true as boolean,
+    blogPreview: true as boolean,
+    contact: true as boolean,
+  } satisfies SectionVisibility,
 }
 
 type ContentKey = keyof typeof DEFAULTS

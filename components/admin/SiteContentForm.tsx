@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
-import type { HeroContent, AboutContent, ContactContent, FooterContent, ContactLink, NavbarContent, NavLink, ImageShape, ImageSize } from '@/lib/site-content'
+import type { HeroContent, AboutContent, ContactContent, FooterContent, ContactLink, NavbarContent, NavLink, ImageShape, ImageSize, SectionVisibility } from '@/lib/site-content'
 
 const inputCls = 'w-full px-3 py-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)] text-sm'
 const textareaCls = `${inputCls} resize-y`
@@ -58,6 +58,52 @@ async function uploadFile(file: File): Promise<string> {
   if (!res.ok) throw new Error('Upload failed')
   const { url } = await res.json()
   return url
+}
+
+// ─── Section Visibility Toggle ───────────────────────────────────────────────
+
+export function SectionToggle({ sectionKey, initialSections }: {
+  sectionKey: keyof SectionVisibility
+  initialSections: SectionVisibility
+}) {
+  const [on, setOn] = useState(initialSections[sectionKey])
+  const [saving, setSaving] = useState(false)
+
+  async function toggle() {
+    const next = !on
+    setOn(next)
+    setSaving(true)
+    try {
+      const res = await fetch('/api/site-content/sections')
+      const current = await res.json()
+      await fetch('/api/site-content/sections', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...current, [sectionKey]: next }),
+      })
+    } catch {
+      setOn(!next)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={toggle}
+      disabled={saving}
+      className={[
+        'flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition-all disabled:opacity-50',
+        on
+          ? 'border-green-500/40 text-green-400 bg-green-500/10 hover:bg-green-500/20'
+          : 'border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--foreground)]',
+      ].join(' ')}
+    >
+      <span className={`w-1.5 h-1.5 rounded-full ${on ? 'bg-green-400' : 'bg-[var(--muted)]'}`} />
+      {saving ? '…' : on ? 'Live' : 'Hidden'}
+    </button>
+  )
 }
 
 // ─── Navbar ──────────────────────────────────────────────────────────────────
@@ -466,22 +512,33 @@ export function ContactForm({ initial }: { initial: ContactContent }) {
       <div className="space-y-2">
         <label className="block text-sm text-[var(--muted)]">Links</label>
         {links.map((link, i) => (
-          <div key={i} className="flex gap-2 items-center">
-            <input
-              value={link.label}
-              onChange={(e) => setLink(i, 'label', e.target.value)}
-              placeholder="Label"
-              className={`${inputCls} w-28 flex-shrink-0`}
-            />
-            <input
-              value={link.href}
-              onChange={(e) => setLink(i, 'href', e.target.value)}
-              placeholder="URL or mailto:"
-              className={`${inputCls} flex-1`}
-            />
-            <button type="button" onClick={() => removeLink(i)} className="text-[var(--muted)] hover:text-red-400 text-sm px-1">
-              ✕
-            </button>
+          <div key={i} className="p-3 rounded-lg border border-[var(--border)] bg-[var(--background)] space-y-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs text-[var(--muted)]">Link {i + 1}</span>
+              <button type="button" onClick={() => removeLink(i)} className="text-xs text-[var(--muted)] hover:text-red-400 px-1">
+                Remove
+              </button>
+            </div>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-xs text-[var(--muted)] mb-1">Label</label>
+                <input
+                  value={link.label}
+                  onChange={(e) => setLink(i, 'label', e.target.value)}
+                  placeholder="e.g. GitHub"
+                  className={inputCls}
+                />
+              </div>
+              <div>
+                <label className="block text-xs text-[var(--muted)] mb-1">URL</label>
+                <input
+                  value={link.href}
+                  onChange={(e) => setLink(i, 'href', e.target.value)}
+                  placeholder="https://… or mailto:…"
+                  className={inputCls}
+                />
+              </div>
+            </div>
           </div>
         ))}
         <button type="button" onClick={addLink} className="text-sm text-[var(--accent)] hover:underline">

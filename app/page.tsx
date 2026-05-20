@@ -9,17 +9,20 @@ import Contact from '@/components/sections/Contact'
 import { getSiteContent } from '@/lib/site-content'
 
 export default async function Home() {
-  const footer = await getSiteContent('footer')
+  const [footer, sections] = await Promise.all([
+    getSiteContent('footer'),
+    getSiteContent('sections'),
+  ])
 
   return (
     <>
       <Navbar />
       <main>
-        <Hero />
-        <About />
-        <Projects />
-        <BlogPreview />
-        <Contact />
+        {sections.hero && <Hero />}
+        {sections.about && <About />}
+        {sections.projects && <Projects />}
+        {sections.blogPreview && <BlogPreview />}
+        {sections.contact && <Contact />}
       </main>
       <footer className="border-t border-[var(--border)] py-6 text-center text-xs text-[var(--muted)]">
         © {new Date().getFullYear()} {footer.copyrightName}

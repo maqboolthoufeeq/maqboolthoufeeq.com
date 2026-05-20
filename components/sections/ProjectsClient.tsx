@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Code2, ExternalLink } from 'lucide-react'
+import { Code2, ExternalLink, LayoutGrid, List } from 'lucide-react'
 
 type Tag = { id: string; name: string }
 type Project = {
@@ -17,12 +17,76 @@ type Project = {
   tags: Tag[]
 }
 
-export default function ProjectsClient({ projects, allTags }: {
+function ProjectLinks({ p }: { p: Project }) {
+  return (
+    <div className="flex gap-3">
+      {p.liveUrl && (
+        <Link
+          href={p.liveUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1 text-sm text-[var(--accent)] hover:underline"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <ExternalLink size={14} /> Live
+        </Link>
+      )}
+      {p.repoUrl && (
+        <Link
+          href={p.repoUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center gap-1 text-sm text-[var(--muted)] hover:text-[var(--foreground)]"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <Code2 size={14} /> Code
+        </Link>
+      )}
+    </div>
+  )
+}
+
+function TechTags({ tech, tags }: { tech: string[]; tags: Tag[] }) {
+  return (
+    <>
+      {tech.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          {tech.map((t) => (
+            <span
+              key={t}
+              className="text-xs px-2 py-0.5 rounded-full bg-[var(--background)] border border-[var(--border)] text-[var(--muted)]"
+            >
+              {t}
+            </span>
+          ))}
+        </div>
+      )}
+      {tags.length > 0 && (
+        <div className="flex flex-wrap gap-1.5 mb-3">
+          {tags.map((tag) => (
+            <span
+              key={tag.id}
+              className="text-xs px-2 py-0.5 rounded-full border border-[var(--accent)] text-[var(--accent)]"
+            >
+              #{tag.name}
+            </span>
+          ))}
+        </div>
+      )}
+    </>
+  )
+}
+
+export default function ProjectsClient({
+  projects,
+  allTags,
+}: {
   projects: Project[]
   allTags: Tag[]
 }) {
   const [query, setQuery] = useState('')
   const [activeTag, setActiveTag] = useState('')
+  const [view, setView] = useState<'grid' | 'list'>('grid')
 
   const q = query.trim().toLowerCase()
   const filtered = projects.filter((p) => {
@@ -33,37 +97,66 @@ export default function ProjectsClient({ projects, allTags }: {
 
   return (
     <div>
-      <div className="space-y-3 mb-8">
-        <input
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search projects…"
-          className="w-full sm:w-72 px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)]"
-        />
-        {allTags.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {allTags.map((tag) => (
-              <button
-                key={tag.id}
-                type="button"
-                onClick={() => setActiveTag(activeTag === tag.id ? '' : tag.id)}
-                className={[
-                  'text-xs px-3 py-1 rounded-full border transition-colors',
-                  activeTag === tag.id
-                    ? 'border-[var(--accent)] text-[var(--accent)] bg-[var(--accent)]/10'
-                    : 'border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--foreground)]',
-                ].join(' ')}
-              >
-                #{tag.name}
-              </button>
-            ))}
-          </div>
-        )}
+      <div className="flex items-start justify-between gap-4 mb-8 flex-wrap">
+        <div className="space-y-3 flex-1">
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Search projects…"
+            className="w-full sm:w-72 px-3 py-2 text-sm rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)]"
+          />
+          {allTags.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {allTags.map((tag) => (
+                <button
+                  key={tag.id}
+                  type="button"
+                  onClick={() => setActiveTag(activeTag === tag.id ? '' : tag.id)}
+                  className={[
+                    'text-xs px-3 py-1 rounded-full border transition-colors cursor-pointer',
+                    activeTag === tag.id
+                      ? 'border-[var(--accent)] text-[var(--accent)] bg-[var(--accent)]/10'
+                      : 'border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--foreground)]',
+                  ].join(' ')}
+                >
+                  #{tag.name}
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1 rounded-lg border border-[var(--border)] p-1 self-start">
+          <button
+            type="button"
+            onClick={() => setView('list')}
+            title="List view"
+            className={`p-1.5 rounded cursor-pointer transition-colors ${
+              view === 'list'
+                ? 'bg-[var(--accent)] text-white'
+                : 'text-[var(--muted)] hover:text-[var(--foreground)]'
+            }`}
+          >
+            <List size={16} />
+          </button>
+          <button
+            type="button"
+            onClick={() => setView('grid')}
+            title="Grid view"
+            className={`p-1.5 rounded cursor-pointer transition-colors ${
+              view === 'grid'
+                ? 'bg-[var(--accent)] text-white'
+                : 'text-[var(--muted)] hover:text-[var(--foreground)]'
+            }`}
+          >
+            <LayoutGrid size={16} />
+          </button>
+        </div>
       </div>
 
       {filtered.length === 0 ? (
         <p className="text-[var(--muted)]">No projects match your search.</p>
-      ) : (
+      ) : view === 'grid' ? (
         <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {filtered.map((p) => (
             <li
@@ -72,43 +165,43 @@ export default function ProjectsClient({ projects, allTags }: {
             >
               {p.imageUrl && (
                 <div className="relative h-40 w-full bg-[var(--background)]">
-                  <Image src={p.imageUrl} alt={p.title} fill className="object-cover" />
+                  <Image src={p.imageUrl} alt={p.title} fill className="object-cover" unoptimized />
                 </div>
               )}
               <div className="p-5 flex flex-col flex-1">
                 <h3 className="font-semibold text-[var(--foreground)] mb-1">{p.title}</h3>
                 <p className="text-sm text-[var(--muted)] mb-4 flex-1">{p.description}</p>
-                <div className="flex flex-wrap gap-1.5 mb-3">
-                  {p.tech.map((t) => (
-                    <span key={t} className="text-xs px-2 py-0.5 rounded-full bg-[var(--background)] border border-[var(--border)] text-[var(--muted)]">
-                      {t}
-                    </span>
-                  ))}
-                </div>
-                {p.tags.length > 0 && (
-                  <div className="flex flex-wrap gap-1.5 mb-3">
-                    {p.tags.map((tag) => (
-                      <span key={tag.id} className="text-xs px-2 py-0.5 rounded-full border border-[var(--accent)] text-[var(--accent)]">
-                        #{tag.name}
-                      </span>
-                    ))}
-                  </div>
-                )}
-                <div className="flex gap-3">
-                  {p.liveUrl && (
-                    <Link href={p.liveUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-sm text-[var(--accent)] hover:underline">
-                      <ExternalLink size={14} /> Live
-                    </Link>
-                  )}
-                  {p.repoUrl && (
-                    <Link href={p.repoUrl} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-sm text-[var(--muted)] hover:text-[var(--foreground)]">
-                      <Code2 size={14} /> Code
-                    </Link>
-                  )}
-                </div>
+                <TechTags tech={p.tech} tags={p.tags} />
+                <ProjectLinks p={p} />
               </div>
             </li>
           ))}
+        </ul>
+      ) : (
+        <ul className="space-y-6">
+          {filtered.map((p, i) => {
+            const imageRight = i % 2 !== 0
+            return (
+              <li
+                key={p.id}
+                className="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden hover:border-[var(--accent)] transition-colors"
+              >
+                <div className={`flex flex-col sm:flex-row${imageRight ? ' sm:flex-row-reverse' : ''}`}>
+                  {p.imageUrl ? (
+                    <div className="relative h-48 sm:h-auto sm:w-64 flex-shrink-0">
+                      <Image src={p.imageUrl} alt={p.title} fill className="object-cover" unoptimized />
+                    </div>
+                  ) : null}
+                  <div className="p-5 flex flex-col justify-center flex-1">
+                    <h3 className="font-semibold text-[var(--foreground)] mb-1">{p.title}</h3>
+                    <p className="text-sm text-[var(--muted)] mb-4">{p.description}</p>
+                    <TechTags tech={p.tech} tags={p.tags} />
+                    <ProjectLinks p={p} />
+                  </div>
+                </div>
+              </li>
+            )
+          })}
         </ul>
       )}
     </div>

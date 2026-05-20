@@ -1,6 +1,6 @@
 import Navbar from '@/components/Navbar'
-import PostCard from '@/components/blog/PostCard'
 import BlogSearch from '@/components/blog/BlogSearch'
+import BlogListClient from '@/components/blog/BlogListClient'
 import { prisma } from '@/lib/prisma'
 
 export const dynamic = 'force-dynamic'
@@ -10,22 +10,38 @@ export const metadata = {
   description: 'Articles about web development, TypeScript, and engineering.',
 }
 
-export default async function BlogPage({ searchParams }: { searchParams: Promise<{ q?: string; tag?: string }> }) {
+const PAGE_SIZE = 6
+
+export default async function BlogPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; tag?: string }>
+}) {
   const { q = '', tag = '' } = await searchParams
 
-  const [posts, tags] = await Promise.all([
+  const where = {
+    published: true,
+    ...(q ? { title: { contains: q, mode: 'insensitive' as const } } : {}),
+    ...(tag ? { tags: { some: { slug: tag } } } : {}),
+  }
+
+  const [posts, total, tags] = await Promise.all([
     prisma.post.findMany({
-      where: {
-        published: true,
-        ...(q ? { title: { contains: q, mode: 'insensitive' } } : {}),
-        ...(tag ? { tags: { some: { slug: tag } } } : {}),
-      },
+      where,
       orderBy: { publishedAt: 'desc' },
+      take: PAGE_SIZE,
       select: {
-        id: true, title: true, slug: true, excerpt: true, content: true, publishedAt: true,
+        id: true,
+        title: true,
+        slug: true,
+        excerpt: true,
+        content: true,
+        publishedAt: true,
+        coverImage: true,
         tags: { select: { id: true, name: true, slug: true } },
       },
     }),
+    prisma.post.count({ where }),
     prisma.tag.findMany({
       where: { posts: { some: { published: true } } },
       orderBy: { name: 'asc' },
@@ -42,17 +58,12 @@ export default async function BlogPage({ searchParams }: { searchParams: Promise
 
         <BlogSearch tags={tags} initialQ={q} initialTag={tag} />
 
-        {posts.length === 0 ? (
-          <p className="text-[var(--muted)]">{q || tag ? 'No posts match your search.' : 'No posts yet. Check back soon.'}</p>
-        ) : (
-          <ul className="space-y-6">
-            {posts.map((post) => (
-              <li key={post.id}>
-                <PostCard post={post} />
-              </li>
-            ))}
-          </ul>
-        )}
+        <BlogListClient
+          initialPosts={posts}
+          initialHasMore={total > PAGE_SIZE}
+          q={q}
+          tag={tag}
+        />
       </main>
     </>
   )

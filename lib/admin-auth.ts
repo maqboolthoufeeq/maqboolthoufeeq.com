@@ -114,7 +114,7 @@ export async function consumeResetToken(token: string): Promise<boolean> {
 // ─── Email templates ──────────────────────────────────────────────────────────
 
 export async function sendOtpEmail(otp: string): Promise<void> {
-  const to = process.env.ADMIN_EMAIL!
+  const to = process.env.ADMIN_EMAIL ?? ''
   await sendEmail({
     to,
     subject: 'Admin login verification code',
@@ -130,7 +130,7 @@ export async function sendOtpEmail(otp: string): Promise<void> {
 }
 
 export async function sendResetEmail(token: string, baseUrl: string): Promise<void> {
-  const to = process.env.ADMIN_EMAIL!
+  const to = process.env.ADMIN_EMAIL ?? ''
   const url = `${baseUrl}/admin/reset-password?token=${token}`
   await sendEmail({
     to,

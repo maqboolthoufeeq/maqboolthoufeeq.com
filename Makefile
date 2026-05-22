@@ -19,7 +19,7 @@ help:
 	@echo "    make type-check   TypeScript check"
 	@echo "    make test         Run tests"
 	@echo "    make test-watch   Run tests in watch mode"
-	@echo "    make pr           Run ALL pre-commit checks (lint + types + tests)"
+	@echo "    make pr           Format + lint + type-check + tests (full pre-commit)"
 	@echo ""
 	@echo "  Database"
 	@echo "    make db-push      Sync Prisma schema → database"
@@ -63,8 +63,10 @@ test-watch:
 	npm run test:watch
 
 pr:
+	@echo "→ format..."
+	@npx eslint . --fix || (echo "✗ format failed — unfixable lint errors" && exit 1)
 	@echo "→ lint..."
-	@npx lint-staged || (echo "✗ lint failed" && exit 1)
+	@npx eslint . || (echo "✗ lint failed" && exit 1)
 	@echo "→ type check..."
 	@npx tsc --noEmit || (echo "✗ type check failed" && exit 1)
 	@echo "→ tests..."
@@ -83,5 +85,12 @@ db-generate:
 
 # ── git ───────────────────────────────────────────────────────────────────────
 br:
-	@read -p "Branch name (e.g. feat/my-feature): " name; \
-	git checkout -b $$name
+	@if [ -n "$(filter-out $@,$(MAKECMDGOALS))" ]; then \
+		git checkout -b $(filter-out $@,$(MAKECMDGOALS)); \
+	else \
+		read -p "Branch name (e.g. feat/my-feature): " name; \
+		git checkout -b $$name; \
+	fi
+
+%:
+	@:

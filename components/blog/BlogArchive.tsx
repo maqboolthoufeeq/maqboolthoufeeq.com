@@ -28,9 +28,9 @@ function buildArchive(posts: ArchivePost[]): YearGroup[] {
     const y = d.getFullYear()
     const m = d.getMonth()
     if (!map.has(y)) map.set(y, new Map())
-    const mMap = map.get(y)!
+    const mMap = map.get(y) as Map<number, ArchivePost[]>
     if (!mMap.has(m)) mMap.set(m, [])
-    mMap.get(m)!.push(post)
+    ;(mMap.get(m) as ArchivePost[]).push(post)
   }
 
   const MONTHS = ['January','February','March','April','May','June','July','August','September','October','November','December']

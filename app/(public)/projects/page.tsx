@@ -2,6 +2,8 @@ import Navbar from '@/components/Navbar'
 import ProjectsClient from '@/components/sections/ProjectsClient'
 import { prisma } from '@/lib/prisma'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata = {
   title: 'Projects — Maqbool Thoufeeq',
   description: 'A collection of projects built across web development and engineering.',

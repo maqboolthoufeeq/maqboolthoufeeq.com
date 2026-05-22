@@ -2,6 +2,8 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
+import { X } from 'lucide-react'
 import TagSelector from '@/components/admin/TagSelector'
 
 type FormData = {
@@ -16,7 +18,7 @@ type FormData = {
 
 type Props = {
   projectId?: string
-  initial?: Partial<FormData & { tagIds: string[] }>
+  initial?: Partial<FormData & { tagIds: string[]; images: string[] }>
 }
 
 export default function ProjectForm({ projectId, initial }: Props) {
@@ -31,9 +33,11 @@ export default function ProjectForm({ projectId, initial }: Props) {
     featured: initial?.featured ?? false,
   })
   const [tagIds, setTagIds] = useState<string[]>(initial?.tagIds ?? [])
+  const [images, setImages] = useState<string[]>(initial?.images ?? [])
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
   const [uploading, setUploading] = useState(false)
+  const [galleryUploading, setGalleryUploading] = useState(false)
 
   function set(field: keyof FormData, value: string | boolean) {
     setForm((prev) => ({ ...prev, [field]: value }))
@@ -51,6 +55,26 @@ export default function ProjectForm({ projectId, initial }: Props) {
     }
   }
 
+  async function handleGalleryUpload(files: FileList) {
+    setGalleryUploading(true)
+    const uploaded: string[] = []
+    for (const file of Array.from(files)) {
+      const fd = new FormData()
+      fd.append('file', file)
+      const res = await fetch('/api/upload', { method: 'POST', body: fd })
+      if (res.ok) {
+        const { url } = await res.json()
+        uploaded.push(url)
+      }
+    }
+    setImages((prev) => [...prev, ...uploaded])
+    setGalleryUploading(false)
+  }
+
+  function removeGalleryImage(idx: number) {
+    setImages((prev) => prev.filter((_, i) => i !== idx))
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     if (!form.title.trim() || !form.description.trim()) {
@@ -66,6 +90,7 @@ export default function ProjectForm({ projectId, initial }: Props) {
       liveUrl: form.liveUrl || null,
       repoUrl: form.repoUrl || null,
       imageUrl: form.imageUrl || null,
+      images,
       tagIds,
     }
 
@@ -112,7 +137,7 @@ export default function ProjectForm({ projectId, initial }: Props) {
         <input type="url" value={form.repoUrl} onChange={(e) => set('repoUrl', e.target.value)} className={inputCls} />
       </Field>
 
-      <Field label="Image">
+      <Field label="Cover image">
         <div className="flex gap-2 items-center">
           <input
             value={form.imageUrl}
@@ -120,7 +145,7 @@ export default function ProjectForm({ projectId, initial }: Props) {
             placeholder="https://… or upload below"
             className={`${inputCls} flex-1`}
           />
-          <label className="cursor-pointer px-3 py-2 text-sm border border-[var(--border)] rounded-lg text-[var(--muted)] hover:border-[var(--accent)] transition-colors">
+          <label className="cursor-pointer px-3 py-2 text-sm border border-[var(--border)] rounded-lg text-[var(--muted)] hover:border-[var(--accent)] transition-colors whitespace-nowrap">
             {uploading ? '…' : 'Upload'}
             <input
               type="file"
@@ -133,6 +158,50 @@ export default function ProjectForm({ projectId, initial }: Props) {
             />
           </label>
         </div>
+        {form.imageUrl && (
+          <div className="mt-2 relative w-32 h-20 rounded-lg overflow-hidden border border-[var(--border)]">
+            <Image src={form.imageUrl} alt="Cover" fill className="object-cover" unoptimized />
+            <button
+              type="button"
+              onClick={() => set('imageUrl', '')}
+              className="absolute top-1 right-1 w-5 h-5 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center"
+            >
+              <X size={12} />
+            </button>
+          </div>
+        )}
+      </Field>
+
+      <Field label="Gallery images">
+        <label className="cursor-pointer inline-flex items-center gap-2 px-3 py-2 text-sm border border-[var(--border)] rounded-lg text-[var(--muted)] hover:border-[var(--accent)] transition-colors">
+          {galleryUploading ? 'Uploading…' : '+ Add images'}
+          <input
+            type="file"
+            accept="image/*"
+            multiple
+            className="hidden"
+            onChange={(e) => {
+              if (e.target.files?.length) handleGalleryUpload(e.target.files)
+              e.target.value = ''
+            }}
+          />
+        </label>
+        {images.length > 0 && (
+          <div className="mt-3 flex flex-wrap gap-2">
+            {images.map((url, i) => (
+              <div key={i} className="relative w-24 h-16 rounded-lg overflow-hidden border border-[var(--border)]">
+                <Image src={url} alt="" fill className="object-cover" unoptimized />
+                <button
+                  type="button"
+                  onClick={() => removeGalleryImage(i)}
+                  className="absolute top-1 right-1 w-5 h-5 bg-black/60 hover:bg-black/80 text-white rounded-full flex items-center justify-center"
+                >
+                  <X size={12} />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
       </Field>
 
       <div>

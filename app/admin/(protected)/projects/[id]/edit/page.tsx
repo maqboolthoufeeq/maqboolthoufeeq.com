@@ -17,6 +17,7 @@ export default async function EditProjectPage({ params }: Props) {
     liveUrl: project.liveUrl ?? '',
     repoUrl: project.repoUrl ?? '',
     imageUrl: project.imageUrl ?? '',
+    images: project.images,
     featured: project.featured,
     tagIds: project.tags.map((t) => t.id),
   }

@@ -23,8 +23,7 @@ export default function TagSelector({ selectedIds, onChange }: Props) {
     onChange(selectedIds.includes(id) ? selectedIds.filter((x) => x !== id) : [...selectedIds, id])
   }
 
-  async function handleCreate(e: React.FormEvent) {
-    e.preventDefault()
+  async function handleCreate() {
     if (!newTag.trim()) return
     setCreating(true)
     const res = await fetch('/api/tags', {
@@ -75,21 +74,23 @@ export default function TagSelector({ selectedIds, onChange }: Props) {
           </div>
         </>
       )}
-      <form onSubmit={handleCreate} className="flex gap-2">
+      <div className="flex gap-2">
         <input
           value={newTag}
           onChange={(e) => setNewTag(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleCreate() } }}
           placeholder="New tag name…"
           className="flex-1 px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)]"
         />
         <button
-          type="submit"
+          type="button"
+          onClick={handleCreate}
           disabled={creating || !newTag.trim()}
           className="px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)] disabled:opacity-40 transition-colors"
         >
           {creating ? '…' : '+ Add'}
         </button>
-      </form>
+      </div>
     </div>
   )
 }

@@ -17,15 +17,21 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
 
   const { id } = await params
   const body = await req.json()
-  const { tagIds, ...rest } = body
+  const { title, description, tech, liveUrl, repoUrl, imageUrl, images, order, featured, tagIds } = body
 
   const project = await prisma.project.update({
     where: { id },
     data: {
-      ...rest,
-      ...(Array.isArray(tagIds)
-        ? { tags: { set: tagIds.map((tid: string) => ({ id: tid })) } }
-        : {}),
+      ...(title !== undefined && { title }),
+      ...(description !== undefined && { description }),
+      ...(tech !== undefined && { tech: Array.isArray(tech) ? tech : [] }),
+      ...(liveUrl !== undefined && { liveUrl: liveUrl ?? null }),
+      ...(repoUrl !== undefined && { repoUrl: repoUrl ?? null }),
+      ...(imageUrl !== undefined && { imageUrl: imageUrl ?? null }),
+      ...(images !== undefined && { images: Array.isArray(images) ? images : [] }),
+      ...(order !== undefined && { order }),
+      ...(featured !== undefined && { featured: Boolean(featured) }),
+      ...(Array.isArray(tagIds) && { tags: { set: tagIds.map((tid: string) => ({ id: tid })) } }),
     },
     include: { tags: true },
   })

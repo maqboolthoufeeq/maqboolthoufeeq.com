@@ -14,6 +14,7 @@ model Project {
   liveUrl     String?
   repoUrl     String?
   imageUrl    String?
+  images      String[] @default([])
   order       Int      @default(0)
   featured    Boolean  @default(false)
   createdAt   DateTime @default(now())

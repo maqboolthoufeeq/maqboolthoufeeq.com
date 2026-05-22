@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import ThemeToggle from './ThemeToggle'
+import MobileMenu from './MobileMenu'
 import { getSiteContent } from '@/lib/site-content'
 import { isExternal } from '@/lib/utils'
 
@@ -42,6 +43,7 @@ export default async function Navbar() {
             ))}
           </ul>
           <ThemeToggle />
+          <MobileMenu links={navbar.links} />
         </div>
       </nav>
     </header>

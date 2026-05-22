@@ -39,13 +39,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ preAuthToken })
   }
 
-  // New browser — send OTP
+  // New browser — send OTP (skip email in development)
   const otp = await createOtp()
-  try {
-    await sendOtpEmail(otp)
-  } catch (err) {
-    console.error('OTP email failed:', err)
-    return NextResponse.json({ error: 'Could not send verification email. Check email configuration.' }, { status: 500 })
+  if (process.env.NODE_ENV !== 'development') {
+    try {
+      await sendOtpEmail(otp)
+    } catch (err) {
+      console.error('OTP email failed:', err)
+      return NextResponse.json({ error: 'Could not send verification email. Check email configuration.' }, { status: 500 })
+    }
   }
 
   return NextResponse.json({ requiresOtp: true })

@@ -49,7 +49,7 @@ export async function trustBrowser(browserId: string): Promise<void> {
 // ─── OTP ──────────────────────────────────────────────────────────────────────
 
 export async function createOtp(): Promise<string> {
-  const otp = String(crypto.randomInt(100000, 999999))
+  const otp = process.env.NODE_ENV === 'development' ? '123456' : String(crypto.randomInt(100000, 999999))
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000) // 10 min
 
   // Invalidate any existing unused OTPs

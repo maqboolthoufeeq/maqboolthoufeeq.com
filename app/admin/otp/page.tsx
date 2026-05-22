@@ -86,6 +86,11 @@ export default function OtpPage() {
           <p className="text-sm text-[var(--muted)]">
             We sent a 6-digit verification code to your admin email.
           </p>
+          {process.env.NODE_ENV === 'development' && (
+            <p className="mt-3 text-xs text-amber-500/80 bg-amber-500/10 border border-amber-500/20 rounded-md px-3 py-2">
+              Localhost: use OTP <span className="font-mono font-bold">123456</span>
+            </p>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">

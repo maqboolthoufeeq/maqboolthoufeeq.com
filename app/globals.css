@@ -47,3 +47,86 @@ body {
 /* Hide scrollbar visually but keep scroll functionality */
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
+
+/* ─────────────────────────────────────────────────────────────
+   Design system — controlled by data-design on <html>
+   ───────────────────────────────────────────────────────────── */
+
+/* ── Glass ── */
+[data-design="glass"] .rounded-xl,
+[data-design="glass"] .rounded-2xl {
+  backdrop-filter: blur(16px) saturate(160%);
+  -webkit-backdrop-filter: blur(16px) saturate(160%);
+  background: color-mix(in srgb, var(--accent) 4%, rgba(255,255,255,0.04)) !important;
+  border-color: rgba(255,255,255,0.1) !important;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.07);
+}
+[data-design="glass"] .glow {
+  box-shadow: 0 0 32px color-mix(in srgb, var(--accent) 50%, transparent);
+}
+
+/* ── Brutalist ── */
+[data-design="brutalist"] *:not(img):not(svg):not(circle):not(path):not(line):not(polyline):not(rect) {
+  border-radius: 0 !important;
+}
+[data-design="brutalist"] {
+  --surface: var(--background);
+}
+[data-design="brutalist"] .border,
+[data-design="brutalist"] [class*="border-[var"] {
+  border-width: 2px !important;
+}
+[data-design="brutalist"] h1,
+[data-design="brutalist"] h2,
+[data-design="brutalist"] h3 {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+[data-design="brutalist"] .rounded-xl:hover,
+[data-design="brutalist"] .rounded-2xl:hover {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+
+/* ── Soft ── */
+[data-design="soft"] .rounded-xl,
+[data-design="soft"] .rounded-2xl {
+  border-radius: 1.75rem !important;
+  border: none !important;
+  box-shadow: 0 2px 16px rgba(0,0,0,0.06), 0 1px 4px rgba(0,0,0,0.04);
+}
+[data-design="soft"] .rounded-lg { border-radius: 1rem !important; }
+[data-design="soft"] .rounded-full { border-radius: 9999px !important; }
+.dark [data-design="soft"] .rounded-xl,
+.dark [data-design="soft"] .rounded-2xl {
+  box-shadow: 0 4px 32px rgba(0,0,0,0.5);
+  border: 1px solid var(--border) !important;
+}
+
+/* ── Retro ── */
+[data-design="retro"] {
+  --surface: #0c0c0c;
+  --background: #080808;
+  --border: #2a2a2a;
+  --foreground: #d4d4d4;
+  --muted: #5a5a5a;
+}
+[data-design="retro"] * {
+  font-family: 'Courier New', 'Lucida Console', monospace !important;
+}
+[data-design="retro"] *:not(img):not(svg):not(circle):not(path):not(line):not(polyline):not(rect) {
+  border-radius: 0 !important;
+}
+[data-design="retro"] .rounded-xl,
+[data-design="retro"] .rounded-2xl {
+  border: 1px solid #2a2a2a !important;
+  box-shadow: 4px 4px 0 var(--accent);
+}
+[data-design="retro"] .rounded-xl:hover,
+[data-design="retro"] .rounded-2xl:hover {
+  box-shadow: 4px 4px 0 var(--accent), 0 0 12px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+[data-design="retro"] span[class*="accent"],
+[data-design="retro"] a[class*="accent"] {
+  text-shadow: 0 0 8px color-mix(in srgb, var(--accent) 60%, transparent);
+}

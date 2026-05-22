@@ -83,5 +83,12 @@ db-generate:
 
 # ── git ───────────────────────────────────────────────────────────────────────
 br:
-	@read -p "Branch name (e.g. feat/my-feature): " name; \
-	git checkout -b $$name
+	@if [ -n "$(filter-out $@,$(MAKECMDGOALS))" ]; then \
+		git checkout -b $(filter-out $@,$(MAKECMDGOALS)); \
+	else \
+		read -p "Branch name (e.g. feat/my-feature): " name; \
+		git checkout -b $$name; \
+	fi
+
+%:
+	@:

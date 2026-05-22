@@ -39,9 +39,9 @@ export default async function Projects() {
                 <p className="text-sm text-[var(--muted)] mb-4 flex-1">{p.description}</p>
                 {p.tech.length > 0 && (
                   <div className="flex flex-wrap gap-1.5 mb-3">
-                    {p.tech.map((t) => (
+                    {p.tech.map((t, i) => (
                       <span
-                        key={t}
+                        key={`${t}-${i}`}
                         className="text-xs px-2 py-0.5 rounded-full bg-[var(--background)] border border-[var(--border)] text-[var(--muted)]"
                       >
                         {t}

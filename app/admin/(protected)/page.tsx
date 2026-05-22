@@ -39,6 +39,7 @@ export default async function AdminDashboard() {
           <AdminLink href="/admin/projects" title="Manage Projects" description="Add and order portfolio projects" />
           <AdminLink href="/admin/site-content" title="Edit Landing Page" description="Update hero, about, contact, and footer content" />
           <AdminLink href="/admin/tags" title="Manage Tags" description="Create and organise tags for posts and projects" />
+          <AdminLink href="/admin/theme" title="Theme" description="Choose a colour theme for your site" />
         </div>
       </main>
     </div>

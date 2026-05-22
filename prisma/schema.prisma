@@ -74,3 +74,15 @@ model AdminSettings {
   passwordHash String?
   updatedAt    DateTime @updatedAt
 }
+
+model ContactRequest {
+  id             String   @id @default(cuid())
+  name           String
+  email          String
+  message        String
+  ip             String?
+  attachmentUrl  String?
+  attachmentName String?
+  read           Boolean  @default(false)
+  createdAt      DateTime @default(now())
+}

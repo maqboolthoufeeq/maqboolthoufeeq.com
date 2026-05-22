@@ -35,6 +35,7 @@ export default function ProjectForm({ projectId, initial }: Props) {
   const [tagIds, setTagIds] = useState<string[]>(initial?.tagIds ?? [])
   const [images, setImages] = useState<string[]>(initial?.images ?? [])
   const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
   const [error, setError] = useState('')
   const [uploading, setUploading] = useState(false)
   const [galleryUploading, setGalleryUploading] = useState(false)
@@ -105,8 +106,9 @@ export default function ProjectForm({ projectId, initial }: Props) {
 
     setSaving(false)
     if (res.ok) {
-      router.push('/admin/projects')
+      setSaved(true)
       router.refresh()
+      setTimeout(() => setSaved(false), 2000)
     } else {
       const data = await res.json()
       setError(data.error ?? 'Failed to save')
@@ -214,8 +216,12 @@ export default function ProjectForm({ projectId, initial }: Props) {
         Featured on homepage
       </label>
 
-      <button type="submit" disabled={saving} className="px-6 py-2.5 bg-[var(--accent)] text-white rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity">
-        {saving ? 'Saving…' : projectId ? 'Update project' : 'Create project'}
+      <button
+        type="submit"
+        disabled={saving}
+        className={`px-6 py-2.5 rounded-lg text-white transition-all disabled:opacity-50 ${saved ? 'bg-green-600' : 'bg-[var(--accent)] hover:opacity-90'}`}
+      >
+        {saving ? 'Saving…' : saved ? 'Saved!' : projectId ? 'Update project' : 'Create project'}
       </button>
     </form>
   )

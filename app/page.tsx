@@ -1,32 +1,28 @@
 export const dynamic = 'force-dynamic'
 
-import Navbar from '@/components/Navbar'
-import Hero from '@/components/sections/Hero'
-import About from '@/components/sections/About'
-import Projects from '@/components/sections/Projects'
-import BlogPreview from '@/components/sections/BlogPreview'
-import Contact from '@/components/sections/Contact'
-import { getSiteContent } from '@/lib/site-content'
+import { getActiveTemplateId } from '@/lib/templates'
+import ClassicTemplate from '@/components/templates/ClassicTemplate'
+import CenteredTemplate from '@/components/templates/CenteredTemplate'
+import SidebarTemplate from '@/components/templates/SidebarTemplate'
+import BentoTemplate from '@/components/templates/BentoTemplate'
+import TerminalTemplate from '@/components/templates/TerminalTemplate'
+import MagazineTemplate from '@/components/templates/MagazineTemplate'
 
 export default async function Home() {
-  const [footer, sections] = await Promise.all([
-    getSiteContent('footer'),
-    getSiteContent('sections'),
-  ])
+  const templateId = await getActiveTemplateId()
 
-  return (
-    <>
-      <Navbar />
-      <main>
-        {sections.hero && <Hero />}
-        {sections.about && <About />}
-        {sections.projects && <Projects />}
-        {sections.blogPreview && <BlogPreview />}
-        {sections.contact && <Contact />}
-      </main>
-      <footer className="border-t border-[var(--border)] py-6 text-center text-xs text-[var(--muted)]">
-        © {new Date().getFullYear()} {footer.copyrightName}
-      </footer>
-    </>
-  )
+  switch (templateId) {
+    case 'centered':
+      return <CenteredTemplate />
+    case 'sidebar':
+      return <SidebarTemplate />
+    case 'bento':
+      return <BentoTemplate />
+    case 'terminal':
+      return <TerminalTemplate />
+    case 'magazine':
+      return <MagazineTemplate />
+    default:
+      return <ClassicTemplate />
+  }
 }

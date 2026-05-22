@@ -60,7 +60,7 @@ export default async function BlogPage({
 
   const archiveData = archivePosts
     .filter((p) => p.publishedAt !== null)
-    .map((p) => ({ slug: p.slug, title: p.title, publishedAt: p.publishedAt!.toISOString() }))
+    .map((p) => ({ slug: p.slug, title: p.title, publishedAt: (p.publishedAt as Date).toISOString() }))
 
   const showArchive = sections.blogArchive && archiveData.length > 0
   const showSidebar = showArchive || tags.length > 0

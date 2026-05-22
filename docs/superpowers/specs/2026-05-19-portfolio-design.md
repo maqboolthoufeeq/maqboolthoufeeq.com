@@ -7,7 +7,7 @@
 
 ## Overview
 
-A full personal website for Maqbool Thoufeeq (Full-Stack Developer) built with Next.js 15 App Router. The site has a dark-first aesthetic with a light/dark toggle, a database-backed portfolio and blog, and a private admin CMS for managing content without touching code.
+A full personal website for Maqbool Thoufeeq (Full-Stack Developer) 15 App Router. The site has a dark-first aesthetic with a light/dark toggle, a database-backed portfolio and blog, and a private admin CMS for managing content without touching code.
 
 ---
 

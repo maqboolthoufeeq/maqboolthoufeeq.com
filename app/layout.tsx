@@ -5,7 +5,10 @@ import { ThemeProvider } from 'next-themes'
 import { prisma } from '@/lib/prisma'
 import { DEFAULT_THEME_ID, getTheme, themeToCSS } from '@/lib/themes'
 import { DEFAULT_DESIGN_ID } from '@/lib/designs'
+import { DesignSync } from './DesignSync'
 import './globals.css'
+
+export const dynamic = 'force-dynamic'
 
 export const lora = Lora({
   subsets: ['latin'],
@@ -33,10 +36,11 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="en" suppressHydrationWarning data-design={designId}>
       <head>
-        {/* eslint-disable-next-line react/no-danger */}
+        { }
         {themeCSS && <style dangerouslySetInnerHTML={{ __html: themeCSS }} />}
       </head>
       <body className={`${GeistSans.className} ${lora.variable}`}>
+        <DesignSync designId={designId} />
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           {children}
         </ThemeProvider>

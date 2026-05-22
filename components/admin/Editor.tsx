@@ -243,11 +243,13 @@ export default function Editor({ content, onChange }: Props) {
       <>
         {SIZES.map(s => (
           <button key={s.value} type="button" onMouseDown={e => e.preventDefault()}
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             onClick={() => { (ed.chain().focus() as any).setFontSize(s.value).run(); closePanel() }}
             className={fBtn(currentSize === s.value)}
           >{s.label}</button>
         ))}
         <button type="button" onMouseDown={e => e.preventDefault()}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           onClick={() => { (ed.chain().focus() as any).unsetFontSize().run(); closePanel() }}
           className="text-[var(--muted)] text-xs cursor-pointer ml-1 px-1"
         >Reset</button>
@@ -259,6 +261,7 @@ export default function Editor({ content, onChange }: Props) {
     const applyColor = (color: string) => {
       const chain = ed.chain().focus()
       if (savedSel) chain.setTextSelection(savedSel)
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       ;(chain as any).setColor(color).run()
     }
     bubbleInner = (
@@ -294,6 +297,7 @@ export default function Editor({ content, onChange }: Props) {
           }}
         />
         <button type="button" onMouseDown={e => e.preventDefault()}
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           onClick={() => { (ed.chain().focus() as any).unsetColor().run(); closePanel() }}
           className="text-[var(--muted)] text-xs cursor-pointer px-1 hover:text-red-500"
         >Reset</button>

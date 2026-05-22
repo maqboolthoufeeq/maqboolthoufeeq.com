@@ -61,6 +61,18 @@ body {
   border-color: rgba(255,255,255,0.1) !important;
   box-shadow: 0 8px 32px rgba(0,0,0,0.2), inset 0 1px 0 rgba(255,255,255,0.07);
 }
+[data-design="glass"] header {
+  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  background: rgba(255,255,255,0.03) !important;
+  border-color: rgba(255,255,255,0.08) !important;
+}
+[data-design="glass"] input,
+[data-design="glass"] select {
+  backdrop-filter: blur(8px);
+  background: rgba(255,255,255,0.05) !important;
+  border-color: rgba(255,255,255,0.1) !important;
+}
 [data-design="glass"] .glow {
   box-shadow: 0 0 32px color-mix(in srgb, var(--accent) 50%, transparent);
 }
@@ -69,7 +81,7 @@ body {
 [data-design="brutalist"] *:not(img):not(svg):not(circle):not(path):not(line):not(polyline):not(rect) {
   border-radius: 0 !important;
 }
-[data-design="brutalist"] {
+html[data-design="brutalist"] {
   --surface: var(--background);
 }
 [data-design="brutalist"] .border,
@@ -86,6 +98,23 @@ body {
 [data-design="brutalist"] .rounded-2xl:hover {
   outline: 2px solid var(--accent);
   outline-offset: -2px;
+}
+[data-design="brutalist"] header {
+  border-bottom-width: 3px !important;
+}
+[data-design="brutalist"] input {
+  border-width: 2px !important;
+}
+[data-design="brutalist"] .prose h1,
+[data-design="brutalist"] .prose h2,
+[data-design="brutalist"] .prose h3,
+[data-design="brutalist"] .prose h4 {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+[data-design="brutalist"] .prose blockquote {
+  border-left-width: 4px !important;
+  border-left-color: var(--accent) !important;
 }
 
 /* ── Soft ── */
@@ -104,7 +133,7 @@ body {
 }
 
 /* ── Retro ── */
-[data-design="retro"] {
+html[data-design="retro"] {
   --surface: #0c0c0c;
   --background: #080808;
   --border: #2a2a2a;
@@ -129,4 +158,41 @@ body {
 [data-design="retro"] span[class*="accent"],
 [data-design="retro"] a[class*="accent"] {
   text-shadow: 0 0 8px color-mix(in srgb, var(--accent) 60%, transparent);
+}
+[data-design="retro"] header {
+  background: #0c0c0c !important;
+  border-color: #2a2a2a !important;
+}
+[data-design="retro"] input,
+[data-design="retro"] select {
+  background: #0c0c0c !important;
+  border-color: #2a2a2a !important;
+  color: #d4d4d4 !important;
+}
+[data-design="retro"] .prose {
+  color: #d4d4d4;
+}
+[data-design="retro"] .prose h1,
+[data-design="retro"] .prose h2,
+[data-design="retro"] .prose h3,
+[data-design="retro"] .prose h4 {
+  color: #f0f0f0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+[data-design="retro"] .prose a {
+  color: var(--accent);
+}
+[data-design="retro"] .prose code {
+  color: var(--accent);
+  background: #111 !important;
+}
+[data-design="retro"] .prose pre {
+  background: #0a0a0a !important;
+  border: 1px solid #2a2a2a;
+  box-shadow: 4px 4px 0 var(--accent);
+}
+[data-design="retro"] .prose blockquote {
+  border-left-color: var(--accent) !important;
+  color: #5a5a5a;
 }

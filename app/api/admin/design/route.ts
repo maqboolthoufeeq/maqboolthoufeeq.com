@@ -6,7 +6,7 @@ import { DEFAULT_DESIGN_ID, DESIGNS } from '@/lib/designs'
 export async function GET() {
   const row = await prisma.siteContent.findUnique({ where: { key: 'design' } })
   const id = (row?.value as { id?: string } | null)?.id ?? DEFAULT_DESIGN_ID
-  return NextResponse.json({ id })
+  return NextResponse.json({ id }, { headers: { 'Cache-Control': 'no-store' } })
 }
 
 export async function POST(req: NextRequest) {

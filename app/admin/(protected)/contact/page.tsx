@@ -1,7 +1,7 @@
 import Link from 'next/link'
-import { Paperclip } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
 import { MarkReadButton } from './MarkReadButton'
+import { AttachmentPreview } from './AttachmentPreview'
 
 export default async function ContactRequestsPage() {
   const requests = await prisma.contactRequest.findMany({
@@ -71,15 +71,11 @@ export default async function ContactRequestsPage() {
                   </p>
 
                   {req.attachmentUrl && (
-                    <a
-                      href={req.attachmentUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded-lg border border-[var(--border)] text-[var(--muted)] hover:text-[var(--foreground)] hover:border-[var(--accent)] transition-all"
-                    >
-                      <Paperclip size={12} />
-                      {req.attachmentName ?? 'Download attachment'}
-                    </a>
+                    <AttachmentPreview
+                      url={req.attachmentUrl}
+                      name={req.attachmentName ?? 'attachment'}
+                      size={req.attachmentSize ?? null}
+                    />
                   )}
                 </div>
               </li>

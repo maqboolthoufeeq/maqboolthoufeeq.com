@@ -1,10 +1,27 @@
 'use client'
 
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
+
+declare global {
+  interface Window {
+    grecaptcha: {
+      ready: (cb: () => void) => void
+      execute: (siteKey: string, options: { action: string }) => Promise<string>
+    }
+  }
+}
+
 import { CheckCircle, Paperclip, X, ArrowRight, Upload } from 'lucide-react'
 
 const MAX_BYTES = 5 * 1024 * 1024
 const ACCEPTED = '.jpg,.jpeg,.png,.webp,.gif,.pdf,.doc,.docx,.txt'
+const ALLOWED_MIME_TYPES = new Set([
+  'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'text/plain',
+])
 
 const inputCls =
   'w-full px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--background)] text-[var(--foreground)] ' +
@@ -17,6 +34,8 @@ function formatBytes(bytes: number): string {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
+const SITE_KEY = process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY ?? ''
+
 export default function ContactForm() {
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
@@ -28,9 +47,22 @@ export default function ContactForm() {
   const [errorMsg, setErrorMsg] = useState('')
   const fileInputRef = useRef<HTMLInputElement>(null)
 
+  useEffect(() => {
+    if (!SITE_KEY) return
+    const script = document.createElement('script')
+    script.src = `https://www.google.com/recaptcha/api.js?render=${SITE_KEY}`
+    script.async = true
+    document.head.appendChild(script)
+    return () => { document.head.removeChild(script) }
+  }, [])
+
   function handleFile(picked: File | null) {
     setFileError('')
     if (!picked) { setFile(null); return }
+    if (!ALLOWED_MIME_TYPES.has(picked.type)) {
+      setFileError('Unsupported file type. Allowed: images, PDF, Word documents, plain text.')
+      return
+    }
     if (picked.size > MAX_BYTES) {
       setFileError('File exceeds the 5 MB limit.')
       return
@@ -56,6 +88,19 @@ export default function ContactForm() {
     fd.append('email', email)
     fd.append('message', message)
     if (file) fd.append('attachment', file)
+
+    if (SITE_KEY && typeof window !== 'undefined' && window.grecaptcha) {
+      try {
+        const token = await new Promise<string>((resolve, reject) => {
+          window.grecaptcha.ready(() => {
+            window.grecaptcha.execute(SITE_KEY, { action: 'contact' }).then(resolve).catch(reject)
+          })
+        })
+        fd.append('recaptchaToken', token)
+      } catch {
+        // Non-fatal: backend only enforces token if IP has prior submissions
+      }
+    }
 
     try {
       const res = await fetch('/api/contact', { method: 'POST', body: fd })

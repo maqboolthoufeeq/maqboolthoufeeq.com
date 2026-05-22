@@ -83,6 +83,7 @@ model ContactRequest {
   ip             String?
   attachmentUrl  String?
   attachmentName String?
+  attachmentSize Int?
   read           Boolean  @default(false)
   createdAt      DateTime @default(now())
 }

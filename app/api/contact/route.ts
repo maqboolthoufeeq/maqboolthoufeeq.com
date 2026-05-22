@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { sendEmail } from '@/lib/email'
 import { uploadContactAttachment } from '@/lib/blob'
 
-const IP_LIMIT = 5        // max per IP per hour
+const IP_LIMIT = 3        // max per IP per hour
 const SESSION_LIMIT = 2   // max per session cookie
 const SESSION_COOKIE = 'contact_count'
 
@@ -14,6 +14,14 @@ function getIp(req: NextRequest): string {
     req.headers.get('x-real-ip') ??
     'unknown'
   )
+}
+
+function sanitizeFilename(name: string): string {
+  return name
+    .replace(/[^a-zA-Z0-9 ._-]/g, '')    // keep safe chars only
+    .replace(/\.{2,}/g, '.')              // collapse .. sequences
+    .trim()
+    .slice(0, 200) || 'attachment'
 }
 
 function escapeHtml(str: string): string {
@@ -69,14 +77,37 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  // reCAPTCHA required when this IP has submitted before in the past hour
+  if (recentCount > 0) {
+    const recaptchaToken = String(formData.get('recaptchaToken') ?? '').trim()
+    if (!recaptchaToken) {
+      return NextResponse.json({ error: 'CAPTCHA verification required.' }, { status: 400 })
+    }
+    const verifyRes = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: `secret=${process.env.RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}`,
+    })
+    const verifyData = await verifyRes.json() as { success: boolean; score: number }
+    if (!verifyData.success || verifyData.score < 0.5) {
+      return NextResponse.json(
+        { error: 'CAPTCHA verification failed. Please try again.' },
+        { status: 400 },
+      )
+    }
+  }
+
   // Handle optional attachment
   let attachmentUrl: string | undefined
   let attachmentName: string | undefined
 
+  let attachmentSize: number | undefined
+
   if (file instanceof File && file.size > 0) {
     try {
       attachmentUrl = await uploadContactAttachment(file)
-      attachmentName = file.name
+      attachmentName = sanitizeFilename(file.name)
+      attachmentSize = file.size
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'Upload failed'
       return NextResponse.json({ error: msg }, { status: 400 })
@@ -84,7 +115,7 @@ export async function POST(req: NextRequest) {
   }
 
   await prisma.contactRequest.create({
-    data: { name, email, message, ip, attachmentUrl, attachmentName },
+    data: { name, email, message, ip, attachmentUrl, attachmentName, attachmentSize },
   })
 
   const res = NextResponse.json({ ok: true })

@@ -1,7 +1,7 @@
 import type { Metadata } from 'next'
 import { GeistSans } from 'geist/font/sans'
 import { Lora } from 'next/font/google'
-import { ThemeProvider } from 'next-themes'
+import { ThemeProviderWrapper as ThemeProvider } from '@/components/ThemeProviderWrapper'
 import { prisma } from '@/lib/prisma'
 import { DEFAULT_THEME_ID, getTheme, themeToCSS } from '@/lib/themes'
 import { DEFAULT_DESIGN_ID } from '@/lib/designs'

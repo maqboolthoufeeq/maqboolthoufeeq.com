@@ -1,169 +1,204 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useState, useTransition, useRef, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Check } from 'lucide-react'
-import { DESIGNS, type Design } from '@/lib/designs'
+import { DESIGNS } from '@/lib/designs'
 
-type PreviewProps = { accent: string }
+const INNER_W = 1024
+const INNER_H = 620
 
-const previews: Record<string, (p: PreviewProps) => React.ReactNode> = {
-  minimal: ({ accent }) => (
-    <div className="flex flex-col gap-2">
-      <div style={{ background: '#111118', border: '1px solid #1f1f2e', borderRadius: 12, padding: '10px 12px' }}>
-        <div style={{ width: 80, height: 8, background: '#f8fafc', borderRadius: 4, marginBottom: 6 }} />
-        <div style={{ width: '100%', height: 5, background: '#6b7280', borderRadius: 3, marginBottom: 3 }} />
-        <div style={{ width: '70%', height: 5, background: '#6b7280', borderRadius: 3, marginBottom: 8 }} />
-        <div style={{ display: 'flex', gap: 4 }}>
-          <div style={{ padding: '3px 8px', background: accent, borderRadius: 6, fontSize: 8, color: '#fff' }}>Live</div>
-          <div style={{ padding: '3px 8px', border: '1px solid #1f1f2e', borderRadius: 6, fontSize: 8, color: '#6b7280' }}>Code</div>
+const PROJECTS = [
+  { title: 'Project Alpha', tech: 'Next.js · TypeScript · Prisma', accent: true },
+  { title: 'Project Beta', tech: 'React · Node.js · PostgreSQL', accent: false },
+  { title: 'Project Gamma', tech: 'Vue · FastAPI · Redis', accent: false },
+]
+
+function PreviewContent() {
+  return (
+    <div className="bg-[var(--background)] dark" style={{ height: INNER_H, fontFamily: 'inherit' }}>
+      {/* Nav */}
+      <header className="h-14 border-b border-[var(--border)] bg-[var(--surface)] flex items-center justify-between px-8">
+        <span className="font-bold text-[var(--foreground)] text-base">Maqbool Thoufeeq</span>
+        <nav className="flex items-center gap-8">
+          {['About', 'Projects', 'Blog', 'Contact'].map(item => (
+            <span key={item} className="text-sm text-[var(--muted)]">{item}</span>
+          ))}
+        </nav>
+      </header>
+
+      {/* Hero */}
+      <div className="px-8 pt-10 pb-8">
+        <p className="text-sm text-[var(--muted)] mb-2 tracking-wide">Full-Stack Developer</p>
+        <h1 className="text-5xl font-bold text-[var(--foreground)] mb-4 leading-tight">
+          Hi, I&apos;m Maqbool
+        </h1>
+        <p className="text-lg text-[var(--muted)] mb-7 max-w-lg">
+          I build fast, beautiful web products with a focus on great user experience.
+        </p>
+        <div className="flex items-center gap-3 mb-10">
+          <button className="px-5 py-2 rounded-lg bg-[var(--accent)] text-white text-sm font-medium">
+            View Projects
+          </button>
+          <button className="px-5 py-2 rounded-lg border border-[var(--border)] text-[var(--muted)] text-sm">
+            Contact
+          </button>
+        </div>
+
+        {/* Project cards */}
+        <div className="grid grid-cols-3 gap-5">
+          {PROJECTS.map(p => (
+            <article
+              key={p.title}
+              className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden"
+            >
+              <div
+                className="h-24"
+                style={{ background: 'color-mix(in srgb, var(--accent) 14%, transparent)' }}
+              />
+              <div className="p-4">
+                <h3 className="font-semibold text-[var(--foreground)] text-sm mb-1">{p.title}</h3>
+                <p className="text-xs text-[var(--muted)] mb-3">{p.tech}</p>
+                <div className="flex items-center gap-2">
+                  <span className="px-2 py-0.5 rounded-full bg-[var(--accent)] text-white text-xs">
+                    Live
+                  </span>
+                  <span className="px-2 py-0.5 rounded-full border border-[var(--border)] text-[var(--muted)] text-xs">
+                    Code
+                  </span>
+                </div>
+              </div>
+            </article>
+          ))}
         </div>
       </div>
     </div>
-  ),
+  )
+}
 
-  glass: ({ accent }) => (
-    <div className="flex flex-col gap-2" style={{ background: 'linear-gradient(135deg, #0d0d0f 0%, #1a0a2e 100%)', borderRadius: 8, padding: 8 }}>
-      <div style={{
-        background: `color-mix(in srgb, ${accent} 8%, rgba(255,255,255,0.04))`,
-        border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: 12,
-        padding: '10px 12px',
-        boxShadow: '0 8px 32px rgba(0,0,0,0.3), inset 0 1px 0 rgba(255,255,255,0.07)',
-      }}>
-        <div style={{ width: 80, height: 8, background: '#f8fafc', borderRadius: 4, marginBottom: 6 }} />
-        <div style={{ width: '100%', height: 5, background: 'rgba(255,255,255,0.3)', borderRadius: 3, marginBottom: 3 }} />
-        <div style={{ width: '70%', height: 5, background: 'rgba(255,255,255,0.3)', borderRadius: 3, marginBottom: 8 }} />
-        <div style={{ display: 'flex', gap: 4 }}>
-          <div style={{ padding: '3px 8px', background: accent, borderRadius: 6, fontSize: 8, color: '#fff' }}>Live</div>
-        </div>
+function SitePreview({ designId, thumb = false }: { designId: string; thumb?: boolean }) {
+  const wrapperRef = useRef<HTMLDivElement>(null)
+  const [scale, setScale] = useState(thumb ? 0.18 : 0.6)
+
+  useEffect(() => {
+    const el = wrapperRef.current
+    if (!el) return
+    const update = () => setScale(el.offsetWidth / INNER_W)
+    update()
+    const obs = new ResizeObserver(update)
+    obs.observe(el)
+    return () => obs.disconnect()
+  }, [])
+
+  return (
+    <div
+      ref={wrapperRef}
+      style={{ aspectRatio: `${INNER_W} / ${INNER_H}`, overflow: 'hidden', position: 'relative' }}
+    >
+      <div
+        data-design={designId}
+        style={{
+          width: INNER_W,
+          height: INNER_H,
+          transform: `scale(${scale})`,
+          transformOrigin: 'top left',
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          pointerEvents: 'none',
+        }}
+      >
+        <PreviewContent />
       </div>
     </div>
-  ),
-
-  brutalist: ({ accent }) => (
-    <div className="flex flex-col gap-2">
-      <div style={{ background: '#080808', border: '2px solid #d4d4d4', borderRadius: 0, padding: '10px 12px' }}>
-        <div style={{ width: 80, height: 8, background: '#f8fafc', borderRadius: 0, marginBottom: 6, textTransform: 'uppercase' }} />
-        <div style={{ width: '100%', height: 5, background: '#5a5a5a', borderRadius: 0, marginBottom: 3 }} />
-        <div style={{ width: '70%', height: 5, background: '#5a5a5a', borderRadius: 0, marginBottom: 8 }} />
-        <div style={{ display: 'flex', gap: 4 }}>
-          <div style={{ padding: '3px 8px', background: accent, borderRadius: 0, fontSize: 8, color: '#fff', border: `2px solid ${accent}` }}>LIVE</div>
-          <div style={{ padding: '3px 8px', border: '2px solid #d4d4d4', borderRadius: 0, fontSize: 8, color: '#d4d4d4' }}>CODE</div>
-        </div>
-      </div>
-    </div>
-  ),
-
-  soft: ({ accent }) => (
-    <div className="flex flex-col gap-2">
-      <div style={{
-        background: '#111118',
-        border: 'none',
-        borderRadius: 28,
-        padding: '10px 12px',
-        boxShadow: '0 4px 32px rgba(0,0,0,0.5)',
-      }}>
-        <div style={{ width: 80, height: 8, background: '#f8fafc', borderRadius: 16, marginBottom: 6 }} />
-        <div style={{ width: '100%', height: 5, background: '#6b7280', borderRadius: 16, marginBottom: 3 }} />
-        <div style={{ width: '70%', height: 5, background: '#6b7280', borderRadius: 16, marginBottom: 8 }} />
-        <div style={{ display: 'flex', gap: 4 }}>
-          <div style={{ padding: '3px 10px', background: accent, borderRadius: 999, fontSize: 8, color: '#fff' }}>Live</div>
-          <div style={{ padding: '3px 10px', background: '#1f1f2e', borderRadius: 999, fontSize: 8, color: '#6b7280' }}>Code</div>
-        </div>
-      </div>
-    </div>
-  ),
-
-  retro: ({ accent }) => (
-    <div className="flex flex-col gap-2" style={{ background: '#080808', padding: 8, borderRadius: 4 }}>
-      <div style={{
-        background: '#0c0c0c',
-        border: '1px solid #2a2a2a',
-        borderRadius: 0,
-        padding: '10px 12px',
-        boxShadow: `4px 4px 0 ${accent}`,
-        fontFamily: 'monospace',
-      }}>
-        <div style={{ width: 80, height: 8, background: '#d4d4d4', borderRadius: 0, marginBottom: 6 }} />
-        <div style={{ width: '100%', height: 5, background: '#5a5a5a', borderRadius: 0, marginBottom: 3 }} />
-        <div style={{ width: '70%', height: 5, background: '#5a5a5a', borderRadius: 0, marginBottom: 8 }} />
-        <div style={{ display: 'flex', gap: 4 }}>
-          <div style={{ padding: '3px 8px', background: 'transparent', borderRadius: 0, fontSize: 8, color: accent, border: `1px solid ${accent}` }}>&gt; LIVE_</div>
-        </div>
-      </div>
-    </div>
-  ),
+  )
 }
 
 export default function DesignPicker({ activeId }: { activeId: string }) {
   const router = useRouter()
   const [current, setCurrent] = useState(activeId)
+  const [staged, setStaged] = useState(activeId)
   const [pending, startTransition] = useTransition()
-  const [saving, setSaving] = useState<string | null>(null)
+  const [saving, setSaving] = useState(false)
 
-  async function pick(design: Design) {
-    if (design.id === current) return
-    setSaving(design.id)
+  const stagedDesign = DESIGNS.find(d => d.id === staged) ?? DESIGNS[0]
+  const isChanged = staged !== current
+
+  async function apply() {
+    if (!isChanged || saving) return
+    setSaving(true)
     const res = await fetch('/api/admin/design', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: design.id }),
+      body: JSON.stringify({ id: staged }),
     })
-    setSaving(null)
+    setSaving(false)
     if (res.ok) {
-      setCurrent(design.id)
+      setCurrent(staged)
       startTransition(() => router.refresh())
     }
   }
 
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
-      {DESIGNS.map((design) => {
-        const isActive = current === design.id
-        const isLoading = saving === design.id
-        const Preview = previews[design.id]
-
-        return (
+    <div className="space-y-4">
+      {/* Large preview panel */}
+      <div className="rounded-2xl border border-[var(--border)] overflow-hidden">
+        <div className="px-4 py-3 bg-[var(--surface)] border-b border-[var(--border)] flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <p className="font-semibold text-sm text-[var(--foreground)]">{stagedDesign.name}</p>
+            <p className="text-xs text-[var(--muted)] truncate">{stagedDesign.description}</p>
+          </div>
           <button
-            key={design.id}
-            onClick={() => pick(design)}
-            disabled={!!saving || pending}
-            className={`group relative text-left rounded-2xl border-2 overflow-hidden transition-all focus:outline-none disabled:cursor-wait ${
-              isActive
-                ? 'border-[var(--accent)] shadow-lg'
-                : 'border-[var(--border)] hover:border-[var(--accent)]/60'
+            onClick={apply}
+            disabled={!isChanged || saving || pending}
+            className={`shrink-0 px-4 py-1.5 rounded-lg text-sm font-medium transition-all disabled:cursor-not-allowed ${
+              !isChanged
+                ? 'bg-[var(--border)] text-[var(--muted)] opacity-60'
+                : 'bg-[var(--accent)] text-white hover:opacity-90 disabled:opacity-50'
             }`}
           >
-            {/* Mockup preview */}
-            <div className="p-3 bg-[#0d0d0f] min-h-[100px] flex items-center justify-center">
-              <div className="w-full">
-                {Preview && <Preview accent="var(--accent)" />}
-              </div>
-
-              {isActive && (
-                <span className="absolute top-2 right-2 w-5 h-5 rounded-full bg-[var(--accent)] flex items-center justify-center z-10">
-                  <Check size={11} className="text-white" />
-                </span>
-              )}
-
-              {isLoading && (
-                <span className="absolute inset-0 bg-black/50 flex items-center justify-center z-10">
-                  <span className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                </span>
-              )}
-            </div>
-
-            {/* Label */}
-            <div className="px-3 py-2.5 bg-[var(--surface)]">
-              <p className={`font-semibold text-xs ${isActive ? 'text-[var(--accent)]' : 'text-[var(--foreground)]'}`}>
-                {design.name}
-              </p>
-              <p className="text-[10px] text-[var(--muted)] mt-0.5 leading-tight">{design.description}</p>
-            </div>
+            {saving ? 'Applying…' : !isChanged ? 'Applied' : 'Apply design'}
           </button>
-        )
-      })}
+        </div>
+        <SitePreview designId={staged} />
+      </div>
+
+      {/* Thumbnail grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+        {DESIGNS.map(design => {
+          const isStaged = staged === design.id
+          const isSaved = current === design.id
+
+          return (
+            <button
+              key={design.id}
+              onClick={() => setStaged(design.id)}
+              disabled={saving || pending}
+              className={`group relative text-left rounded-xl border-2 overflow-hidden transition-all focus:outline-none disabled:cursor-wait ${
+                isStaged
+                  ? 'border-[var(--accent)] shadow-lg shadow-[var(--accent)]/10'
+                  : 'border-[var(--border)] hover:border-[var(--accent)]/50'
+              }`}
+            >
+              <SitePreview designId={design.id} thumb />
+              <div className="px-3 py-2 bg-[var(--surface)] flex items-center justify-between gap-2">
+                <p className={`font-semibold text-xs truncate ${isStaged ? 'text-[var(--accent)]' : 'text-[var(--foreground)]'}`}>
+                  {design.name}
+                </p>
+                {isSaved && (
+                  <span className="shrink-0 w-4 h-4 rounded-full bg-[var(--accent)] flex items-center justify-center">
+                    <Check size={9} className="text-white" />
+                  </span>
+                )}
+              </div>
+            </button>
+          )
+        })}
+      </div>
+      <p className="text-xs text-[var(--muted)]">
+        Click a design to preview it above, then hit{' '}
+        <span className="font-medium text-[var(--foreground)]">Apply design</span> to save.
+      </p>
     </div>
   )
 }

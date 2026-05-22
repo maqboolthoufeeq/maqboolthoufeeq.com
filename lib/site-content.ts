@@ -46,8 +46,17 @@ export interface ContactLink {
   label: string
 }
 
+export interface ContactExtra {
+  label: string
+  value: string
+}
+
 export interface ContactContent {
   description: string
+  email: string
+  phone: string
+  address: string
+  extra: ContactExtra[]
   links: ContactLink[]
 }
 
@@ -103,6 +112,10 @@ const DEFAULTS = {
 
   contact: {
     description: "I'm always open to interesting projects and opportunities. Whether you have a question or just want to say hi — feel free to reach out.",
+    email: '',
+    phone: '',
+    address: '',
+    extra: [] as ContactExtra[],
     links: [
       { href: 'mailto:maqboolthoufeeq@gmail.com', label: 'Email' },
       { href: 'https://github.com/maqboolthoufeeq', label: 'GitHub' },

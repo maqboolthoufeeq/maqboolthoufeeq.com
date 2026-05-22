@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
-import type { HeroContent, AboutContent, ContactContent, FooterContent, ContactLink, NavbarContent, NavLink, ImageShape, ImageSize, SectionVisibility, SocialLink } from '@/lib/site-content'
+import type { HeroContent, AboutContent, ContactContent, FooterContent, ContactLink, ContactExtra, NavbarContent, NavLink, ImageShape, ImageSize, SectionVisibility, SocialLink } from '@/lib/site-content'
 
 const SOCIAL_PLATFORMS = [
   { value: 'github', label: 'GitHub' },
@@ -604,6 +604,10 @@ export function AboutForm({ initial }: { initial: AboutContent }) {
 
 export function ContactForm({ initial }: { initial: ContactContent }) {
   const [description, setDescription] = useState(initial.description)
+  const [email, setEmail] = useState(initial.email ?? '')
+  const [phone, setPhone] = useState(initial.phone ?? '')
+  const [address, setAddress] = useState(initial.address ?? '')
+  const [extra, setExtra] = useState<ContactExtra[]>(initial.extra ?? [])
   const [links, setLinks] = useState<ContactLink[]>(initial.links)
   const [saving, setSaving] = useState(false)
   const [saved, setSaved] = useState(false)
@@ -613,23 +617,29 @@ export function ContactForm({ initial }: { initial: ContactContent }) {
     setLinks((prev) => prev.map((l, idx) => (idx === i ? { ...l, [field]: value } : l)))
     setSaved(false)
   }
+  function addLink() { setLinks((l) => [...l, { href: '', label: '' }]); setSaved(false) }
+  function removeLink(i: number) { setLinks((l) => l.filter((_, idx) => idx !== i)); setSaved(false) }
 
-  function addLink() {
-    setLinks((l) => [...l, { href: '', label: '' }])
+  function setExtraField(i: number, field: keyof ContactExtra, value: string) {
+    setExtra((prev) => prev.map((x, idx) => (idx === i ? { ...x, [field]: value } : x)))
     setSaved(false)
   }
-
-  function removeLink(i: number) {
-    setLinks((l) => l.filter((_, idx) => idx !== i))
-    setSaved(false)
-  }
+  function addExtra() { setExtra((x) => [...x, { label: '', value: '' }]); setSaved(false) }
+  function removeExtra(i: number) { setExtra((x) => x.filter((_, idx) => idx !== i)); setSaved(false) }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setSaving(true)
     setError('')
     try {
-      await save('contact', { description, links: links.filter((l) => l.label && l.href) })
+      await save('contact', {
+        description,
+        email,
+        phone,
+        address,
+        extra: extra.filter((x) => x.label && x.value),
+        links: links.filter((l) => l.label && l.href),
+      })
       setSaved(true)
     } catch {
       setError('Failed to save')
@@ -641,6 +651,7 @@ export function ContactForm({ initial }: { initial: ContactContent }) {
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       {error && <p className="text-red-400 text-sm">{error}</p>}
+
       <Field label="Description">
         <textarea
           value={description}
@@ -649,42 +660,88 @@ export function ContactForm({ initial }: { initial: ContactContent }) {
           className={textareaCls}
         />
       </Field>
-      <div className="space-y-2">
-        <label className="block text-sm text-[var(--muted)]">Links</label>
-        {links.map((link, i) => (
-          <div key={i} className="p-3 rounded-lg border border-[var(--border)] bg-[var(--background)] space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-xs text-[var(--muted)]">Link {i + 1}</span>
-              <button type="button" onClick={() => removeLink(i)} className="text-xs text-[var(--muted)] hover:text-red-400 px-1">
-                Remove
-              </button>
-            </div>
-            <div className="grid sm:grid-cols-2 gap-3">
-              <div>
-                <label className="block text-xs text-[var(--muted)] mb-1">Label</label>
-                <input
-                  value={link.label}
-                  onChange={(e) => setLink(i, 'label', e.target.value)}
-                  placeholder="e.g. GitHub"
-                  className={inputCls}
-                />
+
+      <div className="pt-2 border-t border-[var(--border)]">
+        <p className="text-sm text-[var(--muted)] mb-3">Contact info</p>
+        <div className="space-y-3">
+          <Field label="Email">
+            <input
+              type="email"
+              value={email}
+              onChange={(e) => { setEmail(e.target.value); setSaved(false) }}
+              placeholder="you@example.com"
+              className={inputCls}
+            />
+          </Field>
+          <Field label="Phone">
+            <input
+              type="tel"
+              value={phone}
+              onChange={(e) => { setPhone(e.target.value); setSaved(false) }}
+              placeholder="+1 234 567 8900"
+              className={inputCls}
+            />
+          </Field>
+          <Field label="Address">
+            <textarea
+              value={address}
+              onChange={(e) => { setAddress(e.target.value); setSaved(false) }}
+              rows={2}
+              placeholder="123 Main St, City, Country"
+              className={textareaCls}
+            />
+          </Field>
+
+          <div className="space-y-2">
+            <label className="block text-xs text-[var(--muted)] uppercase tracking-wide">Other info</label>
+            {extra.map((x, i) => (
+              <div key={i} className="p-3 rounded-lg border border-[var(--border)] bg-[var(--background)] space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs text-[var(--muted)]">Item {i + 1}</span>
+                  <button type="button" onClick={() => removeExtra(i)} className="text-xs text-[var(--muted)] hover:text-red-400 px-1">Remove</button>
+                </div>
+                <div className="grid sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs text-[var(--muted)] mb-1">Label</label>
+                    <input value={x.label} onChange={(e) => setExtraField(i, 'label', e.target.value)} placeholder="e.g. Skype" className={inputCls} />
+                  </div>
+                  <div>
+                    <label className="block text-xs text-[var(--muted)] mb-1">Value</label>
+                    <input value={x.value} onChange={(e) => setExtraField(i, 'value', e.target.value)} placeholder="e.g. live:username" className={inputCls} />
+                  </div>
+                </div>
               </div>
-              <div>
-                <label className="block text-xs text-[var(--muted)] mb-1">URL</label>
-                <input
-                  value={link.href}
-                  onChange={(e) => setLink(i, 'href', e.target.value)}
-                  placeholder="https://… or mailto:…"
-                  className={inputCls}
-                />
-              </div>
-            </div>
+            ))}
+            <button type="button" onClick={addExtra} className="text-sm text-[var(--accent)] hover:underline">+ Add item</button>
           </div>
-        ))}
-        <button type="button" onClick={addLink} className="text-sm text-[var(--accent)] hover:underline">
-          + Add link
-        </button>
+        </div>
       </div>
+
+      <div className="pt-2 border-t border-[var(--border)]">
+        <p className="text-sm text-[var(--muted)] mb-3">Social / other links</p>
+        <div className="space-y-2">
+          {links.map((link, i) => (
+            <div key={i} className="p-3 rounded-lg border border-[var(--border)] bg-[var(--background)] space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-[var(--muted)]">Link {i + 1}</span>
+                <button type="button" onClick={() => removeLink(i)} className="text-xs text-[var(--muted)] hover:text-red-400 px-1">Remove</button>
+              </div>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs text-[var(--muted)] mb-1">Label</label>
+                  <input value={link.label} onChange={(e) => setLink(i, 'label', e.target.value)} placeholder="e.g. GitHub" className={inputCls} />
+                </div>
+                <div>
+                  <label className="block text-xs text-[var(--muted)] mb-1">URL</label>
+                  <input value={link.href} onChange={(e) => setLink(i, 'href', e.target.value)} placeholder="https://… or mailto:…" className={inputCls} />
+                </div>
+              </div>
+            </div>
+          ))}
+          <button type="button" onClick={addLink} className="text-sm text-[var(--accent)] hover:underline">+ Add link</button>
+        </div>
+      </div>
+
       <SaveButton saving={saving} saved={saved} />
     </form>
   )

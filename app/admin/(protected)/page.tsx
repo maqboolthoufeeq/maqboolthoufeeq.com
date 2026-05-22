@@ -3,11 +3,12 @@ import { signOut } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 
 export default async function AdminDashboard() {
-  const [postCount, publishedCount, projectCount, tagCount] = await Promise.all([
+  const [postCount, publishedCount, projectCount, tagCount, unreadContacts] = await Promise.all([
     prisma.post.count(),
     prisma.post.count({ where: { published: true } }),
     prisma.project.count(),
     prisma.tag.count(),
+    prisma.contactRequest.count({ where: { read: false } }),
   ])
 
   return (
@@ -40,6 +41,12 @@ export default async function AdminDashboard() {
           <AdminLink href="/admin/site-content" title="Edit Landing Page" description="Update hero, about, contact, and footer content" />
           <AdminLink href="/admin/tags" title="Manage Tags" description="Create and organise tags for posts and projects" />
           <AdminLink href="/admin/theme" title="Theme" description="Choose a colour theme for your site" />
+          <AdminLink
+            href="/admin/contact"
+            title="Contact Requests"
+            description="View messages submitted through the contact form"
+            badge={unreadContacts > 0 ? unreadContacts : undefined}
+          />
         </div>
       </main>
     </div>
@@ -55,13 +62,20 @@ function StatCard({ label, value }: { label: string; value: number }) {
   )
 }
 
-function AdminLink({ href, title, description }: { href: string; title: string; description: string }) {
+function AdminLink({ href, title, description, badge }: { href: string; title: string; description: string; badge?: number }) {
   return (
     <Link
       href={href}
       className="p-5 rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:border-[var(--accent)] transition-colors block"
     >
-      <h2 className="font-semibold text-[var(--foreground)] mb-1">{title}</h2>
+      <div className="flex items-center justify-between gap-2 mb-1">
+        <h2 className="font-semibold text-[var(--foreground)]">{title}</h2>
+        {badge !== undefined && (
+          <span className="text-xs bg-[var(--accent)] text-white px-2 py-0.5 rounded-full">
+            {badge}
+          </span>
+        )}
+      </div>
       <p className="text-sm text-[var(--muted)]">{description}</p>
     </Link>
   )

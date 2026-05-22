@@ -52,8 +52,7 @@ export async function createOtp(): Promise<string> {
   const otp = process.env.NODE_ENV === 'development' ? '123456' : String(crypto.randomInt(100000, 999999))
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000) // 10 min
 
-  // Invalidate any existing unused OTPs
-  await prisma.adminToken.updateMany({ where: { type: 'otp', used: false }, data: { used: true } })
+  await prisma.adminToken.deleteMany({ where: { type: 'otp' } })
   await prisma.adminToken.create({ data: { token: otp, type: 'otp', expiresAt } })
   return otp
 }

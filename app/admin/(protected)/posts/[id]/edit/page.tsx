@@ -30,6 +30,13 @@ export default function EditPostPage() {
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
+  const [isOwner, setIsOwner] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/admin/is-owner')
+      .then((r) => r.json())
+      .then((d) => setIsOwner(d.isOwner === true))
+  }, [])
 
   useEffect(() => {
     fetch(`/api/posts/${id}`)
@@ -163,10 +170,12 @@ export default function EditPostPage() {
               <label className="block text-xs text-[var(--muted)] mb-1">Published At (UTC)</label>
               <input type="datetime-local" value={publishedAt} onChange={(e) => setPublishedAt(e.target.value)} className={inputCls} />
             </div>
-            <div>
-              <label className="block text-xs text-[var(--muted)] mb-1">Created At (UTC)</label>
-              <input type="datetime-local" value={createdAt} onChange={(e) => setCreatedAt(e.target.value)} className={inputCls} />
-            </div>
+            {isOwner && (
+              <div>
+                <label className="block text-xs text-[var(--muted)] mb-1">Created At (UTC)</label>
+                <input type="datetime-local" value={createdAt} onChange={(e) => setCreatedAt(e.target.value)} className={inputCls} />
+              </div>
+            )}
           </div>
 
           <div>

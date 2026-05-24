@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
@@ -22,6 +22,13 @@ export default function NewPostPage() {
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
+  const [isOwner, setIsOwner] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/admin/is-owner')
+      .then((r) => r.json())
+      .then((d) => setIsOwner(d.isOwner === true))
+  }, [])
 
   async function handleImageUpload(file: File) {
     setUploading(true)
@@ -137,10 +144,12 @@ export default function NewPostPage() {
               <label className="block text-xs text-[var(--muted)] mb-1">Published At (UTC)</label>
               <input type="datetime-local" value={publishedAt} onChange={(e) => setPublishedAt(e.target.value)} className={inputCls} />
             </div>
-            <div>
-              <label className="block text-xs text-[var(--muted)] mb-1">Created At (UTC)</label>
-              <input type="datetime-local" value={createdAt} onChange={(e) => setCreatedAt(e.target.value)} className={inputCls} />
-            </div>
+            {isOwner && (
+              <div>
+                <label className="block text-xs text-[var(--muted)] mb-1">Created At (UTC)</label>
+                <input type="datetime-local" value={createdAt} onChange={(e) => setCreatedAt(e.target.value)} className={inputCls} />
+              </div>
+            )}
           </div>
 
           <div>

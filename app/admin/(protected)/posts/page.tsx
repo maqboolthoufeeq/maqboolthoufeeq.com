@@ -1,5 +1,7 @@
 import Link from 'next/link'
+import { Plus } from 'lucide-react'
 import PostTable from '@/components/admin/PostTable'
+import AdminShell from '@/components/admin/AdminShell'
 import { prisma } from '@/lib/prisma'
 
 export default async function AdminPostsPage() {
@@ -9,24 +11,22 @@ export default async function AdminPostsPage() {
   })
 
   return (
-    <div className="min-h-screen bg-[var(--background)]">
-      <header className="border-b border-[var(--border)] px-6 h-14 flex items-center justify-between">
-        <div className="flex items-center gap-3">
-          <Link href="/admin" className="text-sm text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">← Dashboard</Link>
-          <span className="text-[var(--border)]">/</span>
-          <h1 className="font-semibold text-[var(--foreground)]">Posts</h1>
-        </div>
+    <AdminShell
+      title="Posts"
+      back="/admin"
+      active="posts"
+      action={
         <Link
           href="/admin/posts/new"
-          className="px-4 py-1.5 text-sm bg-[var(--accent)] text-white rounded-lg hover:opacity-90 transition-opacity"
+          aria-label="New post"
+          className="tap-scale inline-flex items-center justify-center h-10 sm:h-10 px-3 sm:px-4 rounded-full bg-[var(--accent)] text-white text-sm font-medium gap-1.5 hover:opacity-90"
         >
-          New post
+          <Plus size={18} strokeWidth={2.4} />
+          <span className="hidden sm:inline">New post</span>
         </Link>
-      </header>
-
-      <main className="max-w-4xl mx-auto px-6 py-10">
-        <PostTable posts={posts} />
-      </main>
-    </div>
+      }
+    >
+      <PostTable posts={posts} />
+    </AdminShell>
   )
 }

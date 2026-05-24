@@ -115,7 +115,7 @@ export async function POST(req: NextRequest) {
     const url = new URL(redirectUri)
     url.searchParams.set('error', 'access_denied')
     if (state) url.searchParams.set('state', state)
-    return NextResponse.redirect(url.toString())
+    return NextResponse.redirect(url.toString(), { status: 303 })
   }
 
   const client = await getClientByClientId(clientId)
@@ -131,5 +131,5 @@ export async function POST(req: NextRequest) {
   url.searchParams.set('code', code)
   if (state) url.searchParams.set('state', state)
 
-  return NextResponse.redirect(url.toString())
+  return NextResponse.redirect(url.toString(), { status: 303 })
 }

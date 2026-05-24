@@ -47,6 +47,7 @@ export default async function AdminDashboard() {
             description="View messages submitted through the contact form"
             badge={unreadContacts > 0 ? unreadContacts : undefined}
           />
+          <AdminLink href="/admin/mcp" title="MCP" description="Manage access tokens, tools, and OAuth clients for the MCP server" />
         </div>
       </main>
     </div>

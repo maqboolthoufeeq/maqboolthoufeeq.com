@@ -6,19 +6,16 @@
  *   Authorization: Bearer <access_token>
  *
  * Claude Desktop remote config:
- *   {
- *     "url": "https://yourdomain.com/mcp/",
- *     "headers": { "Authorization": "Bearer <token>" }
- *   }
+ *   { "url": "https://yourdomain.com/mcp/",
+ *     "headers": { "Authorization": "Bearer <token>" } }
  *
- * OAuth setup: POST /api/oauth/clients → authorize at /api/oauth/authorize
- *              → exchange code at /api/oauth/token → use the access_token here.
- *
- * Adding new tool areas: create app/mcp/tools/<area>.ts and register it in registry.ts.
+ * Tools can be enabled/disabled from the admin panel (/admin/mcp).
+ * Disabled tools are hidden from tools/list and rejected at tools/call.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
 import { isAuthenticated } from '@/lib/auth-api'
+import { prisma } from '@/lib/prisma'
 import { ALL_TOOLS, callTool } from './registry'
 
 type JsonRpcRequest = {
@@ -36,6 +33,12 @@ function rpcErr(id: string | number | null | undefined, code: number, message: s
   return NextResponse.json({ jsonrpc: '2.0', id, error: { code, message } })
 }
 
+async function getDisabledTools(): Promise<Set<string>> {
+  const row = await prisma.siteContent.findUnique({ where: { key: 'mcp_config' } })
+  const cfg = (row?.value ?? {}) as { disabledTools?: string[] }
+  return new Set(cfg.disabledTools ?? [])
+}
+
 export async function POST(req: NextRequest) {
   if (!(await isAuthenticated(req))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -50,7 +53,6 @@ export async function POST(req: NextRequest) {
 
   const { id, method, params = {} } = body
 
-  // Notifications (no id) — acknowledge with no body
   if (id === undefined || id === null) {
     return new NextResponse(null, { status: 202 })
   }
@@ -67,12 +69,18 @@ export async function POST(req: NextRequest) {
       case 'ping':
         return rpcOk(id, {})
 
-      case 'tools/list':
-        return rpcOk(id, { tools: ALL_TOOLS })
+      case 'tools/list': {
+        const disabled = await getDisabledTools()
+        return rpcOk(id, { tools: ALL_TOOLS.filter((t) => !disabled.has(t.name)) })
+      }
 
       case 'tools/call': {
         const { name: toolName, arguments: toolArgs = {} } =
           params as { name: string; arguments?: Record<string, unknown> }
+        const disabled = await getDisabledTools()
+        if (disabled.has(toolName)) {
+          return rpcErr(id, -32601, `Tool "${toolName}" is disabled`)
+        }
         const content = await callTool(toolName, toolArgs)
         return rpcOk(id, { content })
       }
@@ -86,16 +94,17 @@ export async function POST(req: NextRequest) {
   }
 }
 
-/** Health check / discovery endpoint. */
 export async function GET(req: NextRequest) {
   if (!(await isAuthenticated(req))) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+  const disabled = await getDisabledTools()
+  const enabledTools = ALL_TOOLS.filter((t) => !disabled.has(t.name))
   return NextResponse.json({
     name: 'site-manager',
     version: '1.0.0',
     transport: 'streamable-http',
-    toolCount: ALL_TOOLS.length,
-    tools: ALL_TOOLS.map((t) => t.name),
+    toolCount: enabledTools.length,
+    tools: enabledTools.map((t) => t.name),
   })
 }

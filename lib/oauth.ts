@@ -81,3 +81,28 @@ export async function validateAccessToken(token: string): Promise<boolean> {
 export async function getClientByClientId(clientId: string) {
   return prisma.oAuthClient.findUnique({ where: { clientId } })
 }
+
+/** Create a token directly (no OAuth dance) — used from the admin panel. */
+export async function createDirectToken(label: string) {
+  const token = generate(48)
+  const expiresAt = new Date(Date.now() + TOKEN_TTL_MS)
+  const record = await prisma.oAuthAccessToken.create({
+    data: { token, label, expiresAt },
+    select: { id: true, label: true, expiresAt: true, createdAt: true },
+  })
+  return { ...record, token }
+}
+
+export async function listTokens() {
+  return prisma.oAuthAccessToken.findMany({
+    orderBy: { createdAt: 'desc' },
+    select: {
+      id: true, label: true, createdAt: true, expiresAt: true,
+      client: { select: { name: true } },
+    },
+  })
+}
+
+export async function revokeToken(id: string) {
+  return prisma.oAuthAccessToken.delete({ where: { id } })
+}

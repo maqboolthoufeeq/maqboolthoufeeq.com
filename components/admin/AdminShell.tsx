@@ -15,6 +15,7 @@ import {
   Palette,
   LogOut,
   X,
+  ExternalLink,
 } from 'lucide-react'
 import { signOutAction } from '@/lib/admin-actions'
 import { useAdminContext } from './AdminContext'
@@ -97,7 +98,18 @@ function TopBar({
           {title}
         </h1>
 
-        <div className="shrink-0 flex items-center gap-1">{action}</div>
+        <div className="shrink-0 flex items-center gap-1">
+          <Link
+            href="/"
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label="View website"
+            className="tap-scale w-11 h-11 flex items-center justify-center rounded-full text-[var(--muted)] hover:bg-[var(--background)] hover:text-[var(--foreground)]"
+          >
+            <ExternalLink size={18} strokeWidth={2.2} />
+          </Link>
+          {action}
+        </div>
       </div>
     </header>
   )

@@ -184,7 +184,7 @@ export default function McpPanel({ tokens: init, clients: initClients, disabledT
         {newToken && (
           <div className="mb-4 p-4 rounded-lg border border-green-500/30 bg-green-500/5">
             <p className="text-xs font-medium text-green-400 mb-2">
-              ✓ Token generated — copy it now, it won't be shown again
+              ✓ Token generated — copy it now, it won&apos;t be shown again
             </p>
             <div className="flex items-center gap-2">
               <code className="flex-1 text-xs font-mono break-all text-[var(--foreground)]">{newToken.token}</code>

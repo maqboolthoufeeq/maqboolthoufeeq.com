@@ -52,7 +52,7 @@ export default function TagSelector({ selectedIds, onChange }: Props) {
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search tags…"
-            className="w-full px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)]"
+            className="w-full h-10 px-3 text-sm rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)]"
           />
           <div className="flex flex-wrap gap-2">
             {filtered.length > 0 ? filtered.map((tag) => (
@@ -60,7 +60,7 @@ export default function TagSelector({ selectedIds, onChange }: Props) {
                 key={tag.id}
                 type="button"
                 onClick={() => toggle(tag.id)}
-                className={`px-3 py-1 text-xs rounded-full border transition-colors ${
+                className={`tap-scale px-3 h-8 text-xs rounded-full border transition-colors font-medium ${
                   selectedIds.includes(tag.id)
                     ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
                     : 'border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)]'
@@ -80,13 +80,13 @@ export default function TagSelector({ selectedIds, onChange }: Props) {
           onChange={(e) => setNewTag(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleCreate() } }}
           placeholder="New tag name…"
-          className="flex-1 px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)]"
+          className="flex-1 h-10 px-3 text-sm rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)]"
         />
         <button
           type="button"
           onClick={handleCreate}
           disabled={creating || !newTag.trim()}
-          className="px-3 py-1.5 text-sm rounded-lg border border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)] disabled:opacity-40 transition-colors"
+          className="tap-scale px-3 h-10 text-sm rounded-xl border border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)] disabled:opacity-40 transition-colors font-medium"
         >
           {creating ? '…' : '+ Add'}
         </button>

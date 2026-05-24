@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
+import { ChevronRight } from 'lucide-react'
 import type { HeroContent, AboutContent, ContactContent, FooterContent, ContactLink, ContactExtra, NavbarContent, NavLink, ImageShape, ImageSize, SectionVisibility, SocialLink } from '@/lib/site-content'
 
 const SOCIAL_PLATFORMS = [
@@ -92,29 +93,31 @@ export function CollapsibleSection({
   const [open, setOpen] = useState(defaultOpen)
 
   return (
-    <div className="rounded-xl border border-[var(--border)] overflow-hidden">
+    <div className="rounded-2xl border border-[var(--border)] overflow-hidden bg-[var(--surface)]">
       <div
         role="button"
         tabIndex={0}
         onClick={() => setOpen((o) => !o)}
         onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setOpen((o) => !o) } }}
-        className="w-full px-6 py-4 border-b border-[var(--border)] bg-[var(--surface)] flex items-start justify-between gap-4 text-left cursor-pointer hover:bg-[var(--surface-hover,var(--surface))] transition-colors select-none"
+        className="row-pressable w-full px-4 sm:px-6 py-4 flex items-center justify-between gap-3 text-left cursor-pointer select-none"
       >
-        <div className="flex items-start gap-3">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
           <span
-            className="mt-0.5 text-[var(--muted)] transition-transform duration-200"
+            className="shrink-0 text-[var(--muted)] transition-transform duration-200"
             style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)' }}
           >
-            ▶
+            <ChevronRight size={18} />
           </span>
-          <div>
-            <h2 className="font-semibold text-[var(--foreground)]">{title}</h2>
-            <p className="text-sm text-[var(--muted)] mt-0.5">{description}</p>
+          <div className="min-w-0">
+            <h2 className="font-semibold text-[var(--foreground)] truncate">{title}</h2>
+            <p className="text-xs sm:text-sm text-[var(--muted)] mt-0.5 truncate">{description}</p>
           </div>
         </div>
-        <div onClick={(e) => e.stopPropagation()}>{toggle}</div>
+        <div onClick={(e) => e.stopPropagation()} className="shrink-0">{toggle}</div>
       </div>
-      {open && <div className="px-6 py-6">{children}</div>}
+      {open && (
+        <div className="px-4 sm:px-6 pt-2 pb-5 sm:pb-6 border-t border-[var(--border)]">{children}</div>
+      )}
     </div>
   )
 }

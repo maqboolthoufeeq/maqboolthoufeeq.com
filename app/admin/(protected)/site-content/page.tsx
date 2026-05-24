@@ -1,6 +1,15 @@
 import Link from 'next/link'
 import { getSiteContent } from '@/lib/site-content'
-import { NavbarForm, HeroForm, AboutForm, ContactForm, FooterForm, SectionToggle, CollapsibleSection } from '@/components/admin/SiteContentForm'
+import {
+  NavbarForm,
+  HeroForm,
+  AboutForm,
+  ContactForm,
+  FooterForm,
+  SectionToggle,
+  CollapsibleSection,
+} from '@/components/admin/SiteContentForm'
+import AdminShell from '@/components/admin/AdminShell'
 
 export default async function SiteContentPage() {
   const [navbar, hero, about, contact, footer, sections] = await Promise.all([
@@ -13,14 +22,8 @@ export default async function SiteContentPage() {
   ])
 
   return (
-    <div className="min-h-screen bg-[var(--background)]">
-      <header className="border-b border-[var(--border)] px-6 h-14 flex items-center gap-3">
-        <Link href="/admin" className="text-sm text-[var(--muted)] hover:text-[var(--foreground)]">← Admin</Link>
-        <span className="text-[var(--border)]">/</span>
-        <h1 className="font-semibold text-[var(--foreground)]">Edit Landing Page</h1>
-      </header>
-
-      <main className="max-w-2xl mx-auto px-6 py-10 space-y-6">
+    <AdminShell title="Landing page" back="/admin">
+      <div className="space-y-4 sm:space-y-6 max-w-2xl mx-auto">
         <CollapsibleSection title="Navbar" description="Brand name and navigation links.">
           <NavbarForm initial={navbar} />
         </CollapsibleSection>
@@ -83,14 +86,15 @@ export default async function SiteContentPage() {
           toggle={<SectionToggle sectionKey="blogArchive" initialSections={sections} />}
         >
           <p className="text-sm text-[var(--muted)]">
-            When enabled, a collapsible archive widget appears above the blog post list, grouped by year and month.
+            When enabled, a collapsible archive widget appears above the blog post list, grouped
+            by year and month.
           </p>
         </CollapsibleSection>
 
         <CollapsibleSection title="Footer" description="Copyright name in the site footer.">
           <FooterForm initial={footer} />
         </CollapsibleSection>
-      </main>
-    </div>
+      </div>
+    </AdminShell>
   )
 }

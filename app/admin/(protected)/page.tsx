@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { FileText, Folder, Tags, Inbox, Layout, Palette, ChevronRight, LogOut } from 'lucide-react'
+import { FileText, Folder, Tags, Inbox, Layout, Palette, Cpu, ChevronRight, LogOut } from 'lucide-react'
 import { signOutAction } from '@/lib/admin-actions'
 import { prisma } from '@/lib/prisma'
 import AdminShell from '@/components/admin/AdminShell'
@@ -93,6 +93,12 @@ export default async function AdminDashboard() {
               icon={Palette}
               title="Theme & design"
               description="Choose colours and layout style"
+            />
+            <AdminLinkRow
+              href="/admin/mcp"
+              icon={Cpu}
+              title="MCP"
+              description="Tokens, tools, and OAuth clients for the MCP server"
             />
           </ul>
         </section>

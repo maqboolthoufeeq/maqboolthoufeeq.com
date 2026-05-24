@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { GeistSans } from 'geist/font/sans'
 import { Lora } from 'next/font/google'
 import { ThemeProviderWrapper as ThemeProvider } from '@/components/ThemeProviderWrapper'
@@ -20,6 +20,16 @@ export const lora = Lora({
 export const metadata: Metadata = {
   title: 'Maqbool Thoufeeq — Full-Stack Developer',
   description: 'Full-Stack Developer building fast, beautiful web products.',
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  viewportFit: 'cover',
+  themeColor: [
+    { media: '(prefers-color-scheme: light)', color: '#f1f5f9' },
+    { media: '(prefers-color-scheme: dark)', color: '#0d0d0f' },
+  ],
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

@@ -27,10 +27,52 @@
 body {
   background-color: var(--background);
   color: var(--foreground);
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  overscroll-behavior-y: none;
 }
 
 * {
   transition: background-color 0.2s, border-color 0.2s, color 0.2s;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Mobile / native-app helpers
+   ───────────────────────────────────────────────────────────── */
+
+/* Safe-area aware spacing */
+.pt-safe { padding-top: env(safe-area-inset-top); }
+.pb-safe { padding-bottom: env(safe-area-inset-bottom); }
+.pl-safe { padding-left: env(safe-area-inset-left); }
+.pr-safe { padding-right: env(safe-area-inset-right); }
+.mb-safe { margin-bottom: env(safe-area-inset-bottom); }
+.h-safe-top { height: env(safe-area-inset-top); }
+.h-safe-bot { height: env(safe-area-inset-bottom); }
+
+/* Native-feel tap response — slight scale, instant feedback */
+.tap-scale { transition: transform 0.08s ease, opacity 0.12s ease; touch-action: manipulation; }
+.tap-scale:active { transform: scale(0.97); opacity: 0.85; }
+
+/* Native-feel list row pressed state */
+.row-pressable { transition: background-color 0.12s ease; touch-action: manipulation; }
+.row-pressable:active { background-color: color-mix(in srgb, var(--accent) 10%, transparent); }
+
+/* Sheet (bottom-sheet) animation */
+@keyframes sheet-in {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+@keyframes sheet-fade {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.animate-sheet-in { animation: sheet-in 0.28s cubic-bezier(0.32, 0.72, 0, 1); }
+.animate-sheet-fade { animation: sheet-fade 0.2s ease-out; }
+
+/* Hide native browser scrollbars on the admin shell only on touch devices */
+@media (hover: none) and (pointer: coarse) {
+  .admin-scroll { scrollbar-width: none; }
+  .admin-scroll::-webkit-scrollbar { display: none; }
 }
 
 /* Glow utility */

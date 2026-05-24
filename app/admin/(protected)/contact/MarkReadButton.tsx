@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
+import { Check } from 'lucide-react'
 
 export function MarkReadButton({ id }: { id: string }) {
   const router = useRouter()
@@ -17,9 +18,10 @@ export function MarkReadButton({ id }: { id: string }) {
     <button
       onClick={markRead}
       disabled={loading}
-      className="text-xs text-[var(--accent)] hover:underline disabled:opacity-50 transition-opacity"
+      className="row-pressable w-full h-11 flex items-center justify-center gap-2 text-sm font-medium text-[var(--accent)] disabled:opacity-50"
     >
-      {loading ? 'Marking…' : 'Mark read'}
+      <Check size={16} />
+      {loading ? 'Marking…' : 'Mark as read'}
     </button>
   )
 }

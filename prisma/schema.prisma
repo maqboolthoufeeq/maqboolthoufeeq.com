@@ -101,14 +101,15 @@ model OAuthClient {
 }
 
 model OAuthAuthCode {
-  id          String      @id @default(cuid())
-  code        String      @unique
-  clientId    String
-  client      OAuthClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
-  redirectUrl String
-  expiresAt   DateTime
-  used        Boolean     @default(false)
-  createdAt   DateTime    @default(now())
+  id            String      @id @default(cuid())
+  code          String      @unique
+  clientId      String
+  client        OAuthClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  redirectUrl   String
+  codeChallenge String?
+  expiresAt     DateTime
+  used          Boolean     @default(false)
+  createdAt     DateTime    @default(now())
 }
 
 model OAuthAccessToken {

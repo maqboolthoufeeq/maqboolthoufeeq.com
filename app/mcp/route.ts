@@ -39,9 +39,22 @@ async function getDisabledTools(): Promise<Set<string>> {
   return new Set(cfg.disabledTools ?? [])
 }
 
+function unauthorizedResponse(req: NextRequest) {
+  const origin = new URL(req.url).origin
+  return NextResponse.json(
+    { error: 'Unauthorized' },
+    {
+      status: 401,
+      headers: {
+        'WWW-Authenticate': `Bearer realm="${origin}", resource_metadata="${origin}/.well-known/oauth-protected-resource"`,
+      },
+    },
+  )
+}
+
 export async function POST(req: NextRequest) {
   if (!(await isAuthenticated(req))) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return unauthorizedResponse(req)
   }
 
   let body: JsonRpcRequest
@@ -96,7 +109,7 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   if (!(await isAuthenticated(req))) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    return unauthorizedResponse(req)
   }
   const disabled = await getDisabledTools()
   const enabledTools = ALL_TOOLS.filter((t) => !disabled.has(t.name))

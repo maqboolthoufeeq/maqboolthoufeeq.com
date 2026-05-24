@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const { grant_type, code, client_id, client_secret, redirect_uri } = body
+  const { grant_type, code, client_id, client_secret, redirect_uri, code_verifier } = body
 
   if (grant_type !== 'authorization_code') {
     return NextResponse.json(
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'invalid_request' }, { status: 400 })
   }
 
-  const token = await exchangeCodeForToken(code, client_id, client_secret, redirect_uri)
+  const token = await exchangeCodeForToken(code, client_id, client_secret, redirect_uri, code_verifier)
   if (!token) {
     return NextResponse.json({ error: 'invalid_grant' }, { status: 400 })
   }

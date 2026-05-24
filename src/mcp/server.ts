@@ -23,13 +23,14 @@
  *      → save access_token as MCP_ACCESS_TOKEN
  */
 
-import { Server } from '@modelcontextprotocol/sdk/server/index.js'
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
+import { Server } from '@modelcontextprotocol/sdk/server'
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio'
 import {
+  CallToolRequest,
   CallToolRequestSchema,
   ListToolsRequestSchema,
   Tool,
-} from '@modelcontextprotocol/sdk/types.js'
+} from '@modelcontextprotocol/sdk/types'
 
 import { listPosts, getPost, createPost, updatePost, publishPost } from './tools/posts.js'
 import { uploadImageFromUrl } from './tools/media.js'
@@ -267,7 +268,7 @@ const server = new Server(
 
 server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: TOOLS }))
 
-server.setRequestHandler(CallToolRequestSchema, async (req) => {
+server.setRequestHandler(CallToolRequestSchema, async (req: CallToolRequest) => {
   const { name, arguments: args = {} } = req.params
 
   try {

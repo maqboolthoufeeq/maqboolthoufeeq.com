@@ -55,11 +55,10 @@ export default function McpPanel({ tokens: init, clients: initClients, disabledT
   const [newToken,   setNewToken]   = useState<{ token: string; label: string } | null>(null)
 
   // Client creation state
-  const [showNewClient, setShowNewClient]       = useState(false)
-  const [newClientName, setNewClientName]       = useState('')
-  const [newClientRedirect, setNewClientRedirect] = useState('')
-  const [creatingClient, setCreatingClient]     = useState(false)
-  const [freshClient, setFreshClient]           = useState<{ clientId: string; clientSecret: string; name: string } | null>(null)
+  const [showNewClient, setShowNewClient]   = useState(false)
+  const [newClientName, setNewClientName]   = useState('')
+  const [creatingClient, setCreatingClient] = useState(false)
+  const [freshClient, setFreshClient]       = useState<{ clientId: string; clientSecret: string; name: string } | null>(null)
 
   const origin = typeof window !== 'undefined' ? window.location.origin : 'https://yourdomain.com'
   const endpoint = `${origin}/mcp/`
@@ -96,20 +95,39 @@ export default function McpPanel({ tokens: init, clients: initClients, disabledT
 
   // ── Client actions ───────────────────────────────────────────────────────────
   const createClient = async () => {
-    if (!newClientName.trim() || !newClientRedirect.trim()) return
+    if (!newClientName.trim()) return
     setCreatingClient(true)
     const res = await fetch('/api/oauth/clients', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newClientName.trim(), redirectUrls: [newClientRedirect.trim()] }),
+      body: JSON.stringify({ name: newClientName.trim() }),
     })
     const data = await res.json()
     setFreshClient({ clientId: data.clientId, clientSecret: data.clientSecret, name: data.name })
-    setClients((prev) => [data, ...prev])
+    setClients((prev) => [{ id: data.id, name: data.name, clientId: data.clientId, redirectUrls: data.redirectUrls ?? [], createdAt: data.createdAt }, ...prev])
     setNewClientName('')
-    setNewClientRedirect('')
-    setShowNewClient(false)
     setCreatingClient(false)
+  }
+
+  const closeCredentialsModal = () => {
+    setFreshClient(null)
+    setShowNewClient(false)
+  }
+
+  const downloadCredentialsJson = () => {
+    if (!freshClient) return
+    const json = JSON.stringify({
+      client_id: freshClient.clientId,
+      client_secret: freshClient.clientSecret,
+      server_url: `${origin}/mcp`,
+    }, null, 2)
+    const blob = new Blob([json], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `${freshClient.name.replace(/\s+/g, '-').toLowerCase()}-mcp-credentials.json`
+    a.click()
+    URL.revokeObjectURL(url)
   }
 
   const deleteClient = async (id: string) => {
@@ -242,38 +260,15 @@ export default function McpPanel({ tokens: init, clients: initClients, disabledT
             <p className="text-xs text-[var(--muted)] mt-0.5">For the authorization-code flow (advanced)</p>
           </div>
           <button
-            onClick={() => setShowNewClient((v) => !v)}
-            className="text-sm text-[var(--accent)] hover:underline"
+            onClick={() => { setShowNewClient(true); setNewClientName('') }}
+            className="px-3 py-1.5 text-sm bg-[var(--accent)] text-white rounded-lg hover:opacity-90 transition-opacity"
           >
-            {showNewClient ? 'Cancel' : '+ New client'}
+            Create Credentials
           </button>
         </div>
 
-        {showNewClient && (
-          <div className="mb-4 p-4 rounded-lg border border-[var(--border)] space-y-3">
-            <input className={inputCls} placeholder="Client name" value={newClientName} onChange={(e) => setNewClientName(e.target.value)} />
-            <input className={inputCls} placeholder="Redirect URL, e.g. http://localhost:3456/callback" value={newClientRedirect} onChange={(e) => setNewClientRedirect(e.target.value)} />
-            <button
-              onClick={createClient}
-              disabled={creatingClient || !newClientName.trim() || !newClientRedirect.trim()}
-              className="px-4 py-2 text-sm bg-[var(--accent)] text-white rounded-lg hover:opacity-90 disabled:opacity-50"
-            >
-              {creatingClient ? 'Creating…' : 'Create client'}
-            </button>
-          </div>
-        )}
-
-        {freshClient && (
-          <div className="mb-4 p-4 rounded-lg border border-[var(--accent)]/30 bg-[var(--accent)]/5 space-y-2">
-            <p className="text-xs font-medium text-[var(--accent)]">✓ Client created — save the secret now</p>
-            <div className="flex items-center gap-2"><span className="text-xs text-[var(--muted)] w-24 shrink-0">Client ID</span><code className="flex-1 text-xs font-mono text-[var(--foreground)]">{freshClient.clientId}</code><CopyButton value={freshClient.clientId} /></div>
-            <div className="flex items-center gap-2"><span className="text-xs text-[var(--muted)] w-24 shrink-0">Secret</span><code className="flex-1 text-xs font-mono text-[var(--foreground)] break-all">{freshClient.clientSecret}</code><CopyButton value={freshClient.clientSecret} /></div>
-            <button onClick={() => setFreshClient(null)} className="text-xs text-[var(--muted)] hover:text-[var(--foreground)]">Dismiss</button>
-          </div>
-        )}
-
         {clients.length === 0 ? (
-          <p className="text-sm text-[var(--muted)]">No OAuth clients.</p>
+          <p className="text-sm text-[var(--muted)]">No OAuth clients yet.</p>
         ) : (
           <div className="space-y-2">
             {clients.map((c) => (
@@ -281,7 +276,9 @@ export default function McpPanel({ tokens: init, clients: initClients, disabledT
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-[var(--foreground)]">{c.name}</p>
                   <p className="text-xs font-mono text-[var(--muted)] truncate">ID: {c.clientId}</p>
-                  <p className="text-xs text-[var(--muted)] truncate">{c.redirectUrls.join(', ')}</p>
+                  {c.redirectUrls.length > 0 && (
+                    <p className="text-xs text-[var(--muted)] truncate">{c.redirectUrls.join(', ')}</p>
+                  )}
                 </div>
                 <button onClick={() => deleteClient(c.id)} className="text-xs text-red-400 hover:text-red-300 shrink-0 mt-0.5">
                   Delete
@@ -291,6 +288,85 @@ export default function McpPanel({ tokens: init, clients: initClients, disabledT
           </div>
         )}
       </section>
+
+      {/* ── Create Credentials Modal ───────────────────────────────────────── */}
+      {showNewClient && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4">
+          <div className="bg-[var(--surface)] rounded-xl border border-[var(--border)] w-full max-w-md shadow-2xl">
+            {!freshClient ? (
+              <div className="p-6 space-y-4">
+                <h3 className="font-semibold text-[var(--foreground)] text-base">Create OAuth Credentials</h3>
+                <input
+                  className={inputCls}
+                  placeholder="Name, e.g. My App"
+                  value={newClientName}
+                  onChange={(e) => setNewClientName(e.target.value)}
+                  onKeyDown={(e) => e.key === 'Enter' && createClient()}
+                  autoFocus
+                />
+                <div className="flex gap-2 justify-end">
+                  <button
+                    onClick={() => setShowNewClient(false)}
+                    className="px-4 py-2 text-sm rounded-lg border border-[var(--border)] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={createClient}
+                    disabled={creatingClient || !newClientName.trim()}
+                    className="px-4 py-2 text-sm bg-[var(--accent)] text-white rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity"
+                  >
+                    {creatingClient ? 'Creating…' : 'Create'}
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="p-6 space-y-4">
+                <h3 className="font-semibold text-[var(--foreground)] text-base">Credentials Created</h3>
+                <div className="p-3 rounded-lg border border-amber-500/40 bg-amber-500/10">
+                  <p className="text-xs text-amber-400 font-medium">
+                    Copy and save your Client Secret now. It will not be shown again after you close this dialog.
+                  </p>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <p className="text-xs text-[var(--muted)] mb-1">Client ID</p>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 text-xs font-mono px-3 py-2 rounded-lg bg-[var(--background)] border border-[var(--border)] text-[var(--foreground)] overflow-x-auto">
+                        {freshClient.clientId}
+                      </code>
+                      <CopyButton value={freshClient.clientId} />
+                    </div>
+                  </div>
+                  <div>
+                    <p className="text-xs text-[var(--muted)] mb-1">Client Secret</p>
+                    <div className="flex items-center gap-2">
+                      <code className="flex-1 text-xs font-mono px-3 py-2 rounded-lg bg-[var(--background)] border border-[var(--border)] text-[var(--foreground)] break-all overflow-x-auto">
+                        {freshClient.clientSecret}
+                      </code>
+                      <CopyButton value={freshClient.clientSecret} />
+                    </div>
+                  </div>
+                </div>
+                <div className="flex gap-2 justify-end pt-1">
+                  <button
+                    onClick={downloadCredentialsJson}
+                    className="px-4 py-2 text-sm rounded-lg border border-[var(--border)] text-[var(--foreground)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
+                  >
+                    Download JSON
+                  </button>
+                  <button
+                    onClick={closeCredentialsModal}
+                    className="px-4 py-2 text-sm bg-[var(--accent)] text-white rounded-lg hover:opacity-90 transition-opacity"
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

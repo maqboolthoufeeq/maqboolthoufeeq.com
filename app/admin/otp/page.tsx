@@ -2,11 +2,13 @@
 
 import { useState, useRef } from 'react'
 import { signIn } from 'next-auth/react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 
 export default function OtpPage() {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const returnUrl = searchParams.get('returnUrl')
   const [digits, setDigits] = useState(['', '', '', '', '', ''])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
@@ -63,7 +65,7 @@ export default function OtpPage() {
       if (result?.error) {
         setError('Sign-in failed. Please try again.')
       } else {
-        router.push('/admin')
+        router.push(returnUrl ?? '/admin')
         router.refresh()
       }
     } catch {

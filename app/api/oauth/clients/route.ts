@@ -15,14 +15,11 @@ export async function POST(req: NextRequest) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { name, redirectUrls } = await req.json()
-  if (!name || !Array.isArray(redirectUrls) || redirectUrls.length === 0) {
-    return NextResponse.json(
-      { error: 'name and redirectUrls (non-empty array) are required' },
-      { status: 400 },
-    )
+  if (!name) {
+    return NextResponse.json({ error: 'name is required' }, { status: 400 })
   }
 
-  const client = await createOAuthClient(name, redirectUrls)
+  const client = await createOAuthClient(name, Array.isArray(redirectUrls) ? redirectUrls : [])
   return NextResponse.json(
     {
       id: client.id,

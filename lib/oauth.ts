@@ -1,4 +1,4 @@
-import { randomBytes } from 'crypto'
+import { createHash, randomBytes } from 'crypto'
 import { prisma } from './prisma'
 
 const CODE_TTL_MS = 10 * 60 * 1000       // 10 minutes
@@ -8,9 +8,9 @@ function generate(bytes = 32) {
   return randomBytes(bytes).toString('hex')
 }
 
-export async function createOAuthClient(name: string, redirectUrls: string[]) {
-  const clientId = generate(16)
-  const clientSecret = generate(32)
+export async function createOAuthClient(name: string, redirectUrls: string[] = []) {
+  const clientId = `mcp_${randomBytes(10).toString('hex')}`
+  const clientSecret = randomBytes(42).toString('base64url')
   return prisma.oAuthClient.create({
     data: { name, clientId, clientSecret, redirectUrls },
   })
@@ -27,13 +27,14 @@ export async function deleteOAuthClient(id: string) {
   return prisma.oAuthClient.delete({ where: { id } })
 }
 
-export async function createAuthCode(clientId: string, redirectUrl: string) {
+export async function createAuthCode(clientId: string, redirectUrl: string, codeChallenge?: string) {
   const code = generate(32)
   await prisma.oAuthAuthCode.create({
     data: {
       code,
       clientId,
       redirectUrl,
+      codeChallenge: codeChallenge ?? null,
       expiresAt: new Date(Date.now() + CODE_TTL_MS),
     },
   })
@@ -45,6 +46,7 @@ export async function exchangeCodeForToken(
   clientId: string,
   clientSecret: string,
   redirectUri: string,
+  codeVerifier?: string,
 ): Promise<string | null> {
   const authCode = await prisma.oAuthAuthCode.findUnique({
     where: { code },
@@ -57,6 +59,13 @@ export async function exchangeCodeForToken(
   if (authCode.client.clientId !== clientId) return null
   if (authCode.client.clientSecret !== clientSecret) return null
   if (authCode.redirectUrl !== redirectUri) return null
+
+  // PKCE S256 verification — required when the auth code was issued with a challenge
+  if (authCode.codeChallenge) {
+    if (!codeVerifier) return null
+    const digest = createHash('sha256').update(codeVerifier).digest('base64url')
+    if (digest !== authCode.codeChallenge) return null
+  }
 
   await prisma.oAuthAuthCode.update({ where: { code }, data: { used: true } })
 

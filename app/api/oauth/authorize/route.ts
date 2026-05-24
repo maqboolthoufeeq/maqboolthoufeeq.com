@@ -53,6 +53,8 @@ export async function GET(req: NextRequest) {
   const redirectUri = searchParams.get('redirect_uri')
   const state = searchParams.get('state') ?? ''
   const responseType = searchParams.get('response_type')
+  const codeChallenge = searchParams.get('code_challenge')
+  const codeChallengeMethod = searchParams.get('code_challenge_method')
 
   if (responseType !== 'code') {
     return new NextResponse('Unsupported response_type', { status: 400 })
@@ -60,12 +62,15 @@ export async function GET(req: NextRequest) {
   if (!clientId || !redirectUri) {
     return new NextResponse('Missing client_id or redirect_uri', { status: 400 })
   }
+  if (codeChallenge && codeChallengeMethod !== 'S256') {
+    return new NextResponse('Only code_challenge_method=S256 is supported', { status: 400 })
+  }
 
   const client = await getClientByClientId(clientId)
   if (!client) {
     return new NextResponse('Unknown client_id', { status: 400 })
   }
-  if (!client.redirectUrls.includes(redirectUri)) {
+  if (client.redirectUrls.length > 0 && !client.redirectUrls.includes(redirectUri)) {
     return new NextResponse('redirect_uri not registered for this client', { status: 400 })
   }
 
@@ -76,7 +81,7 @@ export async function GET(req: NextRequest) {
   }
 
   const params = encodeURIComponent(
-    JSON.stringify({ clientId, redirectUri, state }),
+    JSON.stringify({ clientId, redirectUri, state, codeChallenge }),
   )
   return new NextResponse(CONSENT_HTML(client.name, params), {
     headers: { 'Content-Type': 'text/html' },
@@ -95,9 +100,9 @@ export async function POST(req: NextRequest) {
     return new NextResponse('Missing params', { status: 400 })
   }
 
-  let clientId: string, redirectUri: string, state: string
+  let clientId: string, redirectUri: string, state: string, codeChallenge: string | undefined
   try {
-    ;({ clientId, redirectUri, state } = JSON.parse(decodeURIComponent(rawParams)))
+    ;({ clientId, redirectUri, state, codeChallenge } = JSON.parse(decodeURIComponent(rawParams)))
   } catch {
     return new NextResponse('Invalid params', { status: 400 })
   }
@@ -110,11 +115,14 @@ export async function POST(req: NextRequest) {
   }
 
   const client = await getClientByClientId(clientId)
-  if (!client || !client.redirectUrls.includes(redirectUri)) {
-    return new NextResponse('Invalid client or redirect_uri', { status: 400 })
+  if (!client) {
+    return new NextResponse('Invalid client', { status: 400 })
+  }
+  if (client.redirectUrls.length > 0 && !client.redirectUrls.includes(redirectUri)) {
+    return new NextResponse('redirect_uri not registered for this client', { status: 400 })
   }
 
-  const code = await createAuthCode(client.id, redirectUri)
+  const code = await createAuthCode(client.id, redirectUri, codeChallenge)
   const url = new URL(redirectUri)
   url.searchParams.set('code', code)
   if (state) url.searchParams.set('state', state)

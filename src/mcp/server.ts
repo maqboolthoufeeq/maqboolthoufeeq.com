@@ -1,9 +1,13 @@
 #!/usr/bin/env node
 /**
- * Blog Editor MCP Server
+ * Blog Editor MCP Server — stdio variant (local / development use)
  *
- * Exposes tools for managing blog posts on maqboolthoufeeq.com.
- * Communicates with the blog REST API using an OAuth Bearer token.
+ * For production, use the hosted HTTP endpoint at https://yourdomain.com/mcp/
+ * with the Claude Desktop remote MCP config:
+ *   { "url": "https://yourdomain.com/mcp/",
+ *     "headers": { "Authorization": "Bearer <token>" } }
+ *
+ * This stdio version is useful when running locally without exposing the app.
  *
  * Required env vars:
  *   BLOG_API_URL        — e.g. https://maqboolthoufeeq.com

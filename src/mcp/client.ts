@@ -1,3 +1,5 @@
+// Used by the stdio server (src/mcp/server.ts) to call the hosted blog API.
+// The hosted MCP endpoint at /mcp/ uses Prisma directly and does not need this.
 const BASE_URL = (process.env.BLOG_API_URL ?? '').replace(/\/$/, '')
 const TOKEN = process.env.MCP_ACCESS_TOKEN ?? ''
 

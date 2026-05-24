@@ -3,11 +3,12 @@ import ThemeToggle from './ThemeToggle'
 import MobileMenu from './MobileMenu'
 import { getSiteContent } from '@/lib/site-content'
 import { isExternal } from '@/lib/utils'
+import { auth } from '@/lib/auth'
 
 const linkCls = 'px-3 py-1.5 text-sm text-[var(--muted)] hover:text-[var(--foreground)] rounded-lg hover:bg-[var(--surface)] transition-all'
 
 export default async function Navbar() {
-  const navbar = await getSiteContent('navbar')
+  const [navbar, session] = await Promise.all([getSiteContent('navbar'), auth()])
 
   return (
     <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--background)]/80 backdrop-blur-md">
@@ -43,7 +44,7 @@ export default async function Navbar() {
             ))}
           </ul>
           <Link
-            href="/admin/login"
+            href={session ? '/admin' : '/admin/login'}
             title="Admin"
             className="p-1.5 rounded-lg text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--surface)] transition-all"
           >

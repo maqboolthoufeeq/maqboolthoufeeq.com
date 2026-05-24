@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { getPublicOrigin } from '@/lib/utils'
 
 export async function GET(req: NextRequest) {
-  const origin = new URL(req.url).origin
+  const origin = getPublicOrigin(req)
   return NextResponse.json(
     {
       resource: `${origin}/mcp`,

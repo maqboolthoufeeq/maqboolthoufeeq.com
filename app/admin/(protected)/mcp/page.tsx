@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { headers } from 'next/headers'
 import { auth } from '@/lib/auth'
 import { redirect } from 'next/navigation'
 import { listTokens, listOAuthClients } from '@/lib/oauth'
@@ -14,6 +15,11 @@ async function getDisabledTools(): Promise<string[]> {
 export default async function McpAdminPage() {
   const session = await auth()
   if (!session) redirect('/admin/login')
+
+  const hdrs = await headers()
+  const host = hdrs.get('x-forwarded-host') ?? hdrs.get('host') ?? 'localhost'
+  const proto = hdrs.get('x-forwarded-proto') ?? 'http'
+  const origin = `${proto}://${host}`
 
   const [rawTokens, rawClients, disabledTools] = await Promise.all([
     listTokens(),
@@ -43,7 +49,7 @@ export default async function McpAdminPage() {
       </header>
 
       <main className="max-w-4xl mx-auto px-6 py-10">
-        <McpPanel tokens={tokens} clients={clients} disabledTools={disabledTools} />
+        <McpPanel tokens={tokens} clients={clients} disabledTools={disabledTools} origin={origin} />
       </main>
     </div>
   )

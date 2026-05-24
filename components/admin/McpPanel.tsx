@@ -22,6 +22,7 @@ interface Props {
   tokens: Token[]
   clients: Client[]
   disabledTools: string[]
+  origin: string
 }
 
 function fmt(iso: string) {
@@ -45,7 +46,7 @@ function CopyButton({ value, label = 'Copy' }: { value: string; label?: string }
   )
 }
 
-export default function McpPanel({ tokens: init, clients: initClients, disabledTools }: Props) {
+export default function McpPanel({ tokens: init, clients: initClients, disabledTools, origin }: Props) {
   const [tokens,  setTokens]  = useState<Token[]>(init)
   const [clients, setClients] = useState<Client[]>(initClients)
 
@@ -60,7 +61,6 @@ export default function McpPanel({ tokens: init, clients: initClients, disabledT
   const [creatingClient, setCreatingClient] = useState(false)
   const [freshClient, setFreshClient]       = useState<{ clientId: string; clientSecret: string; name: string } | null>(null)
 
-  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://yourdomain.com'
   const endpoint = `${origin}/mcp/`
   const desktopConfig = JSON.stringify({
     mcpServers: {
@@ -249,9 +249,6 @@ export default function McpPanel({ tokens: init, clients: initClients, disabledT
         )}
       </section>
 
-      {/* ── Tools ──────────────────────────────────────────────────────────── */}
-      <McpTools initialDisabled={disabledTools} />
-
       {/* ── OAuth Clients ──────────────────────────────────────────────────── */}
       <section className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6">
         <div className="flex items-center justify-between mb-4">
@@ -288,6 +285,9 @@ export default function McpPanel({ tokens: init, clients: initClients, disabledT
           </div>
         )}
       </section>
+
+      {/* ── Tools ──────────────────────────────────────────────────────────── */}
+      <McpTools initialDisabled={disabledTools} />
 
       {/* ── Create Credentials Modal ───────────────────────────────────────── */}
       {showNewClient && (

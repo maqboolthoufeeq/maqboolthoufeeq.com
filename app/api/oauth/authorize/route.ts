@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
 import { getClientByClientId, createAuthCode } from '@/lib/oauth'
+import { getPublicOrigin } from '@/lib/utils'
 
 const CONSENT_HTML = (clientName: string, params: string) => `<!DOCTYPE html>
 <html lang="en">
@@ -76,8 +77,11 @@ export async function GET(req: NextRequest) {
 
   const session = await auth()
   if (!session) {
-    const returnUrl = encodeURIComponent(req.url)
-    return NextResponse.redirect(new URL(`/admin/login?returnUrl=${returnUrl}`, req.url))
+    const publicOrigin = getPublicOrigin(req)
+    const internalOrigin = new URL(req.url).origin
+    const publicUrl = req.url.replace(internalOrigin, publicOrigin)
+    const returnUrl = encodeURIComponent(publicUrl)
+    return NextResponse.redirect(new URL(`/admin/login?returnUrl=${returnUrl}`, publicOrigin))
   }
 
   const params = encodeURIComponent(

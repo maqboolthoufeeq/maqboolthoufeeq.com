@@ -17,6 +17,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { isAuthenticated } from '@/lib/auth-api'
 import { prisma } from '@/lib/prisma'
 import { ALL_TOOLS, callTool } from './registry'
+import { getPublicOrigin } from '@/lib/utils'
 
 type JsonRpcRequest = {
   jsonrpc: '2.0'
@@ -40,7 +41,7 @@ async function getDisabledTools(): Promise<Set<string>> {
 }
 
 function unauthorizedResponse(req: NextRequest) {
-  const origin = new URL(req.url).origin
+  const origin = getPublicOrigin(req)
   return NextResponse.json(
     { error: 'Unauthorized' },
     {

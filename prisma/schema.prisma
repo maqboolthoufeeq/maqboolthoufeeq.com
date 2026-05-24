@@ -87,3 +87,35 @@ model ContactRequest {
   read           Boolean  @default(false)
   createdAt      DateTime @default(now())
 }
+
+model OAuthClient {
+  id           String             @id @default(cuid())
+  name         String
+  clientId     String             @unique
+  clientSecret String
+  redirectUrls String[]
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  authCodes    OAuthAuthCode[]
+  accessTokens OAuthAccessToken[]
+}
+
+model OAuthAuthCode {
+  id          String      @id @default(cuid())
+  code        String      @unique
+  clientId    String
+  client      OAuthClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  redirectUrl String
+  expiresAt   DateTime
+  used        Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+}
+
+model OAuthAccessToken {
+  id        String      @id @default(cuid())
+  token     String      @unique
+  clientId  String
+  client    OAuthClient @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime    @default(now())
+}

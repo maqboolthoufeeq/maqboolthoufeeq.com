@@ -1,23 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
+import { isAuthenticated } from '@/lib/auth-api'
 import { prisma } from '@/lib/prisma'
 
 type Ctx = { params: Promise<{ id: string }> }
 
-export async function GET(_req: NextRequest, { params }: Ctx) {
-  const session = await auth()
+export async function GET(req: NextRequest, { params }: Ctx) {
+  const authed = await isAuthenticated(req)
   const { id } = await params
 
   const post = await prisma.post.findUnique({ where: { id }, include: { tags: true } })
   if (!post) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  if (!post.published && !session) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  if (!post.published && !authed) return NextResponse.json({ error: 'Not found' }, { status: 404 })
 
   return NextResponse.json(post)
 }
 
 export async function PATCH(req: NextRequest, { params }: Ctx) {
-  const session = await auth()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!(await isAuthenticated(req))) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id } = await params
   const body = await req.json()
@@ -54,9 +54,8 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
   }
 }
 
-export async function DELETE(_req: NextRequest, { params }: Ctx) {
-  const session = await auth()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+export async function DELETE(req: NextRequest, { params }: Ctx) {
+  if (!(await isAuthenticated(req))) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id } = await params
   await prisma.post.delete({ where: { id } })

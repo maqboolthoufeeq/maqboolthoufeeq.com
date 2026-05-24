@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
+import { isAuthenticated } from '@/lib/auth-api'
 import { prisma } from '@/lib/prisma'
 import { slugify } from '@/lib/utils'
 
@@ -8,7 +9,8 @@ export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url)
   const all = searchParams.get('all') === 'true'
 
-  const where = session || all ? {} : { published: true }
+  const authed = session || (await isAuthenticated(req))
+  const where = authed || all ? {} : { published: true }
   const posts = await prisma.post.findMany({
     where,
     orderBy: { publishedAt: 'desc' },
@@ -22,8 +24,7 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const session = await auth()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!(await isAuthenticated(req))) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await req.json()
   const { title, content, excerpt, published, coverImage, createdAt, publishedAt, tagIds } = body

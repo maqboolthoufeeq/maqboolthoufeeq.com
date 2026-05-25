@@ -110,11 +110,10 @@ export default function PostTable({ posts }: { posts: Post[] }) {
           <button
             onClick={() => setShowDatePanel((v) => !v)}
             aria-label="Toggle date filter"
-            className={`sm:hidden relative w-9 h-9 flex items-center justify-center rounded-lg border transition-all ${
-              showDatePanel || dateFilterActive
+            className={`sm:hidden relative w-9 h-9 flex items-center justify-center rounded-lg border transition-all ${showDatePanel || dateFilterActive
                 ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
                 : 'border-[var(--border)] bg-[var(--background)] text-[var(--muted)]'
-            }`}
+              }`}
           >
             <SlidersHorizontal size={14} />
             {dateFilterActive && (
@@ -174,11 +173,10 @@ export default function PostTable({ posts }: { posts: Post[] }) {
                 <li key={post.id} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden shadow-sm">
                   <Link href={`/admin/posts/${post.id}/edit`} className="row-pressable block px-4 pt-4 pb-3">
                     <div className="flex items-start gap-3">
-                      <span className={`shrink-0 mt-0.5 w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${
-                        isPublished
+                      <span className={`shrink-0 mt-0.5 w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${isPublished
                           ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
                           : 'bg-[var(--background)] text-[var(--muted)]'
-                      }`}>
+                        }`}>
                         <FileText size={15} />
                       </span>
                       <div className="min-w-0 flex-1">
@@ -215,9 +213,8 @@ export default function PostTable({ posts }: { posts: Post[] }) {
                     <button
                       onClick={() => handleTogglePublish(post.id)}
                       disabled={isBusy}
-                      className={`row-pressable h-11 flex items-center justify-center gap-1 text-[12px] font-semibold disabled:opacity-40 transition-colors ${
-                        isPublished ? 'text-orange-500' : 'text-emerald-600'
-                      }`}
+                      className={`row-pressable h-11 flex items-center justify-center gap-1 text-[12px] font-semibold disabled:opacity-40 transition-colors ${isPublished ? 'text-orange-500' : 'text-emerald-600'
+                        }`}
                     >
                       {isBusy ? (
                         <span className="w-3.5 h-3.5 rounded-full border-2 border-current border-t-transparent animate-spin" />
@@ -264,9 +261,6 @@ export default function PostTable({ posts }: { posts: Post[] }) {
                         >
                           {post.title}
                         </Link>
-                        <p className="text-[11px] text-[var(--muted)]/60 font-mono mt-0.5 truncate max-w-[380px]">
-                          /{post.slug}
-                        </p>
                       </td>
                       <td className="px-5 py-4">
                         <StatusPill published={isPublished} />
@@ -289,11 +283,10 @@ export default function PostTable({ posts }: { posts: Post[] }) {
                             onClick={() => handleTogglePublish(post.id)}
                             disabled={isBusy}
                             title={isPublished ? 'Unpublish post' : 'Publish post'}
-                            className={`h-8 px-2.5 flex items-center gap-1.5 rounded-lg text-[12px] font-semibold disabled:opacity-40 transition-all ${
-                              isPublished
+                            className={`h-8 px-2.5 flex items-center gap-1.5 rounded-lg text-[12px] font-semibold disabled:opacity-40 transition-all ${isPublished
                                 ? 'text-orange-500 hover:bg-orange-500/10'
                                 : 'text-emerald-600 hover:bg-emerald-500/10'
-                            }`}
+                              }`}
                           >
                             {isBusy ? (
                               <span className="w-3.5 h-3.5 rounded-full border-2 border-current border-t-transparent animate-spin" />
@@ -462,11 +455,10 @@ function DateRangePicker({
       {/* Trigger */}
       <button
         onClick={() => setOpen((v) => !v)}
-        className={`flex items-center gap-2 h-9 px-3 rounded-lg border text-sm transition-all ${
-          open || hasValue
+        className={`flex items-center gap-2 h-9 px-3 rounded-lg border text-sm transition-all ${open || hasValue
             ? 'border-[var(--accent)] bg-[var(--accent)]/8 text-[var(--foreground)]'
             : 'border-[var(--border)] bg-[var(--background)] text-[var(--muted)] hover:border-[var(--accent)]/50'
-        } ${fullWidth ? 'w-full justify-between' : ''}`}
+          } ${fullWidth ? 'w-full justify-between' : ''}`}
       >
         <CalendarRange size={13} className={hasValue ? 'text-[var(--accent)]' : 'text-[var(--muted)]'} />
         <span className={`text-[13px] ${hasValue ? 'text-[var(--foreground)]' : 'text-[var(--muted)]'}`}>
@@ -485,9 +477,8 @@ function DateRangePicker({
 
       {/* Calendar dropdown */}
       {open && (
-        <div className={`absolute z-50 top-full mt-2 bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-xl p-3 ${
-          fullWidth ? 'left-0 right-0' : 'right-0'
-        }`} style={{ minWidth: 280 }}>
+        <div className={`absolute z-50 top-full mt-2 bg-[var(--surface)] border border-[var(--border)] rounded-2xl shadow-xl p-3 ${fullWidth ? 'left-0 right-0' : 'right-0'
+          }`} style={{ minWidth: 280 }}>
 
           {/* Month nav */}
           <div className="flex items-center justify-between mb-3">
@@ -543,22 +534,20 @@ function DateRangePicker({
                   {/* Range band */}
                   {(inRange || isStart || isEnd) && (
                     <span
-                      className={`absolute inset-y-1 bg-[var(--accent)]/12 ${
-                        isStart ? 'left-1/2 right-0' : isEnd ? 'left-0 right-1/2' : 'left-0 right-0'
-                      } ${isStart && isEnd ? 'hidden' : ''}`}
+                      className={`absolute inset-y-1 bg-[var(--accent)]/12 ${isStart ? 'left-1/2 right-0' : isEnd ? 'left-0 right-1/2' : 'left-0 right-0'
+                        } ${isStart && isEnd ? 'hidden' : ''}`}
                     />
                   )}
                   <button
                     onClick={() => handleDayClick(ymd)}
                     onMouseEnter={() => setHoveredDay(ymd)}
                     onMouseLeave={() => setHoveredDay(null)}
-                    className={`relative z-10 w-7 h-7 text-[13px] rounded-full flex items-center justify-center transition-all font-medium ${
-                      isSelected
+                    className={`relative z-10 w-7 h-7 text-[13px] rounded-full flex items-center justify-center transition-all font-medium ${isSelected
                         ? 'bg-[var(--accent)] text-white shadow-sm'
                         : isToday
-                        ? 'text-[var(--accent)] font-semibold'
-                        : 'text-[var(--foreground)] hover:bg-[var(--accent)]/20'
-                    }`}
+                          ? 'text-[var(--accent)] font-semibold'
+                          : 'text-[var(--foreground)] hover:bg-[var(--accent)]/20'
+                      }`}
                   >
                     {day}
                     {isToday && !isSelected && (
@@ -593,11 +582,10 @@ function DateRangePicker({
 function StatusPill({ published }: { published: boolean }) {
   return (
     <span
-      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${
-        published
+      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${published
           ? 'badge-live text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
           : 'bg-[var(--border)] text-[var(--muted)]'
-      }`}
+        }`}
     >
       {published ? (
         <><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />Live</>

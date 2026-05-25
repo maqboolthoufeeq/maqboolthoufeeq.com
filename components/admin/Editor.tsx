@@ -2,13 +2,21 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { createPortal } from 'react-dom'
-import { useEditor, EditorContent } from '@tiptap/react'
+import { useEditor, EditorContent, ReactNodeViewRenderer } from '@tiptap/react'
 import { Node, mergeAttributes } from '@tiptap/core'
 import StarterKit from '@tiptap/starter-kit'
 import Placeholder from '@tiptap/extension-placeholder'
 import Image from '@tiptap/extension-image'
 import Youtube from '@tiptap/extension-youtube'
 import { TextStyle, FontFamily, FontSize, Color } from '@tiptap/extension-text-style'
+import { Table, TableRow, TableCell, TableHeader } from '@tiptap/extension-table'
+import { ImageNodeView, VideoNodeView, IframeNodeView } from './MediaNodeViews'
+
+function mediaStyleStr(align: string, width: string): string {
+  if (align === 'left') return `width:${width};float:left;margin-right:1em;margin-bottom:0.5em;display:block;`
+  if (align === 'right') return `width:${width};float:right;margin-left:1em;margin-bottom:0.5em;display:block;`
+  return `width:${width};display:block;margin-left:auto;margin-right:auto;`
+}
 
 const IframeNode = Node.create({
   name: 'iframe',
@@ -18,24 +26,37 @@ const IframeNode = Node.create({
   addAttributes() {
     return {
       src: { default: null, parseHTML: el => el.getAttribute('src') },
-      width: { default: '100%', parseHTML: el => el.getAttribute('width') ?? '100%' },
+      width: {
+        default: '100%',
+        parseHTML: el => el.style.width || el.getAttribute('width') || '100%',
+      },
       height: { default: '400', parseHTML: el => el.getAttribute('height') ?? '400' },
-      frameborder: { default: '0', parseHTML: el => el.getAttribute('frameborder') ?? '0' },
+      align: {
+        default: 'center',
+        parseHTML: el => el.style.float === 'left' ? 'left' : el.style.float === 'right' ? 'right' : 'center',
+      },
       allow: { default: null, parseHTML: el => el.getAttribute('allow') },
       allowfullscreen: { default: null, parseHTML: el => el.hasAttribute('allowfullscreen') ? '' : null },
       webkitallowfullscreen: { default: null, parseHTML: el => el.hasAttribute('webkitallowfullscreen') ? '' : null },
       mozallowfullscreen: { default: null, parseHTML: el => el.hasAttribute('mozallowfullscreen') ? '' : null },
-      style: { default: null, parseHTML: el => el.getAttribute('style') },
+      frameborder: { default: '0', parseHTML: el => el.getAttribute('frameborder') ?? '0' },
       id: { default: null, parseHTML: el => el.getAttribute('id') },
     }
   },
   parseHTML() { return [{ tag: 'iframe' }] },
-  renderHTML({ HTMLAttributes }) {
-    const attrs = Object.fromEntries(
-      Object.entries(HTMLAttributes).filter(([, v]) => v !== null && v !== undefined)
-    )
-    return ['iframe', mergeAttributes(attrs)]
+  renderHTML({ node }) {
+    const { src, width, height, align, allow, allowfullscreen, webkitallowfullscreen, mozallowfullscreen, frameborder, id } = node.attrs as Record<string, string | null>
+    const style = mediaStyleStr(align ?? 'center', width ?? '100%')
+    const hVal = height ? (String(height).endsWith('px') ? height : `${height}px`) : '400px'
+    const attrs: Record<string, string | null> = { src, height: hVal, style, frameborder: frameborder ?? '0' }
+    if (allow) attrs.allow = allow
+    if (allowfullscreen != null) attrs.allowfullscreen = ''
+    if (webkitallowfullscreen != null) attrs.webkitallowfullscreen = ''
+    if (mozallowfullscreen != null) attrs.mozallowfullscreen = ''
+    if (id) attrs.id = id
+    return ['iframe', mergeAttributes(Object.fromEntries(Object.entries(attrs).filter(([, v]) => v !== null)))]
   },
+  addNodeView() { return ReactNodeViewRenderer(IframeNodeView) },
 })
 
 const VideoNode = Node.create({
@@ -46,22 +67,48 @@ const VideoNode = Node.create({
   addAttributes() {
     return {
       src: { default: null, parseHTML: el => el.getAttribute('src') },
-      style: { default: null, parseHTML: el => el.getAttribute('style') },
+      width: {
+        default: '100%',
+        parseHTML: el => el.style.width || '100%',
+      },
+      align: {
+        default: 'center',
+        parseHTML: el => el.style.float === 'left' ? 'left' : el.style.float === 'right' ? 'right' : 'center',
+      },
     }
   },
   parseHTML() { return [{ tag: 'video[src]' }] },
-  renderHTML({ HTMLAttributes }) {
-    return ['video', mergeAttributes({ controls: true }, HTMLAttributes)]
+  renderHTML({ node }) {
+    const { src, width, align } = node.attrs as Record<string, string>
+    const style = mediaStyleStr(align ?? 'center', width ?? '100%')
+    return ['video', { src: src ?? '', controls: '', style }, ['source', { src: src ?? '' }]]
   },
+  addNodeView() { return ReactNodeViewRenderer(VideoNodeView) },
 })
 
 const ResizableImage = Image.extend({
   addAttributes() {
     return {
       ...this.parent?.(),
-      style: { default: null, parseHTML: el => el.getAttribute('style') },
+      width: {
+        default: '100%',
+        parseHTML: el => el.style.width || '100%',
+      },
+      align: {
+        default: 'center',
+        parseHTML: el => el.style.float === 'left' ? 'left' : el.style.float === 'right' ? 'right' : 'center',
+      },
     }
   },
+  renderHTML({ node }) {
+    const { src, alt, title, width, align } = node.attrs as Record<string, string>
+    const style = mediaStyleStr(align ?? 'center', width ?? '100%')
+    const attrs: Record<string, string> = { src: src ?? '', style }
+    if (alt) attrs.alt = alt
+    if (title) attrs.title = title
+    return ['img', attrs]
+  },
+  addNodeView() { return ReactNodeViewRenderer(ImageNodeView) },
 })
 
 function getEmbedKind(url: string): { kind: 'image' | 'video' | 'youtube' | 'iframe'; src: string } {
@@ -97,7 +144,7 @@ const COLORS = [
   '#eab308', '#22c55e', '#3b82f6', '#a855f7', '#ec4899',
 ]
 
-type Panel = 'link' | 'imgUrl' | 'ytUrl' | 'embedUrl' | 'iframeCode' | 'font' | 'size' | 'color' | null
+type Panel = 'link' | 'imgUrl' | 'ytUrl' | 'embedUrl' | 'iframeCode' | 'font' | 'size' | 'color' | 'table' | null
 type Pos = { top: number; left: number }
 type Props = { content: string; onChange: (html: string) => void }
 
@@ -109,6 +156,8 @@ export default function Editor({ content, onChange }: Props) {
   const [panel, setPanel] = useState<Panel>(null)
   const [inputVal, setInputVal] = useState('')
   const [savedSel, setSavedSel] = useState<{ from: number; to: number } | null>(null)
+  const [tableToolbarPos, setTableToolbarPos] = useState<Pos | null>(null)
+  const [tableSize, setTableSize] = useState({ rows: 3, cols: 3 })
   const imgFileRef = useRef<HTMLInputElement>(null)
   const vidFileRef = useRef<HTMLInputElement>(null)
 
@@ -123,6 +172,10 @@ export default function Editor({ content, onChange }: Props) {
       VideoNode,
       IframeNode,
       Youtube.configure({ controls: true }),
+      Table.configure({ resizable: true }),
+      TableRow,
+      TableHeader,
+      TableCell,
       TextStyle,
       FontFamily,
       FontSize,
@@ -132,6 +185,19 @@ export default function Editor({ content, onChange }: Props) {
     onUpdate: ({ editor: ed }) => onChange(ed.getHTML()),
     onSelectionUpdate: ({ editor: ed }) => {
       const { from, to, empty } = ed.state.selection
+      const inTable = ed.isActive('table')
+
+      if (inTable) {
+        try {
+          const { $from } = ed.state.selection
+          let d = $from.depth
+          while (d > 0 && $from.node(d).type.name !== 'table') d--
+          const coords = ed.view.coordsAtPos(d > 0 ? $from.before(d) + 1 : from)
+          setTableToolbarPos({ top: coords.top, left: coords.left })
+        } catch { setTableToolbarPos(null) }
+      } else {
+        setTableToolbarPos(null)
+      }
 
       if (!empty) {
         try {
@@ -410,6 +476,93 @@ export default function Editor({ content, onChange }: Props) {
     )
   }
 
+  function moveTableRow(dir: 'up' | 'down') {
+    const { state, dispatch } = ed.view
+    const { $from } = state.selection
+    let d = $from.depth
+    while (d > 0 && $from.node(d).type.name !== 'tableRow') d--
+    if (!d) return
+    const tblD = d - 1
+    const tblNode = $from.node(tblD)
+    const tblPos = $from.before(tblD)
+    const rowPos = $from.before(d)
+    let rowIdx = -1, p = tblPos + 1
+    for (let i = 0; i < tblNode.childCount; i++) {
+      if (p === rowPos) { rowIdx = i; break }
+      p += tblNode.child(i).nodeSize
+    }
+    if (rowIdx < 0) return
+    const target = dir === 'up' ? rowIdx - 1 : rowIdx + 1
+    if (target < 0 || target >= tblNode.childCount) return
+    const firstIdx = Math.min(rowIdx, target)
+    const secondIdx = Math.max(rowIdx, target)
+    let firstPos = tblPos + 1
+    for (let i = 0; i < firstIdx; i++) firstPos += tblNode.child(i).nodeSize
+    const secondPos = firstPos + tblNode.child(firstIdx).nodeSize
+    const firstRow = tblNode.child(firstIdx)
+    const secondRow = tblNode.child(secondIdx)
+    const tr = state.tr
+    tr.replaceWith(secondPos, secondPos + secondRow.nodeSize, firstRow)
+    tr.replaceWith(firstPos, firstPos + firstRow.nodeSize, secondRow)
+    dispatch(tr)
+  }
+
+  function moveTableCol(dir: 'left' | 'right') {
+    const { state, dispatch } = ed.view
+    const { $from } = state.selection
+    let d = $from.depth
+    while (d > 0 && !['tableCell', 'tableHeader'].includes($from.node(d).type.name)) d--
+    if (!d) return
+    const rowD = d - 1
+    const tblD = d - 2
+    if (tblD < 0) return
+    const tblNode = $from.node(tblD)
+    const tblPos = $from.before(tblD)
+    const rowNode = $from.node(rowD)
+    const rowPos = $from.before(rowD)
+    const cellPos = $from.before(d)
+    let colIdx = -1, cp = rowPos + 1
+    for (let i = 0; i < rowNode.childCount; i++) {
+      if (cp === cellPos) { colIdx = i; break }
+      cp += rowNode.child(i).nodeSize
+    }
+    if (colIdx < 0) return
+    const target = dir === 'left' ? colIdx - 1 : colIdx + 1
+    const numCols = tblNode.firstChild?.childCount ?? 0
+    if (target < 0 || target >= numCols) return
+    const fci = Math.min(colIdx, target)
+    const sci = Math.max(colIdx, target)
+    const rows: { pos: number; node: ReturnType<typeof tblNode.child> }[] = []
+    let rp = tblPos + 1
+    for (let i = 0; i < tblNode.childCount; i++) {
+      rows.push({ pos: rp, node: tblNode.child(i) })
+      rp += tblNode.child(i).nodeSize
+    }
+    const tr = state.tr
+    for (let ri = rows.length - 1; ri >= 0; ri--) {
+      const { pos: rPos, node: rNode } = rows[ri]
+      let fcp = rPos + 1
+      for (let ci = 0; ci < fci; ci++) fcp += rNode.child(ci).nodeSize
+      const scp = fcp + rNode.child(fci).nodeSize
+      const fc = rNode.child(fci)
+      const sc = rNode.child(sci)
+      tr.replaceWith(scp, scp + sc.nodeSize, fc)
+      tr.replaceWith(fcp, fcp + fc.nodeSize, sc)
+    }
+    dispatch(tr)
+  }
+
+  const tBtn = (label: string, cmd: () => boolean, disabled?: boolean) => (
+    <button
+      key={label}
+      type="button"
+      onMouseDown={e => e.preventDefault()}
+      onClick={() => cmd()}
+      disabled={disabled}
+      className="px-2 py-0.5 text-[11px] rounded cursor-pointer transition-colors text-[var(--muted)] hover:bg-[var(--accent)] hover:text-white whitespace-nowrap disabled:opacity-40 disabled:cursor-not-allowed"
+    >{label}</button>
+  )
+
   return (
     <div className="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden">
       <EditorContent editor={ed} />
@@ -484,6 +637,27 @@ export default function Editor({ content, onChange }: Props) {
                   <button type="button" onClick={insertIframeCode} className="px-2 py-0.5 text-xs bg-[var(--accent)] text-white rounded cursor-pointer">Insert</button>
                   <button type="button" onClick={() => { closePanel(); setBlockOpen(false) }} className="text-[var(--muted)] text-xs cursor-pointer">✕</button>
                 </>
+              ) : panel === 'table' ? (
+                <>
+                  <span className="text-[11px] text-[var(--muted)]">Rows:</span>
+                  <input
+                    type="number" min={1} max={20}
+                    className="w-12 text-xs bg-[var(--background)] border border-[var(--border)] rounded px-1.5 py-0.5 text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
+                    value={tableSize.rows}
+                    onMouseDown={e => e.stopPropagation()}
+                    onChange={e => { const v = parseInt(e.target.value); if (!isNaN(v)) setTableSize(s => ({ ...s, rows: Math.max(1, Math.min(20, v)) })) }}
+                  />
+                  <span className="text-[11px] text-[var(--muted)]">Cols:</span>
+                  <input
+                    type="number" min={1} max={20}
+                    className="w-12 text-xs bg-[var(--background)] border border-[var(--border)] rounded px-1.5 py-0.5 text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
+                    value={tableSize.cols}
+                    onMouseDown={e => e.stopPropagation()}
+                    onChange={e => { const v = parseInt(e.target.value); if (!isNaN(v)) setTableSize(s => ({ ...s, cols: Math.max(1, Math.min(20, v)) })) }}
+                  />
+                  <button type="button" onClick={() => { ed.chain().focus().insertTable({ rows: tableSize.rows, cols: tableSize.cols, withHeaderRow: true }).run(); closePanel(); setBlockOpen(false) }} className="px-2 py-0.5 text-xs bg-[var(--accent)] text-white rounded cursor-pointer">Insert</button>
+                  <button type="button" onClick={() => { closePanel(); setBlockOpen(false) }} className="text-[var(--muted)] text-xs cursor-pointer">✕</button>
+                </>
               ) : (
                 <>
                   <button type="button" onClick={() => openPanel('imgUrl')} className={iBtn}>Img URL</button>
@@ -493,11 +667,39 @@ export default function Editor({ content, onChange }: Props) {
                   <button type="button" onClick={() => openPanel('embedUrl')} className={iBtn}>Embed</button>
                   <button type="button" onClick={() => openPanel('iframeCode')} className={iBtn}>Iframe</button>
                   <button type="button" onClick={() => { ed.chain().focus().setHorizontalRule().run(); setBlockOpen(false) }} className={iBtn}>— HR</button>
+                  <button type="button" onClick={() => openPanel('table')} className={iBtn}>Table</button>
                   <button type="button" onClick={() => setBlockOpen(false)} className="text-[var(--muted)] text-xs cursor-pointer px-1">✕</button>
                 </>
               )}
             </div>
           )}
+        </div>,
+        document.body
+      )}
+
+      {mounted && tableToolbarPos && createPortal(
+        <div
+          style={{ position: 'fixed', top: tableToolbarPos.top, left: tableToolbarPos.left, transform: 'translateY(calc(-100% - 4px))', zIndex: 9998 }}
+          className="flex items-center gap-0.5 flex-wrap px-2 py-1.5 rounded-lg bg-[var(--surface)] border border-[var(--border)] shadow-xl max-w-[90vw]"
+          onMouseDown={e => e.preventDefault()}
+        >
+          {tBtn('+ Row ↓', () => ed.chain().focus().addRowAfter().run())}
+          {tBtn('+ Row ↑', () => ed.chain().focus().addRowBefore().run())}
+          {tBtn('- Row', () => ed.chain().focus().deleteRow().run())}
+          {tBtn('↑ Row', () => { moveTableRow('up'); return true })}
+          {tBtn('↓ Row', () => { moveTableRow('down'); return true })}
+          <span className="w-px self-stretch bg-[var(--border)] mx-0.5" />
+          {tBtn('+ Col →', () => ed.chain().focus().addColumnAfter().run())}
+          {tBtn('+ Col ←', () => ed.chain().focus().addColumnBefore().run())}
+          {tBtn('- Col', () => ed.chain().focus().deleteColumn().run())}
+          {tBtn('← Col', () => { moveTableCol('left'); return true })}
+          {tBtn('→ Col', () => { moveTableCol('right'); return true })}
+          <span className="w-px self-stretch bg-[var(--border)] mx-0.5" />
+          {tBtn('Merge', () => ed.chain().focus().mergeCells().run())}
+          {tBtn('Split', () => ed.chain().focus().splitCell().run())}
+          {tBtn('Header Row', () => ed.chain().focus().toggleHeaderRow().run())}
+          <span className="w-px self-stretch bg-[var(--border)] mx-0.5" />
+          {tBtn('✕ Table', () => ed.chain().focus().deleteTable().run())}
         </div>,
         document.body
       )}

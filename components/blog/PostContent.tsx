@@ -66,6 +66,7 @@ export default function PostContent({ html }: { html: string }) {
       'p', 'br', 'strong', 'em', 'u', 's', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
       'ul', 'ol', 'li', 'blockquote', 'pre', 'code', 'a', 'img', 'hr',
       'video', 'source', 'iframe', 'div',
+      'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td', 'colgroup', 'col',
     ],
     ALLOWED_ATTR: [
       'href', 'target', 'rel', 'src', 'alt', 'class',
@@ -73,6 +74,7 @@ export default function PostContent({ html }: { html: string }) {
       'frameborder', 'allowfullscreen', 'webkitallowfullscreen', 'mozallowfullscreen',
       'allow', 'id', 'name',
       'data-youtube-video',
+      'colspan', 'rowspan', 'scope',
     ],
   }), [html])
 

@@ -7,26 +7,53 @@ import { text } from '../types'
 const BLOCK_SCHEMA = {
   type: 'array',
   description: `
-Structured content blocks → Tiptap HTML. Block types:
-  paragraph  { type, content: TextSpan[] }
-  heading    { type, level: 2|3|4, content: TextSpan[] }
-  image      { type, src, alt?, width? }
-  bullet_list / ordered_list  { type, items: TextSpan[][] }
-  blockquote { type, content: TextSpan[] }
-  code_block { type, code, language? }
+Structured content blocks → Tiptap HTML. All block types supported by the editor:
+
+  paragraph       { type, content: TextSpan[] }
+  heading         { type, level: 2|3|4, content: TextSpan[] }
+  image           { type, src, alt?, width?, align? }
+  video           { type, src, width?, align? }
+  iframe          { type, src, width?, height?, align?, allow?, allowfullscreen? }
+  youtube         { type, src }  ← any YouTube URL (watch, youtu.be, embed)
+  table           { type, headers?: string[], rows: string[][] }
+  bullet_list     { type, items: TextSpan[][] }
+  ordered_list    { type, items: TextSpan[][] }
+  blockquote      { type, content: TextSpan[] }
+  code_block      { type, code, language? }
   horizontal_rule { type }
+
+width:  "25%"|"50%"|"75%"|"100%" (default "100%")
+height: pixels as string e.g. "400" or "400px" (iframes only, default "400")
+align:  "left"|"center"|"right" (default "center")
+  center → centered block (margin auto)
+  left   → float left, text wraps on right
+  right  → float right, text wraps on left
+
+Media elements (image, video, iframe) support drag-to-reposition in the editor.
+Select a media element to reveal the toolbar with align + width controls and
+resize handles on the corners/edges. Drag the grip handle to move it to a
+different position in the document.
 
 TextSpan: { text, bold?, italic?, strikethrough?, code?, link?,
             color?, backgroundColor?, fontFamily?, fontSize? }
+fontFamily options: "Arial, sans-serif" | "Georgia, serif" | "Verdana, sans-serif" |
+  "Trebuchet MS, sans-serif" | "Courier New, monospace" | "ui-monospace, monospace" | "Impact, sans-serif"
+fontSize options: "12px"|"14px"|"16px"|"20px"|"24px"
 
 TIPTAP HTML reference (for raw content strings):
-  Bold: <strong>  Italic: <em>  Strike: <s>  Code: <code>
+  Bold: <strong>  Italic: <em>  Strike: <s>  Inline code: <code>
   Link: <a href="…">  Headings: <h2>/<h3>/<h4>
   Lists: <ul>/<ol><li><p>…</p></li>
   Blockquote: <blockquote><p>…</p></blockquote>
   Code block: <pre><code class="language-js">…</code></pre>
-  Image: <img src="…" alt="…" style="width:100%;">
-  Color/font: <span style="color:#ff0000;font-family:Georgia;font-size:18px;">
+  Image (center): <img src="…" alt="…" style="width:75%;display:block;margin-left:auto;margin-right:auto;">
+  Image (left):   <img src="…" style="width:50%;float:left;margin-right:1em;margin-bottom:0.5em;display:block;">
+  Image (right):  <img src="…" style="width:50%;float:right;margin-left:1em;margin-bottom:0.5em;display:block;">
+  Video:    <video src="…" controls="" style="width:100%;display:block;margin-left:auto;margin-right:auto;"><source src="…"></video>
+  Iframe:   <iframe src="…" height="400px" style="width:100%;display:block;margin-left:auto;margin-right:auto;" frameborder="0"></iframe>
+  YouTube:  <div data-youtube-video><iframe src="https://www.youtube.com/embed/VIDEO_ID" allowfullscreen="true" frameborder="0"></iframe></div>
+  Table:    <table><thead><tr><th><p>Header</p></th>…</tr></thead><tbody><tr><td><p>Cell</p></td>…</tr></tbody></table>
+  Color/font: <span style="color:#ff0000;font-family:Georgia,serif;font-size:18px;">
 `.trim(),
   items: { type: 'object' },
 }

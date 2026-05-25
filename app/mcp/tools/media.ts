@@ -22,13 +22,17 @@ export const TOOLS: ToolDef[] = [
     name: 'build_html_content',
     description:
       'Preview helper: convert a structured blocks array to Tiptap-compatible HTML without saving. ' +
-      'Use this to inspect the generated HTML before passing it to create_post or update_post.',
+      'Use this to inspect the generated HTML before passing it to create_post or update_post. ' +
+      'Supports all editor block types: paragraph, heading, image, video, iframe, youtube, table, ' +
+      'bullet_list, ordered_list, blockquote, code_block, horizontal_rule. ' +
+      'Media blocks (image/video/iframe) accept width ("25%"–"100%") and align ("left"/"center"/"right"). ' +
+      'YouTube block accepts any YouTube URL and auto-converts to embed format.',
     inputSchema: {
       type: 'object',
       properties: {
         blocks: {
           type: 'array',
-          description: 'Array of content blocks (paragraph, heading, image, lists, etc.)',
+          description: 'Array of content blocks — see create_post blocks schema for full type reference',
           items: { type: 'object' },
         },
       },

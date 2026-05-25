@@ -31,6 +31,7 @@ export default function EditPostPage() {
   const [tagIds, setTagIds] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [publishing, setPublishing] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [error, setError] = useState('')
   const [isOwner, setIsOwner] = useState(false)
@@ -66,6 +67,21 @@ export default function EditPostPage() {
     if (res.ok) {
       const { url } = await res.json()
       setCoverImage(url)
+    }
+  }
+
+  async function handleTogglePublish() {
+    setPublishing(true)
+    const next = !published
+    const res = await fetch(`/api/posts/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ published: next }),
+    })
+    setPublishing(false)
+    if (res.ok) {
+      setPublished(next)
+      if (next && !publishedAt) setPublishedAt(toDatetimeLocal(new Date()))
     }
   }
 
@@ -115,13 +131,26 @@ export default function EditPostPage() {
       title="Edit post"
       back="/admin/posts"
       action={
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="tap-scale inline-flex items-center justify-center h-10 px-4 rounded-full bg-[var(--accent)] text-white text-sm font-semibold disabled:opacity-50 hover:opacity-90"
-        >
-          {saving ? 'Saving…' : 'Save'}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={handleTogglePublish}
+            disabled={publishing}
+            className={`tap-scale inline-flex items-center justify-center h-10 px-4 rounded-full text-sm font-semibold disabled:opacity-50 ${
+              published
+                ? 'bg-red-500 text-white hover:bg-red-600'
+                : 'btn-publish'
+            }`}
+          >
+            {publishing ? '…' : published ? 'Unpublish' : 'Publish'}
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="tap-scale inline-flex items-center justify-center h-10 px-4 rounded-full bg-[var(--accent)] text-white text-sm font-semibold disabled:opacity-50 hover:opacity-90"
+          >
+            {saving ? 'Saving…' : 'Save'}
+          </button>
+        </div>
       }
     >
       <div className="max-w-3xl mx-auto space-y-5 sm:space-y-6">
@@ -240,13 +269,26 @@ export default function EditPostPage() {
           </div>
         </div>
 
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="tap-scale w-full h-12 rounded-2xl bg-[var(--accent)] text-white font-semibold disabled:opacity-50 hover:opacity-90"
-        >
-          {saving ? 'Saving…' : published ? 'Update & publish' : 'Save draft'}
-        </button>
+        <div className="flex gap-3">
+          <button
+            onClick={handleTogglePublish}
+            disabled={publishing}
+            className={`tap-scale flex-1 h-12 rounded-2xl text-sm font-semibold disabled:opacity-50 ${
+              published
+                ? 'bg-red-500 text-white hover:bg-red-600'
+                : 'btn-publish'
+            }`}
+          >
+            {publishing ? '…' : published ? 'Unpublish' : 'Publish'}
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="tap-scale flex-1 h-12 rounded-2xl bg-[var(--accent)] text-white font-semibold disabled:opacity-50 hover:opacity-90"
+          >
+            {saving ? 'Saving…' : 'Save'}
+          </button>
+        </div>
       </div>
     </AdminShell>
   )

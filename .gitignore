@@ -24,9 +24,19 @@ Thumbs.db
 .vscode/
 .idea/
 
-# Claude Code / tooling session data
-.claude/
-.claude-flow/
+# Claude Code — track agents, commands, helpers, settings; ignore local/runtime only
+.claude/settings.local.json
+
+# claude-flow — track config, agents, hooks, workflows; ignore runtime data
+.claude-flow/sessions/
+.claude-flow/logs/
+.claude-flow/data/
+.claude-flow/metrics/
+.claude-flow/security/
+.claude-flow/swarm/
+.claude-flow/learning/
+
+# Other tooling runtime dirs
 .playwright-mcp/
 .superpowers/
 

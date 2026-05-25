@@ -10,6 +10,34 @@ import Image from '@tiptap/extension-image'
 import Youtube from '@tiptap/extension-youtube'
 import { TextStyle, FontFamily, FontSize, Color } from '@tiptap/extension-text-style'
 
+const IframeNode = Node.create({
+  name: 'iframe',
+  group: 'block',
+  atom: true,
+  draggable: true,
+  addAttributes() {
+    return {
+      src: { default: null, parseHTML: el => el.getAttribute('src') },
+      width: { default: '100%', parseHTML: el => el.getAttribute('width') ?? '100%' },
+      height: { default: '400', parseHTML: el => el.getAttribute('height') ?? '400' },
+      frameborder: { default: '0', parseHTML: el => el.getAttribute('frameborder') ?? '0' },
+      allow: { default: null, parseHTML: el => el.getAttribute('allow') },
+      allowfullscreen: { default: null, parseHTML: el => el.hasAttribute('allowfullscreen') ? '' : null },
+      webkitallowfullscreen: { default: null, parseHTML: el => el.hasAttribute('webkitallowfullscreen') ? '' : null },
+      mozallowfullscreen: { default: null, parseHTML: el => el.hasAttribute('mozallowfullscreen') ? '' : null },
+      style: { default: null, parseHTML: el => el.getAttribute('style') },
+      id: { default: null, parseHTML: el => el.getAttribute('id') },
+    }
+  },
+  parseHTML() { return [{ tag: 'iframe' }] },
+  renderHTML({ HTMLAttributes }) {
+    const attrs = Object.fromEntries(
+      Object.entries(HTMLAttributes).filter(([, v]) => v !== null && v !== undefined)
+    )
+    return ['iframe', mergeAttributes(attrs)]
+  },
+})
+
 const VideoNode = Node.create({
   name: 'video',
   group: 'block',
@@ -36,6 +64,15 @@ const ResizableImage = Image.extend({
   },
 })
 
+function getEmbedKind(url: string): { kind: 'image' | 'video' | 'youtube' | 'iframe'; src: string } {
+  if (/\.(jpe?g|png|gif|webp|svg|bmp)(\?.*)?$/i.test(url)) return { kind: 'image', src: url }
+  if (/\.(mp4|webm|ogg|mov)(\?.*)?$/i.test(url)) return { kind: 'video', src: url }
+  if (/(?:youtube\.com\/watch\?|youtu\.be\/)/.test(url)) return { kind: 'youtube', src: url }
+  const dm = url.match(/drive\.google\.com\/file\/d\/([^/?\s]+)/)
+  if (dm) return { kind: 'iframe', src: `https://drive.google.com/file/d/${dm[1]}/preview` }
+  return { kind: 'iframe', src: url }
+}
+
 const FONTS = [
   { label: 'Default', value: '' },
   { label: 'Arial', value: 'Arial, sans-serif' },
@@ -60,7 +97,7 @@ const COLORS = [
   '#eab308', '#22c55e', '#3b82f6', '#a855f7', '#ec4899',
 ]
 
-type Panel = 'link' | 'imgUrl' | 'ytUrl' | 'font' | 'size' | 'color' | null
+type Panel = 'link' | 'imgUrl' | 'ytUrl' | 'embedUrl' | 'iframeCode' | 'font' | 'size' | 'color' | null
 type Pos = { top: number; left: number }
 type Props = { content: string; onChange: (html: string) => void }
 
@@ -84,6 +121,7 @@ export default function Editor({ content, onChange }: Props) {
       Placeholder.configure({ placeholder: 'Start writing…' }),
       ResizableImage,
       VideoNode,
+      IframeNode,
       Youtube.configure({ controls: true }),
       TextStyle,
       FontFamily,
@@ -166,6 +204,44 @@ export default function Editor({ content, onChange }: Props) {
     const src = inputVal.trim()
     if (!src) return
     ed.chain().focus().setYoutubeVideo({ src }).run()
+    closePanel()
+    setBlockOpen(false)
+  }
+
+  function insertEmbed() {
+    const url = inputVal.trim()
+    if (!url) return
+    const { kind, src } = getEmbedKind(url)
+    if (kind === 'image') ed.chain().focus().setImage({ src }).run()
+    else if (kind === 'video') ed.chain().focus().insertContent({ type: 'video', attrs: { src } }).run()
+    else if (kind === 'youtube') ed.chain().focus().setYoutubeVideo({ src }).run()
+    else ed.chain().focus().insertContent({ type: 'iframe', attrs: { src, width: '100%', height: '400' } }).run()
+    closePanel()
+    setBlockOpen(false)
+  }
+
+  function insertIframeCode() {
+    const code = inputVal.trim()
+    if (!code) return
+    const doc = new DOMParser().parseFromString(code, 'text/html')
+    const iframe = doc.querySelector('iframe')
+    if (iframe) {
+      ed.chain().focus().insertContent({
+        type: 'iframe',
+        attrs: {
+          src: iframe.getAttribute('src'),
+          width: iframe.getAttribute('width') ?? '100%',
+          height: iframe.getAttribute('height') ?? '400',
+          allow: iframe.getAttribute('allow'),
+          allowfullscreen: iframe.hasAttribute('allowfullscreen') ? '' : null,
+          webkitallowfullscreen: iframe.hasAttribute('webkitallowfullscreen') ? '' : null,
+          mozallowfullscreen: iframe.hasAttribute('mozallowfullscreen') ? '' : null,
+          frameborder: iframe.getAttribute('frameborder') ?? '0',
+          style: iframe.getAttribute('style'),
+          id: iframe.getAttribute('id'),
+        },
+      }).run()
+    }
     closePanel()
     setBlockOpen(false)
   }
@@ -386,12 +462,36 @@ export default function Editor({ content, onChange }: Props) {
                   <button type="button" onClick={insertYoutube} className="px-2 py-0.5 text-xs bg-[var(--accent)] text-white rounded cursor-pointer">Embed</button>
                   <button type="button" onClick={() => { closePanel(); setBlockOpen(false) }} className="text-[var(--muted)] text-xs cursor-pointer">✕</button>
                 </>
+              ) : panel === 'embedUrl' ? (
+                <>
+                  <input autoFocus
+                    className="w-56 text-xs bg-[var(--background)] border border-[var(--border)] rounded px-2 py-0.5 text-[var(--foreground)] outline-none focus:border-[var(--accent)]"
+                    placeholder="Image, video, Drive, PDF, or any URL…"
+                    value={inputVal} onChange={e => setInputVal(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') insertEmbed(); if (e.key === 'Escape') { closePanel(); setBlockOpen(false) } }}
+                  />
+                  <button type="button" onClick={insertEmbed} className="px-2 py-0.5 text-xs bg-[var(--accent)] text-white rounded cursor-pointer">Embed</button>
+                  <button type="button" onClick={() => { closePanel(); setBlockOpen(false) }} className="text-[var(--muted)] text-xs cursor-pointer">✕</button>
+                </>
+              ) : panel === 'iframeCode' ? (
+                <>
+                  <input autoFocus
+                    className="w-72 text-xs bg-[var(--background)] border border-[var(--border)] rounded px-2 py-0.5 text-[var(--foreground)] outline-none focus:border-[var(--accent)] font-mono"
+                    placeholder={'<iframe src="..." ...></iframe>'}
+                    value={inputVal} onChange={e => setInputVal(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') insertIframeCode(); if (e.key === 'Escape') { closePanel(); setBlockOpen(false) } }}
+                  />
+                  <button type="button" onClick={insertIframeCode} className="px-2 py-0.5 text-xs bg-[var(--accent)] text-white rounded cursor-pointer">Insert</button>
+                  <button type="button" onClick={() => { closePanel(); setBlockOpen(false) }} className="text-[var(--muted)] text-xs cursor-pointer">✕</button>
+                </>
               ) : (
                 <>
                   <button type="button" onClick={() => openPanel('imgUrl')} className={iBtn}>Img URL</button>
                   <button type="button" onClick={() => imgFileRef.current?.click()} className={iBtn}>↑ Image</button>
                   <button type="button" onClick={() => vidFileRef.current?.click()} className={iBtn}>↑ Video</button>
                   <button type="button" onClick={() => openPanel('ytUrl')} className={iBtn}>YouTube</button>
+                  <button type="button" onClick={() => openPanel('embedUrl')} className={iBtn}>Embed</button>
+                  <button type="button" onClick={() => openPanel('iframeCode')} className={iBtn}>Iframe</button>
                   <button type="button" onClick={() => { ed.chain().focus().setHorizontalRule().run(); setBlockOpen(false) }} className={iBtn}>— HR</button>
                   <button type="button" onClick={() => setBlockOpen(false)} className="text-[var(--muted)] text-xs cursor-pointer px-1">✕</button>
                 </>

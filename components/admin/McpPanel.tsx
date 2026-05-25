@@ -26,7 +26,7 @@ interface Props {
 }
 
 function fmt(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })
+  return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
 function CopyButton({ value, label = 'Copy' }: { value: string; label?: string }) {
@@ -61,8 +61,27 @@ export default function McpPanel({ tokens: init, clients: initClients, disabledT
   const [creatingClient, setCreatingClient] = useState(false)
   const [freshClient, setFreshClient]       = useState<{ clientId: string; clientSecret: string; name: string } | null>(null)
 
+  const [provider, setProvider] = useState('claude-ai')
+
   const endpoint = `${origin}/mcp/`
   const desktopConfig = JSON.stringify({
+    mcpServers: {
+      'site-manager': {
+        url: endpoint,
+        headers: { Authorization: 'Bearer YOUR_ACCESS_TOKEN' },
+      },
+    },
+  }, null, 2)
+  const cursorConfig = JSON.stringify({
+    mcpServers: {
+      'site-manager': {
+        url: endpoint,
+        headers: { Authorization: 'Bearer YOUR_ACCESS_TOKEN' },
+      },
+    },
+  }, null, 2)
+  const claudeCodeCmd = `claude mcp add --transport http --header "Authorization: Bearer YOUR_TOKEN" site-manager ${endpoint}`
+  const geminiConfig = JSON.stringify({
     mcpServers: {
       'site-manager': {
         url: endpoint,
@@ -148,32 +167,138 @@ export default function McpPanel({ tokens: init, clients: initClients, disabledT
       {/* ── Connection ─────────────────────────────────────────────────────── */}
       <section className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6">
         <h2 className="font-semibold text-[var(--foreground)] mb-4">Connection</h2>
-        <div className="space-y-4">
-          <div>
-            <p className="text-xs text-[var(--muted)] mb-1">MCP Endpoint</p>
-            <div className="flex items-center gap-2">
-              <code className="flex-1 text-sm font-mono px-3 py-2 rounded-lg bg-[var(--background)] border border-[var(--border)] text-[var(--accent)] overflow-x-auto">
-                {endpoint}
-              </code>
-              <CopyButton value={endpoint} />
-            </div>
-          </div>
-          <div>
-            <p className="text-xs text-[var(--muted)] mb-1">Claude Desktop Config <span className="text-[var(--accent)]">(paste into claude_desktop_config.json)</span></p>
-            <div className="relative">
-              <pre className="text-xs font-mono px-4 py-3 rounded-lg bg-[var(--background)] border border-[var(--border)] text-[var(--foreground)] overflow-x-auto whitespace-pre-wrap">
-                {desktopConfig}
-              </pre>
-              <div className="absolute top-2 right-2">
-                <CopyButton value={desktopConfig} label="Copy JSON" />
-              </div>
-            </div>
-            <p className="text-xs text-[var(--muted)] mt-1.5">
-              Replace <code className="text-[var(--accent)]">YOUR_ACCESS_TOKEN</code> with a token generated below.
-              Config file location: <code className="text-[var(--muted)]">~/Library/Application Support/Claude/claude_desktop_config.json</code>
-            </p>
+
+        <div className="mb-5">
+          <p className="text-xs text-[var(--muted)] mb-1">MCP Endpoint</p>
+          <div className="flex items-center gap-2">
+            <code className="flex-1 text-sm font-mono px-3 py-2 rounded-lg bg-[var(--background)] border border-[var(--border)] text-[var(--accent)] overflow-x-auto">
+              {endpoint}
+            </code>
+            <CopyButton value={endpoint} />
           </div>
         </div>
+
+        {/* Provider tabs */}
+        <div className="flex overflow-x-auto border-b border-[var(--border)] mb-5 gap-0">
+          {([
+            ['claude-ai',      'Claude.ai'],
+            ['claude-desktop', 'Claude Desktop'],
+            ['chatgpt',        'ChatGPT'],
+            ['gemini',         'Gemini'],
+            ['claude-code',    'Claude Code'],
+            ['cursor',         'Cursor'],
+          ] as const).map(([id, label]) => (
+            <button
+              key={id}
+              onClick={() => setProvider(id)}
+              className={`shrink-0 px-3 py-2 text-xs font-medium border-b-2 -mb-px transition-colors ${
+                provider === id
+                  ? 'border-[var(--accent)] text-[var(--foreground)]'
+                  : 'border-transparent text-[var(--muted)] hover:text-[var(--foreground)]'
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {provider === 'claude-ai' && (
+          <div className="space-y-3 text-sm">
+            <ol className="space-y-2 text-[var(--foreground)] list-decimal list-inside leading-relaxed">
+              <li>Go to <strong>claude.ai</strong> → profile icon (bottom-left) → <strong>Customize</strong> → <strong>Connectors</strong></li>
+              <li>Click <strong>+</strong> → <strong>Add custom connector</strong></li>
+              <li>Paste the MCP Endpoint above as the <strong>Server URL</strong></li>
+              <li>Expand <strong>Advanced settings</strong> → enter <strong>Client ID</strong> and <strong>Client Secret</strong> from the OAuth Clients section below</li>
+              <li>Click <strong>Add</strong> and complete the sign-in prompt</li>
+            </ol>
+            <p className="text-xs text-[var(--muted)]">Requires Claude.ai Pro or Max plan. Your server must be publicly accessible over the internet.</p>
+          </div>
+        )}
+
+        {provider === 'claude-desktop' && (
+          <div className="space-y-3">
+            <div className="relative">
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-xs text-[var(--muted)]">Paste into <code className="text-[var(--accent)]">claude_desktop_config.json</code></p>
+                <CopyButton value={desktopConfig} label="Copy JSON" />
+              </div>
+              <pre className="text-xs font-mono px-4 py-3 rounded-lg bg-[var(--background)] border border-[var(--border)] text-[var(--foreground)] overflow-x-auto whitespace-pre-wrap">{desktopConfig}</pre>
+            </div>
+            <div className="space-y-1">
+              <p className="text-xs text-[var(--muted)]">Replace <code className="text-[var(--accent)]">YOUR_ACCESS_TOKEN</code> with a token from Access Tokens below.</p>
+              <p className="text-xs text-[var(--muted)]">Config location:</p>
+              <p className="text-xs text-[var(--muted)] pl-3">macOS: <code className="text-[var(--foreground)]">~/Library/Application Support/Claude/claude_desktop_config.json</code></p>
+              <p className="text-xs text-[var(--muted)] pl-3">Windows: <code className="text-[var(--foreground)]">%APPDATA%\Claude\claude_desktop_config.json</code></p>
+            </div>
+          </div>
+        )}
+
+        {provider === 'chatgpt' && (
+          <div className="space-y-3 text-sm">
+            <ol className="space-y-2 text-[var(--foreground)] list-decimal list-inside leading-relaxed">
+              <li>Open <strong>ChatGPT</strong> desktop app (macOS/Windows) or go to <strong>chatgpt.com</strong></li>
+              <li>Click your profile icon → <strong>Settings</strong> → <strong>Connectors</strong> (or <strong>Tools</strong>)</li>
+              <li>Click <strong>Add MCP server</strong> (or <strong>+</strong>)</li>
+              <li>Enter the MCP Endpoint above as the server URL</li>
+              <li>Add a <strong>Bearer token</strong> header from the Access Tokens section below</li>
+              <li>Save and enable the server in your conversation</li>
+            </ol>
+            <p className="text-xs text-[var(--muted)]">MCP support in ChatGPT requires a Plus, Pro, or Team plan. The desktop app has the most complete MCP support.</p>
+          </div>
+        )}
+
+        {provider === 'gemini' && (
+          <div className="space-y-4">
+            <div>
+              <p className="text-xs font-medium text-[var(--foreground)] mb-2">Gemini CLI</p>
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <p className="text-xs text-[var(--muted)]">Add to <code className="text-[var(--accent)]">~/.gemini/settings.json</code>:</p>
+                  <CopyButton value={geminiConfig} label="Copy JSON" />
+                </div>
+                <pre className="text-xs font-mono px-4 py-3 rounded-lg bg-[var(--background)] border border-[var(--border)] text-[var(--foreground)] overflow-x-auto whitespace-pre-wrap">{geminiConfig}</pre>
+              </div>
+              <p className="text-xs text-[var(--muted)] mt-2">Replace <code className="text-[var(--accent)]">YOUR_ACCESS_TOKEN</code> with a token from Access Tokens below. Start a session with <code className="text-[var(--accent)]">gemini</code>.</p>
+            </div>
+            <div className="p-3 rounded-lg border border-[var(--border)] bg-[var(--background)]">
+              <p className="text-xs font-medium text-[var(--foreground)] mb-1">Gemini web (gemini.google.com)</p>
+              <p className="text-xs text-[var(--muted)]">The Gemini web app does not yet support user-configured remote MCP servers. Use Gemini CLI above, or check Google&apos;s latest release notes for web MCP support.</p>
+            </div>
+          </div>
+        )}
+
+        {provider === 'claude-code' && (
+          <div className="space-y-3">
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-xs text-[var(--muted)]">1. Add the server:</p>
+                <CopyButton value={claudeCodeCmd} />
+              </div>
+              <pre className="text-xs font-mono px-4 py-3 rounded-lg bg-[var(--background)] border border-[var(--border)] text-[var(--foreground)] overflow-x-auto whitespace-pre">{claudeCodeCmd}</pre>
+            </div>
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-xs text-[var(--muted)]">2. Verify it was added:</p>
+                <CopyButton value="claude mcp list" />
+              </div>
+              <pre className="text-xs font-mono px-4 py-3 rounded-lg bg-[var(--background)] border border-[var(--border)] text-[var(--foreground)]">claude mcp list</pre>
+            </div>
+            <p className="text-xs text-[var(--muted)]">Replace <code className="text-[var(--accent)]">YOUR_TOKEN</code> with a token from Access Tokens below.</p>
+          </div>
+        )}
+
+        {provider === 'cursor' && (
+          <div className="space-y-3">
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <p className="text-xs text-[var(--muted)]">Add to <code className="text-[var(--accent)]">~/.cursor/mcp.json</code> (global) or <code className="text-[var(--accent)]">.cursor/mcp.json</code> in your project:</p>
+                <CopyButton value={cursorConfig} label="Copy JSON" />
+              </div>
+              <pre className="text-xs font-mono px-4 py-3 rounded-lg bg-[var(--background)] border border-[var(--border)] text-[var(--foreground)] overflow-x-auto whitespace-pre-wrap">{cursorConfig}</pre>
+            </div>
+            <p className="text-xs text-[var(--muted)]">Replace <code className="text-[var(--accent)]">YOUR_ACCESS_TOKEN</code> with a token from Access Tokens below. Restart Cursor after saving.</p>
+          </div>
+        )}
       </section>
 
       {/* ── Access Tokens ──────────────────────────────────────────────────── */}

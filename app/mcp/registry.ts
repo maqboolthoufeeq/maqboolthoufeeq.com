@@ -11,8 +11,9 @@ import * as site       from './tools/site'
 import * as appearance from './tools/appearance'
 import * as tags       from './tools/tags'
 import * as media      from './tools/media'
+import * as contacts   from './tools/contacts'
 
-const MODULES: ToolModule[] = [posts, projects, site, appearance, tags, media]
+const MODULES: ToolModule[] = [posts, projects, site, appearance, tags, media, contacts]
 
 export const ALL_TOOLS = MODULES.flatMap((m) => m.TOOLS)
 

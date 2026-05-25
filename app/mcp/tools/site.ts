@@ -161,7 +161,10 @@ Fields:
   },
   {
     name: 'update_sections',
-    description: 'Show or hide individual page sections on the landing page.',
+    description:
+      'Show or hide individual page sections on the landing page. ' +
+      'Available sections: hero, about, projects, blogPreview, contact, blogArchive. ' +
+      'Pass true to show a section, false to hide it. Unspecified sections are unchanged.',
     inputSchema: {
       type: 'object',
       properties: {

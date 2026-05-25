@@ -7,26 +7,63 @@ import { text } from '../types'
 const BLOCK_SCHEMA = {
   type: 'array',
   description: `
-Structured content blocks → Tiptap HTML. Block types:
-  paragraph  { type, content: TextSpan[] }
-  heading    { type, level: 2|3|4, content: TextSpan[] }
-  image      { type, src, alt?, width? }
-  bullet_list / ordered_list  { type, items: TextSpan[][] }
-  blockquote { type, content: TextSpan[] }
-  code_block { type, code, language? }
+Structured content blocks → Tiptap HTML. All block types supported by the editor:
+
+  paragraph       { type, content: TextSpan[] }
+  heading         { type, level: 2|3|4, content: TextSpan[] }
+  image           { type, src, alt?, width?, align? }
+  video           { type, src, width?, align? }
+  iframe          { type, src, width?, height?, align?, allow?, allowfullscreen? }
+  youtube         { type, src }  ← any YouTube URL (watch, youtu.be, embed)
+  table           { type, headers?: string[], rows: string[][] }
+  bullet_list     { type, items: TextSpan[][] }
+  ordered_list    { type, items: TextSpan[][] }
+  blockquote      { type, content: TextSpan[] }
+  code_block      { type, code, language? }
   horizontal_rule { type }
+
+width:  "25%"|"50%"|"75%"|"100%" (default "100%")
+height: pixels as string e.g. "400" or "400px" (iframes only, default "400")
+align:  "left"|"center"|"right" (default "center")
+  center → centered block (margin auto)
+  left   → float left, text wraps on right
+  right  → float right, text wraps on left
+
+Media elements (image, video, iframe) support drag-to-reposition in the editor.
+Select a media element to reveal the toolbar with align + width controls and
+resize handles on the corners/edges. Drag the grip handle to move it to a
+different position in the document.
+
+TABLE NOTE: table headers and rows are plain strings only — rich text marks
+(bold, color, links) are NOT supported inside table cells.
+Table structure: headers is an optional string[], rows is string[][]
+(each inner array is one row, each element is one cell).
+
+GOOGLE DRIVE EMBEDS: To embed a Google Drive file (video, PDF, etc.) as an iframe,
+use the /preview URL format: https://drive.google.com/file/d/{FILE_ID}/preview
+Example: { type: "iframe", src: "https://drive.google.com/file/d/ABC123/preview", height: "480" }
 
 TextSpan: { text, bold?, italic?, strikethrough?, code?, link?,
             color?, backgroundColor?, fontFamily?, fontSize? }
+fontFamily options: "Arial, sans-serif" | "Georgia, serif" | "Verdana, sans-serif" |
+  "Trebuchet MS, sans-serif" | "Courier New, monospace" | "ui-monospace, monospace" | "Impact, sans-serif"
+fontSize options: "12px"|"14px"|"16px"|"20px"|"24px"
 
 TIPTAP HTML reference (for raw content strings):
-  Bold: <strong>  Italic: <em>  Strike: <s>  Code: <code>
+  Bold: <strong>  Italic: <em>  Strike: <s>  Inline code: <code>
   Link: <a href="…">  Headings: <h2>/<h3>/<h4>
   Lists: <ul>/<ol><li><p>…</p></li>
   Blockquote: <blockquote><p>…</p></blockquote>
   Code block: <pre><code class="language-js">…</code></pre>
-  Image: <img src="…" alt="…" style="width:100%;">
-  Color/font: <span style="color:#ff0000;font-family:Georgia;font-size:18px;">
+  Image (center): <img src="…" alt="…" style="width:75%;display:block;margin-left:auto;margin-right:auto;">
+  Image (left):   <img src="…" style="width:50%;float:left;margin-right:1em;margin-bottom:0.5em;display:block;">
+  Image (right):  <img src="…" style="width:50%;float:right;margin-left:1em;margin-bottom:0.5em;display:block;">
+  Video:    <video src="…" controls="" style="width:100%;display:block;margin-left:auto;margin-right:auto;"><source src="…"></video>
+  Iframe:   <iframe src="…" height="400px" style="width:100%;display:block;margin-left:auto;margin-right:auto;" frameborder="0"></iframe>
+  YouTube:  <div data-youtube-video><iframe src="https://www.youtube.com/embed/VIDEO_ID" allowfullscreen="true" frameborder="0"></iframe></div>
+  Table:    <table><thead><tr><th><p>Header</p></th>…</tr></thead><tbody><tr><td><p>Cell</p></td>…</tr></tbody></table>
+  Color/font: <span style="color:#ff0000;font-family:Georgia,serif;font-size:18px;">
+  Horizontal rule: <hr>
 `.trim(),
   items: { type: 'object' },
 }
@@ -53,7 +90,9 @@ export const TOOLS: ToolDef[] = [
   },
   {
     name: 'create_post',
-    description: 'Create a new blog post. Supply either blocks (structured) or content (raw Tiptap HTML).',
+    description:
+      'Create a new blog post. Supply either blocks (structured) or content (raw Tiptap HTML) — at least one must be provided and non-empty. ' +
+      'The URL slug is auto-generated from the title and cannot be changed after creation.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -70,7 +109,10 @@ export const TOOLS: ToolDef[] = [
   },
   {
     name: 'update_post',
-    description: 'Update any fields of an existing blog post. Fetch the post first to see current content.',
+    description:
+      'Update any fields of an existing blog post. Fetch the post first to see current content. ' +
+      'Note: the URL slug cannot be changed — it is fixed at creation time. ' +
+      'Setting published:true also sets publishedAt to now if not already set.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -83,6 +125,15 @@ export const TOOLS: ToolDef[] = [
         published:   { type: 'boolean' },
         tagIds:      { type: 'array', items: { type: 'string' } },
       },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'delete_post',
+    description: 'Permanently delete a blog post. This cannot be undone.',
+    inputSchema: {
+      type: 'object',
+      properties: { id: { type: 'string', description: 'Post cuid' } },
       required: ['id'],
     },
   },
@@ -159,6 +210,12 @@ export async function handle(name: string, args: Record<string, unknown>): Promi
         include: { tags: true },
       })
       return text(`Post updated.\n${JSON.stringify(post, null, 2)}`)
+    }
+
+    case 'delete_post': {
+      const { id } = args as { id: string }
+      await prisma.post.delete({ where: { id } })
+      return text(`Post ${id} deleted.`)
     }
 
     case 'publish_post': {

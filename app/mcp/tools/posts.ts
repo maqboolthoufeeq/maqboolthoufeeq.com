@@ -34,6 +34,15 @@ Select a media element to reveal the toolbar with align + width controls and
 resize handles on the corners/edges. Drag the grip handle to move it to a
 different position in the document.
 
+TABLE NOTE: table headers and rows are plain strings only — rich text marks
+(bold, color, links) are NOT supported inside table cells.
+Table structure: headers is an optional string[], rows is string[][]
+(each inner array is one row, each element is one cell).
+
+GOOGLE DRIVE EMBEDS: To embed a Google Drive file (video, PDF, etc.) as an iframe,
+use the /preview URL format: https://drive.google.com/file/d/{FILE_ID}/preview
+Example: { type: "iframe", src: "https://drive.google.com/file/d/ABC123/preview", height: "480" }
+
 TextSpan: { text, bold?, italic?, strikethrough?, code?, link?,
             color?, backgroundColor?, fontFamily?, fontSize? }
 fontFamily options: "Arial, sans-serif" | "Georgia, serif" | "Verdana, sans-serif" |
@@ -54,6 +63,7 @@ TIPTAP HTML reference (for raw content strings):
   YouTube:  <div data-youtube-video><iframe src="https://www.youtube.com/embed/VIDEO_ID" allowfullscreen="true" frameborder="0"></iframe></div>
   Table:    <table><thead><tr><th><p>Header</p></th>…</tr></thead><tbody><tr><td><p>Cell</p></td>…</tr></tbody></table>
   Color/font: <span style="color:#ff0000;font-family:Georgia,serif;font-size:18px;">
+  Horizontal rule: <hr>
 `.trim(),
   items: { type: 'object' },
 }
@@ -80,7 +90,9 @@ export const TOOLS: ToolDef[] = [
   },
   {
     name: 'create_post',
-    description: 'Create a new blog post. Supply either blocks (structured) or content (raw Tiptap HTML).',
+    description:
+      'Create a new blog post. Supply either blocks (structured) or content (raw Tiptap HTML) — at least one must be provided and non-empty. ' +
+      'The URL slug is auto-generated from the title and cannot be changed after creation.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -97,7 +109,10 @@ export const TOOLS: ToolDef[] = [
   },
   {
     name: 'update_post',
-    description: 'Update any fields of an existing blog post. Fetch the post first to see current content.',
+    description:
+      'Update any fields of an existing blog post. Fetch the post first to see current content. ' +
+      'Note: the URL slug cannot be changed — it is fixed at creation time. ' +
+      'Setting published:true also sets publishedAt to now if not already set.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -110,6 +125,15 @@ export const TOOLS: ToolDef[] = [
         published:   { type: 'boolean' },
         tagIds:      { type: 'array', items: { type: 'string' } },
       },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'delete_post',
+    description: 'Permanently delete a blog post. This cannot be undone.',
+    inputSchema: {
+      type: 'object',
+      properties: { id: { type: 'string', description: 'Post cuid' } },
       required: ['id'],
     },
   },
@@ -186,6 +210,12 @@ export async function handle(name: string, args: Record<string, unknown>): Promi
         include: { tags: true },
       })
       return text(`Post updated.\n${JSON.stringify(post, null, 2)}`)
+    }
+
+    case 'delete_post': {
+      const { id } = args as { id: string }
+      await prisma.post.delete({ where: { id } })
+      return text(`Post ${id} deleted.`)
     }
 
     case 'publish_post': {

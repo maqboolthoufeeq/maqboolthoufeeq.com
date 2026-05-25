@@ -26,7 +26,10 @@ export const TOOLS: ToolDef[] = [
       'Supports all editor block types: paragraph, heading, image, video, iframe, youtube, table, ' +
       'bullet_list, ordered_list, blockquote, code_block, horizontal_rule. ' +
       'Media blocks (image/video/iframe) accept width ("25%"–"100%") and align ("left"/"center"/"right"). ' +
-      'YouTube block accepts any YouTube URL and auto-converts to embed format.',
+      'YouTube block accepts any YouTube URL (watch/youtu.be/embed) and auto-converts to embed format. ' +
+      'For Google Drive files, use an iframe block with the /preview URL: ' +
+      'https://drive.google.com/file/d/{FILE_ID}/preview ' +
+      'Table cells are plain text only — TextSpan marks are not supported inside table cells.',
     inputSchema: {
       type: 'object',
       properties: {

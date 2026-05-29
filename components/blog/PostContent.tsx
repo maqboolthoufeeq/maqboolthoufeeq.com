@@ -1,7 +1,6 @@
 'use client'
 
-import DOMPurify from 'isomorphic-dompurify'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 
 function getGoogleDriveEmbedUrl(url: string): string | null {
   const m = url.match(/drive\.google\.com\/file\/d\/([^/?\s]+)/)
@@ -61,28 +60,15 @@ function processStandaloneUrls(html: string): string {
 }
 
 export default function PostContent({ html }: { html: string }) {
-  const clean = useMemo(() => DOMPurify.sanitize(html, {
-    ALLOWED_TAGS: [
-      'p', 'br', 'strong', 'em', 'u', 's', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
-      'ul', 'ol', 'li', 'blockquote', 'pre', 'code', 'a', 'img', 'hr',
-      'video', 'source', 'iframe', 'div',
-      'table', 'thead', 'tbody', 'tfoot', 'tr', 'th', 'td', 'colgroup', 'col',
-    ],
-    ALLOWED_ATTR: [
-      'href', 'target', 'rel', 'src', 'alt', 'class',
-      'controls', 'width', 'height', 'style',
-      'frameborder', 'allowfullscreen', 'webkitallowfullscreen', 'mozallowfullscreen',
-      'allow', 'id', 'name',
-      'data-youtube-video',
-      'colspan', 'rowspan', 'scope',
-    ],
-  }), [html])
-
-  const [displayed, setDisplayed] = useState(clean)
+  // `html` is already sanitized on the server (see lib/sanitize.ts). Here we
+  // only apply client-side enhancement: turning standalone media URLs into
+  // embeds. The initial render matches the server output (no hydration drift);
+  // the effect upgrades standalone URLs after hydration.
+  const [displayed, setDisplayed] = useState(html)
 
   useEffect(() => {
-    setDisplayed(processStandaloneUrls(clean))
-  }, [clean])
+    setDisplayed(processStandaloneUrls(html))
+  }, [html])
 
   return (
     <div

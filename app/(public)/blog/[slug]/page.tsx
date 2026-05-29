@@ -5,6 +5,7 @@ import PostContent from '@/components/blog/PostContent'
 import ShareButtons from '@/components/blog/ShareButtons'
 import { prisma } from '@/lib/prisma'
 import { readingTime, buildExcerpt } from '@/lib/utils'
+import { sanitizePostHtml } from '@/lib/sanitize'
 import { getRequestOrigin } from '@/lib/request-origin'
 import { SITE_NAME, AUTHOR, ogImages } from '@/lib/seo'
 import type { Metadata } from 'next'
@@ -126,7 +127,7 @@ export default async function BlogPostPage({ params }: Props) {
             />
           </div>
         </header>
-        <PostContent html={post.content} />
+        <PostContent html={sanitizePostHtml(post.content)} />
         <footer className="mt-12 pt-8 border-t border-[var(--border)]">
           <p className="mb-3 text-sm font-medium text-[var(--foreground)]">Enjoyed this post? Share it</p>
           <ShareButtons

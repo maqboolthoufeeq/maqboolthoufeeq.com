@@ -11,15 +11,79 @@ export const contentType = 'image/png'
 
 type Props = { params: Promise<{ slug: string }> }
 
+/**
+ * Fetch the cover image and inline it as a data URI so the rendered Open Graph
+ * card is always served from our own domain at a guaranteed 1200x630 — the
+ * size social crawlers (LinkedIn, Facebook, WhatsApp, X) expect. Returns null
+ * if the cover is missing or unreachable, in which case we fall back to a
+ * branded card.
+ */
+async function loadCover(coverImage: string | null): Promise<string | null> {
+  if (!coverImage || !/^https?:\/\//i.test(coverImage)) return null
+  try {
+    const res = await fetch(coverImage, { signal: AbortSignal.timeout(4000) })
+    if (!res.ok) return null
+    const type = res.headers.get('content-type') || ''
+    if (!type.startsWith('image/')) return null
+    const buf = Buffer.from(await res.arrayBuffer())
+    if (buf.byteLength === 0) return null
+    return `data:${type};base64,${buf.toString('base64')}`
+  } catch {
+    return null
+  }
+}
+
 export default async function OpengraphImage({ params }: Props) {
   const { slug } = await params
   const post = await prisma.post.findUnique({
     where: { slug },
-    select: { title: true, excerpt: true, content: true },
+    select: { title: true, excerpt: true, content: true, coverImage: true },
   })
 
   const title = post?.title ?? 'Maqbool Thoufeeq'
   const description = post?.excerpt?.trim() || (post ? buildExcerpt(post.content, 140) : 'Full-Stack Developer')
+  const cover = await loadCover(post?.coverImage ?? null)
+
+  if (cover) {
+    return new ImageResponse(
+      (
+        <div style={{ position: 'relative', display: 'flex', width: '100%', height: '100%' }}>
+          {/* Satori requires a raw img element; next/image is not supported here. */}
+          <img
+            src={cover}
+            alt=""
+            width={size.width}
+            height={size.height}
+            style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+          />
+          <div
+            style={{
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              width: '100%',
+              height: '100%',
+              display: 'flex',
+              flexDirection: 'column',
+              justifyContent: 'flex-end',
+              padding: '70px',
+              background: 'linear-gradient(180deg, rgba(8,8,12,0.05) 35%, rgba(8,8,12,0.92) 100%)',
+              color: '#ffffff',
+              fontFamily: 'sans-serif',
+            }}
+          >
+            <div style={{ fontSize: 60, fontWeight: 700, lineHeight: 1.1, maxWidth: 1040, textShadow: '0 2px 12px rgba(0,0,0,0.6)' }}>
+              {title}
+            </div>
+            <div style={{ marginTop: 24, fontSize: 28, color: '#e2e8f0' }}>
+              maqboolthoufeeq.com · Maqbool Thoufeeq
+            </div>
+          </div>
+        </div>
+      ),
+      { ...size },
+    )
+  }
 
   return new ImageResponse(
     (
@@ -40,9 +104,7 @@ export default async function OpengraphImage({ params }: Props) {
           maqboolthoufeeq.com
         </div>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <div style={{ fontSize: 64, fontWeight: 700, lineHeight: 1.1, maxWidth: 1000 }}>
-            {title}
-          </div>
+          <div style={{ fontSize: 64, fontWeight: 700, lineHeight: 1.1, maxWidth: 1000 }}>{title}</div>
           {description && (
             <div style={{ marginTop: 28, fontSize: 32, color: '#cbd5e1', lineHeight: 1.4, maxWidth: 980 }}>
               {description}

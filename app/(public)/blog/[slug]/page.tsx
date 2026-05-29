@@ -4,7 +4,7 @@ import Navbar from '@/components/Navbar'
 import PostContent from '@/components/blog/PostContent'
 import ShareButtons from '@/components/blog/ShareButtons'
 import { prisma } from '@/lib/prisma'
-import { readingTime, getSiteUrl, absoluteUrl, buildExcerpt } from '@/lib/utils'
+import { readingTime, getSiteUrl, buildExcerpt } from '@/lib/utils'
 import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
@@ -38,11 +38,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const canonical = `${siteUrl}/blog/${slug}`
   const description = (post.excerpt?.trim() || buildExcerpt(post.content)) || `${post.title} — by ${AUTHOR}`
 
-  // When the post has a cover image, advertise it explicitly. Otherwise leave
-  // `images` undefined so Next.js auto-attaches the sibling opengraph-image
-  // route (served at its own hashed, cache-busted URL).
-  const coverImage = post.coverImage ? absoluteUrl(post.coverImage, siteUrl) : undefined
-
+  // We intentionally do NOT set `images` here. Next.js auto-attaches the
+  // sibling opengraph-image route (served from our own domain at a guaranteed
+  // 1200x630 with correct width/height/type metadata). That route renders the
+  // cover image when present, or a branded card otherwise — which is what makes
+  // LinkedIn/Facebook/WhatsApp/X reliably display a preview regardless of the
+  // original cover image's size, aspect ratio or host.
   return {
     title: `${post.title} — ${SITE_NAME}`,
     description,
@@ -59,15 +60,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       modifiedTime: post.updatedAt?.toISOString(),
       authors: [AUTHOR],
       tags: post.tags.map((t) => t.name),
-      ...(coverImage
-        ? { images: [{ url: coverImage, width: 1200, height: 630, alt: post.title }] }
-        : {}),
     },
     twitter: {
       card: 'summary_large_image',
       title: post.title,
       description,
-      ...(coverImage ? { images: [coverImage] } : {}),
     },
   }
 }

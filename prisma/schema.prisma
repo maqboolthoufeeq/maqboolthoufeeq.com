@@ -30,6 +30,7 @@ model Post {
   content     String
   coverImage  String?
   published   Boolean   @default(false)
+  zaps        Int       @default(0)
   publishedAt DateTime?
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
@@ -47,6 +48,14 @@ model Tag {
 model SiteContent {
   key       String   @id
   value     Json
+  updatedAt DateTime @updatedAt
+}
+
+// Single-row site-wide visitor analytics counters.
+model SiteStats {
+  id        String   @id @default("singleton")
+  visitors  Int      @default(0) // unique browsers (deduped by cookie)
+  pageViews Int      @default(0) // total public page loads
   updatedAt DateTime @updatedAt
 }
 

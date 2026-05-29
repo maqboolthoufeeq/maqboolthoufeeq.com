@@ -3,6 +3,7 @@ import Image from 'next/image'
 import { getSiteContent } from '@/lib/site-content'
 import { prisma } from '@/lib/prisma'
 import { readingTime } from '@/lib/utils'
+import VisitorCount from '@/components/VisitorCount'
 
 export default async function BentoTemplate() {
   const [hero, about, footer, sections] = await Promise.all([
@@ -277,6 +278,7 @@ export default async function BentoTemplate() {
         style={{ color: 'var(--muted)', borderTop: '1px solid var(--border)', marginTop: '2rem' }}
       >
         © {new Date().getFullYear()} {footer.copyrightName}
+        <VisitorCount />
       </footer>
     </div>
   )

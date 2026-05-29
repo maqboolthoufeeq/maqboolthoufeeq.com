@@ -1,16 +1,18 @@
 import Link from 'next/link'
-import { FileText, Folder, Tags, Inbox, Layout, Palette, Cpu, ChevronRight, LogOut } from 'lucide-react'
+import { FileText, Folder, Tags, Inbox, Layout, Palette, Cpu, BarChart3, Users, Eye, ChevronRight, LogOut } from 'lucide-react'
 import { signOutAction } from '@/lib/admin-actions'
 import { prisma } from '@/lib/prisma'
+import { getSiteStats } from '@/lib/analytics'
 import AdminShell from '@/components/admin/AdminShell'
 
 export default async function AdminDashboard() {
-  const [postCount, publishedCount, projectCount, tagCount, unreadContacts] = await Promise.all([
+  const [postCount, publishedCount, projectCount, tagCount, unreadContacts, stats] = await Promise.all([
     prisma.post.count(),
     prisma.post.count({ where: { published: true } }),
     prisma.project.count(),
     prisma.tag.count(),
     prisma.contactRequest.count({ where: { read: false } }),
+    getSiteStats(),
   ])
 
   return (
@@ -51,6 +53,20 @@ export default async function AdminDashboard() {
           <StatCard label="Tags" value={tagCount} />
         </section>
 
+        {/* Traffic — visitor analytics, links through to the full page */}
+        <section>
+          <div className="flex items-center justify-between mb-3 px-1">
+            <h3 className="text-xs uppercase tracking-wider text-[var(--muted)] font-medium">Traffic</h3>
+            <Link href="/admin/analytics" className="text-xs text-[var(--accent)] hover:underline">
+              View analytics →
+            </Link>
+          </div>
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
+            <TrafficCard icon={Users} label="Unique visitors" value={stats.visitors} />
+            <TrafficCard icon={Eye} label="Page views" value={stats.pageViews} />
+          </div>
+        </section>
+
         {/* Primary actions — large native-feeling rows on mobile, grid on desktop */}
         <section>
           <h3 className="text-xs uppercase tracking-wider text-[var(--muted)] font-medium mb-3 px-1">
@@ -81,6 +97,12 @@ export default async function AdminDashboard() {
               icon={Layout}
               title="Landing page"
               description="Hero, about, contact, and footer"
+            />
+            <AdminLinkRow
+              href="/admin/analytics"
+              icon={BarChart3}
+              title="Analytics"
+              description="Visitor and page-view counts"
             />
             <AdminLinkRow
               href="/admin/tags"
@@ -126,6 +148,33 @@ function StatCard({ label, value }: { label: string; value: number }) {
       <p className="text-2xl sm:text-3xl font-bold text-[var(--accent)] tabular-nums">{value}</p>
       <p className="text-xs sm:text-sm text-[var(--muted)] mt-1">{label}</p>
     </div>
+  )
+}
+
+function TrafficCard({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: React.ComponentType<{ size?: number }>
+  label: string
+  value: number
+}) {
+  return (
+    <Link
+      href="/admin/analytics"
+      className="row-pressable flex items-center gap-3 sm:gap-4 p-4 sm:p-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] hover:border-[var(--accent)] transition-colors"
+    >
+      <span className="shrink-0 w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-[var(--background)] flex items-center justify-center text-[var(--accent)]">
+        <Icon size={20} />
+      </span>
+      <span className="min-w-0">
+        <span className="block text-2xl sm:text-3xl font-bold text-[var(--foreground)] tabular-nums leading-none">
+          {value.toLocaleString('en-US')}
+        </span>
+        <span className="block text-xs sm:text-sm text-[var(--muted)] mt-1 truncate">{label}</span>
+      </span>
+    </Link>
   )
 }
 

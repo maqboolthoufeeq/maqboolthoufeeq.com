@@ -186,7 +186,7 @@ export default function ShareButtons({ url, title, text }: Props) {
         <div
           role="menu"
           aria-label="Share this post"
-          className="absolute left-0 z-50 mt-2 w-56 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] py-1 shadow-xl shadow-black/20"
+          className="absolute left-0 z-50 mt-2 w-56 max-w-[calc(100vw-1.5rem)] overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] py-1 shadow-xl shadow-black/20"
         >
           {canNativeShare && (
             <button type="button" role="menuitem" onClick={handleNativeShare} className={itemClass}>

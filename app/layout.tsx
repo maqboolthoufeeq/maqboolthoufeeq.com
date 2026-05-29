@@ -8,6 +8,7 @@ import { DEFAULT_DESIGN_ID } from '@/lib/designs'
 import { getRequestOrigin } from '@/lib/request-origin'
 import { SITE_NAME, SITE_TAGLINE, ogCardUrl, ogImages } from '@/lib/seo'
 import { DesignSync } from './DesignSync'
+import VisitTracker from '@/components/VisitTracker'
 import './globals.css'
 
 export const dynamic = 'force-dynamic'
@@ -76,6 +77,7 @@ export default async function RootLayout({ children }: { children: React.ReactNo
       </head>
       <body className={`${GeistSans.className} ${lora.variable}`}>
         <DesignSync designId={designId} />
+        <VisitTracker />
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           {children}
         </ThemeProvider>

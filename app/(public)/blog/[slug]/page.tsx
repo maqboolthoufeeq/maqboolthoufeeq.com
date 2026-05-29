@@ -1,11 +1,17 @@
 import { notFound } from 'next/navigation'
 import Image from 'next/image'
+import Link from 'next/link'
+import { ArrowLeft } from 'lucide-react'
 import Navbar from '@/components/Navbar'
 import PostContent from '@/components/blog/PostContent'
 import ShareButtons from '@/components/blog/ShareButtons'
+import ZapButton, { ZapProvider } from '@/components/blog/ZapButton'
+import TagChips from '@/components/blog/TagChips'
 import RelatedPosts from '@/components/blog/RelatedPosts'
 import PostNavigation from '@/components/blog/PostNavigation'
+import PostAdminControls from '@/components/blog/PostAdminControls'
 import { prisma } from '@/lib/prisma'
+import { auth } from '@/lib/auth'
 import { getRelatedPosts, getAdjacentPosts } from '@/lib/related-posts'
 import { readingTime, buildExcerpt } from '@/lib/utils'
 import { sanitizePostHtml } from '@/lib/sanitize'
@@ -81,17 +87,27 @@ export default async function BlogPostPage({ params }: Props) {
 
   if (!post || !post.published) notFound()
 
-  const [shareOrigin, relatedPosts, adjacent] = await Promise.all([
+  const [shareOrigin, relatedPosts, adjacent, session] = await Promise.all([
     getRequestOrigin(),
     getRelatedPosts(slug, post.tags.map((t) => t.slug)),
     getAdjacentPosts(slug, post.publishedAt),
+    auth(),
   ])
+  const isAdmin = !!session
   const shareUrl = `${shareOrigin}/blog/${slug}`
 
   return (
     <>
       <Navbar />
       <main className="max-w-3xl mx-auto px-4 py-16">
+        <Link
+          href="/blog"
+          className="inline-flex items-center gap-1.5 text-sm text-[var(--muted)] hover:text-[var(--accent)] transition-colors mb-8"
+        >
+          <ArrowLeft size={16} /> Back to blog
+        </Link>
+        {isAdmin && <PostAdminControls id={post.id} title={post.title} variant="detail" />}
+        <ZapProvider slug={slug} initialZaps={post.zaps}>
         {post.coverImage && (
           <div className="relative w-full h-64 sm:h-80 rounded-xl overflow-hidden mb-10 border border-[var(--border)]">
             <Image
@@ -117,35 +133,36 @@ export default async function BlogPostPage({ params }: Props) {
               </time>
             )}
             <span>{readingTime(post.content)} min read</span>
-            {post.tags.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {post.tags.map((tag) => (
-                  <span key={tag.id} className="px-2 py-0.5 text-xs rounded-full bg-[var(--surface)] border border-[var(--border)]">
-                    #{tag.name}
-                  </span>
-                ))}
-              </div>
-            )}
+            <TagChips tags={post.tags} size="md" />
           </div>
-          <div className="mt-6 pt-6 border-t border-[var(--border)]">
+          <div className="mt-6 pt-6 border-t border-[var(--border)] flex flex-wrap items-center justify-between gap-4">
+            <ShareButtons
+              url={shareUrl}
+              title={post.title}
+              text={post.excerpt?.trim() || buildExcerpt(post.content)}
+            />
+            <ZapButton />
+          </div>
+        </header>
+        <PostContent html={sanitizePostHtml(post.content)} />
+        <div className="mt-14 rounded-2xl border border-[var(--border)] bg-[var(--surface)] px-6 py-8 flex flex-col items-center text-center gap-5">
+          <div>
+            <p className="text-lg font-semibold text-[var(--foreground)]">Was this helpful?</p>
+            <p className="text-sm text-[var(--muted)] mt-1">Give it a zap to let me know.</p>
+          </div>
+          <ZapButton size="lg" />
+          <div className="w-full pt-5 mt-1 border-t border-[var(--border)] flex flex-col items-center gap-3">
+            <p className="text-sm text-[var(--muted)]">Or share it with someone</p>
             <ShareButtons
               url={shareUrl}
               title={post.title}
               text={post.excerpt?.trim() || buildExcerpt(post.content)}
             />
           </div>
-        </header>
-        <PostContent html={sanitizePostHtml(post.content)} />
-        <footer className="mt-12 pt-8 border-t border-[var(--border)]">
-          <p className="mb-3 text-sm font-medium text-[var(--foreground)]">Enjoyed this post? Share it</p>
-          <ShareButtons
-            url={shareUrl}
-            title={post.title}
-            text={post.excerpt?.trim() || buildExcerpt(post.content)}
-          />
-        </footer>
+        </div>
+        </ZapProvider>
         <PostNavigation previous={adjacent.previous} next={adjacent.next} />
-        <RelatedPosts posts={relatedPosts} />
+        <RelatedPosts posts={relatedPosts} isAdmin={isAdmin} />
       </main>
     </>
   )

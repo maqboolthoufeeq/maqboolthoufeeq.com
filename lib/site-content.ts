@@ -73,6 +73,13 @@ export interface SectionVisibility {
   blogArchive: boolean
 }
 
+export interface AnalyticsContent {
+  /** Show the unique-visitor count in the public landing-page footer. */
+  showVisitors: boolean
+  /** Show the total page-view count in the public landing-page footer. */
+  showPageViews: boolean
+}
+
 const DEFAULTS = {
   navbar: {
     brandName: 'Maqbool Thoufeeq',
@@ -135,6 +142,11 @@ const DEFAULTS = {
     contact: true as boolean,
     blogArchive: true as boolean,
   } satisfies SectionVisibility,
+
+  analytics: {
+    showVisitors: false as boolean,
+    showPageViews: false as boolean,
+  } satisfies AnalyticsContent,
 }
 
 type ContentKey = keyof typeof DEFAULTS

@@ -5,7 +5,7 @@ import { ThemeProviderWrapper as ThemeProvider } from '@/components/ThemeProvide
 import { prisma } from '@/lib/prisma'
 import { DEFAULT_THEME_ID, getTheme, themeToCSS } from '@/lib/themes'
 import { DEFAULT_DESIGN_ID } from '@/lib/designs'
-import { getSiteUrl } from '@/lib/utils'
+import { getRequestOrigin } from '@/lib/request-origin'
 import { DesignSync } from './DesignSync'
 import './globals.css'
 
@@ -18,22 +18,25 @@ export const lora = Lora({
   variable: '--font-lora',
 })
 
-export const metadata: Metadata = {
-  metadataBase: new URL(getSiteUrl()),
-  title: 'Maqbool Thoufeeq — Full-Stack Developer',
-  description: 'Full-Stack Developer building fast, beautiful web products.',
-  openGraph: {
-    type: 'website',
-    siteName: 'Maqbool Thoufeeq',
+export async function generateMetadata(): Promise<Metadata> {
+  const origin = await getRequestOrigin()
+  return {
+    metadataBase: new URL(origin),
     title: 'Maqbool Thoufeeq — Full-Stack Developer',
     description: 'Full-Stack Developer building fast, beautiful web products.',
-    url: getSiteUrl(),
-  },
-  twitter: {
-    card: 'summary_large_image',
-    title: 'Maqbool Thoufeeq — Full-Stack Developer',
-    description: 'Full-Stack Developer building fast, beautiful web products.',
-  },
+    openGraph: {
+      type: 'website',
+      siteName: 'Maqbool Thoufeeq',
+      title: 'Maqbool Thoufeeq — Full-Stack Developer',
+      description: 'Full-Stack Developer building fast, beautiful web products.',
+      url: origin,
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: 'Maqbool Thoufeeq — Full-Stack Developer',
+      description: 'Full-Stack Developer building fast, beautiful web products.',
+    },
+  }
 }
 
 export const viewport: Viewport = {

@@ -5,18 +5,13 @@ import { buildExcerpt } from '@/lib/utils'
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
-export const alt = 'Maqbool Thoufeeq — Blog'
-export const size = { width: 1200, height: 630 }
-export const contentType = 'image/png'
-
-type Props = { params: Promise<{ slug: string }> }
+const SIZE = { width: 1200, height: 630 }
 
 /**
  * Fetch the cover image and inline it as a data URI so the rendered Open Graph
- * card is always served from our own domain at a guaranteed 1200x630 — the
- * size social crawlers (LinkedIn, Facebook, WhatsApp, X) expect. Returns null
- * if the cover is missing or unreachable, in which case we fall back to a
- * branded card.
+ * card is always served from our own domain at a guaranteed 1200x630 — the size
+ * social crawlers (LinkedIn, Facebook, WhatsApp, X) expect. Returns null if the
+ * cover is missing or unreachable, in which case we render a branded card.
  */
 async function loadCover(coverImage: string | null): Promise<string | null> {
   if (!coverImage || !/^https?:\/\//i.test(coverImage)) return null
@@ -33,7 +28,12 @@ async function loadCover(coverImage: string | null): Promise<string | null> {
   }
 }
 
-export default async function OpengraphImage({ params }: Props) {
+const CACHE_HEADERS = {
+  // Let the CDN / crawlers cache the generated card while allowing refreshes.
+  'Cache-Control': 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800',
+}
+
+export async function GET(_req: Request, { params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const post = await prisma.post.findUnique({
     where: { slug },
@@ -52,8 +52,8 @@ export default async function OpengraphImage({ params }: Props) {
           <img
             src={cover}
             alt=""
-            width={size.width}
-            height={size.height}
+            width={SIZE.width}
+            height={SIZE.height}
             style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', objectFit: 'cover' }}
           />
           <div
@@ -81,7 +81,7 @@ export default async function OpengraphImage({ params }: Props) {
           </div>
         </div>
       ),
-      { ...size },
+      { ...SIZE, headers: CACHE_HEADERS },
     )
   }
 
@@ -116,6 +116,6 @@ export default async function OpengraphImage({ params }: Props) {
         </div>
       </div>
     ),
-    { ...size },
+    { ...SIZE, headers: CACHE_HEADERS },
   )
 }

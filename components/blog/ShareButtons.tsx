@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { buildShareLinks } from '@/lib/share'
 
 type Props = {
@@ -89,19 +89,51 @@ function ShareIcon({ className }: IconProps) {
   )
 }
 
-const ICON_CLASS = 'h-4 w-4'
+function DeviceShareIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className} aria-hidden="true">
+      <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+      <path d="M16 6l-4-4-4 4" />
+      <path d="M12 2v13" />
+    </svg>
+  )
+}
+
+const ICON = 'h-4 w-4 shrink-0'
 
 export default function ShareButtons({ url, title, text }: Props) {
   const links = buildShareLinks({ url, title, text })
+  const [open, setOpen] = useState(false)
   const [copied, setCopied] = useState(false)
   const [canNativeShare, setCanNativeShare] = useState(false)
+  const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     setCanNativeShare(typeof navigator !== 'undefined' && typeof navigator.share === 'function')
   }, [])
 
+  // Close on outside click / Escape.
+  useEffect(() => {
+    if (!open) return
+    function onPointer(e: MouseEvent | TouchEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) setOpen(false)
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === 'Escape') setOpen(false)
+    }
+    document.addEventListener('mousedown', onPointer)
+    document.addEventListener('touchstart', onPointer)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onPointer)
+      document.removeEventListener('touchstart', onPointer)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+
   const openPopup = useCallback((href: string) => {
     window.open(href, '_blank', 'noopener,noreferrer,width=600,height=640')
+    setOpen(false)
   }, [])
 
   const handleCopy = useCallback(async () => {
@@ -121,53 +153,78 @@ export default function ShareButtons({ url, title, text }: Props) {
       setCopied(true)
       setTimeout(() => setCopied(false), 2000)
     } catch {
-      /* ignore — clipboard may be blocked */
+      /* clipboard may be blocked */
     }
   }, [url])
 
   const handleNativeShare = useCallback(async () => {
+    setOpen(false)
     try {
       await navigator.share({ title, text: text ?? title, url })
     } catch {
-      /* user cancelled or unsupported — no-op */
+      /* user cancelled or unsupported */
     }
   }, [title, text, url])
 
-  const btn =
-    'inline-flex items-center justify-center h-9 w-9 rounded-full border border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] transition-colors hover:text-[var(--foreground)] hover:border-[var(--foreground)]/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--foreground)]/40'
+  const itemClass =
+    'flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm text-[var(--foreground)] transition-colors hover:bg-[var(--background)] focus:bg-[var(--background)] focus:outline-none'
 
   return (
-    <div className="flex flex-wrap items-center gap-2" aria-label="Share this post">
-      <span className="mr-1 text-sm font-medium text-[var(--muted)]">Share</span>
+    <div className="relative inline-block" ref={containerRef}>
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        aria-haspopup="menu"
+        aria-expanded={open}
+        className="inline-flex items-center gap-2 rounded-full border border-[var(--border)] bg-[var(--surface)] px-4 py-2 text-sm font-medium text-[var(--foreground)] transition-colors hover:border-[var(--foreground)]/30 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--foreground)]/40"
+      >
+        <ShareIcon className={ICON} />
+        Share
+      </button>
 
-      {canNativeShare && (
-        <button type="button" onClick={handleNativeShare} className={btn} title="Share…" aria-label="Share via your device">
-          <ShareIcon className={ICON_CLASS} />
-        </button>
+      {open && (
+        <div
+          role="menu"
+          aria-label="Share this post"
+          className="absolute left-0 z-50 mt-2 w-56 overflow-hidden rounded-xl border border-[var(--border)] bg-[var(--surface)] py-1 shadow-xl shadow-black/20"
+        >
+          {canNativeShare && (
+            <button type="button" role="menuitem" onClick={handleNativeShare} className={itemClass}>
+              <DeviceShareIcon className={ICON} />
+              Share via…
+            </button>
+          )}
+          <button type="button" role="menuitem" onClick={() => openPopup(links.linkedin)} className={itemClass}>
+            <LinkedInIcon className={ICON} />
+            LinkedIn
+          </button>
+          <button type="button" role="menuitem" onClick={() => openPopup(links.facebook)} className={itemClass}>
+            <FacebookIcon className={ICON} />
+            Facebook
+          </button>
+          <button type="button" role="menuitem" onClick={() => openPopup(links.whatsapp)} className={itemClass}>
+            <WhatsAppIcon className={ICON} />
+            WhatsApp
+          </button>
+          <button type="button" role="menuitem" onClick={() => openPopup(links.twitter)} className={itemClass}>
+            <XIcon className={ICON} />
+            X (Twitter)
+          </button>
+          <button type="button" role="menuitem" onClick={() => openPopup(links.telegram)} className={itemClass}>
+            <TelegramIcon className={ICON} />
+            Telegram
+          </button>
+          <a role="menuitem" href={links.email} onClick={() => setOpen(false)} className={itemClass}>
+            <MailIcon className={ICON} />
+            Email
+          </a>
+          <div className="my-1 border-t border-[var(--border)]" />
+          <button type="button" role="menuitem" onClick={handleCopy} className={itemClass}>
+            {copied ? <CheckIcon className={ICON} /> : <LinkIcon className={ICON} />}
+            {copied ? 'Link copied!' : 'Copy link'}
+          </button>
+        </div>
       )}
-
-      <button type="button" onClick={() => openPopup(links.linkedin)} className={btn} title="Share on LinkedIn" aria-label="Share on LinkedIn">
-        <LinkedInIcon className={ICON_CLASS} />
-      </button>
-      <button type="button" onClick={() => openPopup(links.facebook)} className={btn} title="Share on Facebook" aria-label="Share on Facebook">
-        <FacebookIcon className={ICON_CLASS} />
-      </button>
-      <button type="button" onClick={() => openPopup(links.whatsapp)} className={btn} title="Share on WhatsApp" aria-label="Share on WhatsApp">
-        <WhatsAppIcon className={ICON_CLASS} />
-      </button>
-      <button type="button" onClick={() => openPopup(links.twitter)} className={btn} title="Share on X" aria-label="Share on X (Twitter)">
-        <XIcon className={ICON_CLASS} />
-      </button>
-      <button type="button" onClick={() => openPopup(links.telegram)} className={btn} title="Share on Telegram" aria-label="Share on Telegram">
-        <TelegramIcon className={ICON_CLASS} />
-      </button>
-      <a href={links.email} className={btn} title="Share by email" aria-label="Share by email">
-        <MailIcon className={ICON_CLASS} />
-      </a>
-
-      <button type="button" onClick={handleCopy} className={btn} title={copied ? 'Link copied!' : 'Copy link'} aria-label="Copy link">
-        {copied ? <CheckIcon className={ICON_CLASS} /> : <LinkIcon className={ICON_CLASS} />}
-      </button>
     </div>
   )
 }

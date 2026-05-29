@@ -6,12 +6,10 @@ import ShareButtons from '@/components/blog/ShareButtons'
 import { prisma } from '@/lib/prisma'
 import { readingTime, buildExcerpt } from '@/lib/utils'
 import { getRequestOrigin } from '@/lib/request-origin'
+import { SITE_NAME, AUTHOR, ogImages } from '@/lib/seo'
 import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
-
-const SITE_NAME = 'Maqbool Thoufeeq'
-const AUTHOR = 'Maqbool Thoufeeq'
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -60,8 +58,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       publishedTime: post.publishedAt?.toISOString(),
       modifiedTime: post.updatedAt?.toISOString(),
       authors: [AUTHOR],
+      section: post.tags[0]?.name,
       tags: post.tags.map((t) => t.name),
-      images: [{ url: ogImage, width: 1200, height: 630, type: 'image/png', alt: post.title }],
+      images: ogImages(ogImage, post.title),
     },
     twitter: {
       card: 'summary_large_image',

@@ -17,10 +17,13 @@ export async function getRequestOrigin(): Promise<string> {
     const host = h.get('x-forwarded-host') ?? h.get('host')
     if (host) {
       const proto = h.get('x-forwarded-proto')?.split(',')[0]?.trim() || 'https'
-      return `${proto}://${host}`.replace(/\/+$/, '')
+      // `.origin` normalizes (no trailing slash) and strips any path/query
+      // injected via the host header; a malformed host throws here and is
+      // caught below, so a crafted header can never crash metadata generation.
+      return new URL(`${proto}://${host}`).origin
     }
   } catch {
-    /* headers() unavailable (e.g. static context) — fall through */
+    /* headers() unavailable (static context) or a malformed host — fall through */
   }
   return getSiteUrl()
 }

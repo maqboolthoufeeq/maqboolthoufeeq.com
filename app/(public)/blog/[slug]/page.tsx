@@ -3,7 +3,10 @@ import Image from 'next/image'
 import Navbar from '@/components/Navbar'
 import PostContent from '@/components/blog/PostContent'
 import ShareButtons from '@/components/blog/ShareButtons'
+import RelatedPosts from '@/components/blog/RelatedPosts'
+import PostNavigation from '@/components/blog/PostNavigation'
 import { prisma } from '@/lib/prisma'
+import { getRelatedPosts, getAdjacentPosts } from '@/lib/related-posts'
 import { readingTime, buildExcerpt } from '@/lib/utils'
 import { sanitizePostHtml } from '@/lib/sanitize'
 import { getRequestOrigin } from '@/lib/request-origin'
@@ -78,7 +81,12 @@ export default async function BlogPostPage({ params }: Props) {
 
   if (!post || !post.published) notFound()
 
-  const shareUrl = `${await getRequestOrigin()}/blog/${slug}`
+  const [shareOrigin, relatedPosts, adjacent] = await Promise.all([
+    getRequestOrigin(),
+    getRelatedPosts(slug, post.tags.map((t) => t.slug)),
+    getAdjacentPosts(slug, post.publishedAt),
+  ])
+  const shareUrl = `${shareOrigin}/blog/${slug}`
 
   return (
     <>
@@ -136,6 +144,8 @@ export default async function BlogPostPage({ params }: Props) {
             text={post.excerpt?.trim() || buildExcerpt(post.content)}
           />
         </footer>
+        <PostNavigation previous={adjacent.previous} next={adjacent.next} />
+        <RelatedPosts posts={relatedPosts} />
       </main>
     </>
   )

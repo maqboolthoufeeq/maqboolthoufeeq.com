@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { LayoutGrid, List } from 'lucide-react'
 import PostCard from './PostCard'
 import { fetchMorePosts } from '@/app/(public)/blog/actions'
@@ -24,16 +24,26 @@ export default function BlogListClient({
   initialHasMore,
   q,
   tag,
+  isAdmin = false,
 }: {
   initialPosts: Post[]
   initialHasMore: boolean
   q: string
   tag: string
+  isAdmin?: boolean
 }) {
   const [posts, setPosts] = useState<Post[]>(initialPosts)
   const [hasMore, setHasMore] = useState(initialHasMore)
   const [loading, setLoading] = useState(false)
   const [view, setView] = useState<'grid' | 'list'>('list')
+
+  // When the search/tag filter changes, the server re-renders and passes a new
+  // set of posts. Adopt them so the list reflects the active filter without a
+  // full page reload (soft navigation).
+  useEffect(() => {
+    setPosts(initialPosts)
+    setHasMore(initialHasMore)
+  }, [initialPosts, initialHasMore])
 
   async function loadMore() {
     setLoading(true)
@@ -83,10 +93,10 @@ export default function BlogListClient({
       </div>
 
       {view === 'grid' ? (
-        <ul className="grid sm:grid-cols-2 gap-6">
+        <ul className="grid sm:grid-cols-2 gap-6 items-stretch">
           {posts.map((post, i) => (
-            <li key={post.id}>
-              <PostCard post={post} view="grid" index={i} />
+            <li key={post.id} className="h-full">
+              <PostCard post={post} view="grid" index={i} isAdmin={isAdmin} />
             </li>
           ))}
         </ul>
@@ -94,7 +104,7 @@ export default function BlogListClient({
         <ul className="space-y-6">
           {posts.map((post, i) => (
             <li key={post.id}>
-              <PostCard post={post} view="list" index={i} />
+              <PostCard post={post} view="list" index={i} isAdmin={isAdmin} />
             </li>
           ))}
         </ul>

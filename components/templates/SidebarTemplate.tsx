@@ -2,6 +2,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { getSiteContent } from '@/lib/site-content'
 import { prisma } from '@/lib/prisma'
+import VisitorCount from '@/components/VisitorCount'
 
 export default async function SidebarTemplate() {
   const [hero, about, footer, sections] = await Promise.all([
@@ -111,6 +112,7 @@ export default async function SidebarTemplate() {
 
         <div className="mt-auto text-xs" style={{ color: 'var(--muted)' }}>
           © {new Date().getFullYear()} {footer.copyrightName}
+          <VisitorCount />
         </div>
       </aside>
 

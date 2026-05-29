@@ -4,6 +4,7 @@ import BlogListClient from '@/components/blog/BlogListClient'
 import BlogArchive from '@/components/blog/BlogArchive'
 import BlogTagsWidget from '@/components/blog/BlogTagsWidget'
 import { prisma } from '@/lib/prisma'
+import { auth } from '@/lib/auth'
 import { getSiteContent } from '@/lib/site-content'
 import { getRequestOrigin } from '@/lib/request-origin'
 import { SITE_NAME, buildPageMetadata } from '@/lib/seo'
@@ -37,7 +38,7 @@ export default async function BlogPage({
     ...(tag ? { tags: { some: { slug: tag } } } : {}),
   }
 
-  const [posts, total, tags, archivePosts, sections] = await Promise.all([
+  const [posts, total, tags, archivePosts, sections, session] = await Promise.all([
     prisma.post.findMany({
       where,
       orderBy: { publishedAt: 'desc' },
@@ -65,7 +66,9 @@ export default async function BlogPage({
       select: { slug: true, title: true, publishedAt: true },
     }),
     getSiteContent('sections'),
+    auth(),
   ])
+  const isAdmin = !!session
 
   const archiveData = archivePosts
     .filter((p) => p.publishedAt !== null)
@@ -89,6 +92,7 @@ export default async function BlogPage({
               initialHasMore={total > PAGE_SIZE}
               q={q}
               tag={tag}
+              isAdmin={isAdmin}
             />
           </div>
 

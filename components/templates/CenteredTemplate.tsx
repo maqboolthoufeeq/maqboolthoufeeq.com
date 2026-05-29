@@ -3,6 +3,7 @@ import Image from 'next/image'
 import { getSiteContent } from '@/lib/site-content'
 import { prisma } from '@/lib/prisma'
 import { readingTime } from '@/lib/utils'
+import VisitorCount from '@/components/VisitorCount'
 
 const SOCIAL_SVG: Record<string, string> = {
   github:
@@ -226,6 +227,7 @@ export default async function CenteredTemplate() {
         style={{ color: '#475569', borderTop: '1px solid rgba(255,255,255,0.06)' }}
       >
         © {new Date().getFullYear()} {footer.copyrightName}
+        <VisitorCount />
       </footer>
     </div>
   )

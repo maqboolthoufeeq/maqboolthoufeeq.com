@@ -26,6 +26,7 @@ Thumbs.db
 
 # Claude Code — track agents, commands, helpers, settings; ignore local/runtime only
 .claude/settings.local.json
+.claude/scheduled_tasks.*
 
 # claude-flow — track config, agents, hooks, workflows; ignore runtime data
 .claude-flow/sessions/

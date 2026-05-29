@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { getSiteContent } from '@/lib/site-content'
 import { prisma } from '@/lib/prisma'
 import { readingTime } from '@/lib/utils'
+import VisitorCount from '@/components/VisitorCount'
 
 const GREEN = '#00ff41'
 const DIM = '#4ade80'
@@ -204,6 +205,7 @@ export default async function TerminalTemplate() {
         style={{ color: DIMMER, borderTop: `1px solid ${DIMMER}` }}
       >
         {footer.copyrightName}
+        <VisitorCount />
       </footer>
     </div>
   )

@@ -2,19 +2,74 @@ import { notFound } from 'next/navigation'
 import Image from 'next/image'
 import Navbar from '@/components/Navbar'
 import PostContent from '@/components/blog/PostContent'
+import ShareButtons from '@/components/blog/ShareButtons'
 import { prisma } from '@/lib/prisma'
-import { readingTime } from '@/lib/utils'
+import { readingTime, getSiteUrl, absoluteUrl, buildExcerpt } from '@/lib/utils'
 import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
+
+const SITE_NAME = 'Maqbool Thoufeeq'
+const AUTHOR = 'Maqbool Thoufeeq'
 
 type Props = { params: Promise<{ slug: string }> }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const { slug } = await params
-  const post = await prisma.post.findUnique({ where: { slug }, select: { title: true, excerpt: true } })
-  if (!post) return {}
-  return { title: `${post.title} — Maqbool Thoufeeq`, description: post.excerpt ?? undefined }
+  const post = await prisma.post.findUnique({
+    where: { slug },
+    select: {
+      title: true,
+      excerpt: true,
+      content: true,
+      coverImage: true,
+      published: true,
+      publishedAt: true,
+      updatedAt: true,
+      tags: { select: { name: true } },
+    },
+  })
+
+  if (!post || !post.published) {
+    return { title: 'Post not found — Maqbool Thoufeeq' }
+  }
+
+  const siteUrl = getSiteUrl()
+  const canonical = `${siteUrl}/blog/${slug}`
+  const description = (post.excerpt?.trim() || buildExcerpt(post.content)) || `${post.title} — by ${AUTHOR}`
+
+  // When the post has a cover image, advertise it explicitly. Otherwise leave
+  // `images` undefined so Next.js auto-attaches the sibling opengraph-image
+  // route (served at its own hashed, cache-busted URL).
+  const coverImage = post.coverImage ? absoluteUrl(post.coverImage, siteUrl) : undefined
+
+  return {
+    title: `${post.title} — ${SITE_NAME}`,
+    description,
+    authors: [{ name: AUTHOR }],
+    keywords: post.tags.map((t) => t.name),
+    alternates: { canonical },
+    openGraph: {
+      type: 'article',
+      url: canonical,
+      siteName: SITE_NAME,
+      title: post.title,
+      description,
+      publishedTime: post.publishedAt?.toISOString(),
+      modifiedTime: post.updatedAt?.toISOString(),
+      authors: [AUTHOR],
+      tags: post.tags.map((t) => t.name),
+      ...(coverImage
+        ? { images: [{ url: coverImage, width: 1200, height: 630, alt: post.title }] }
+        : {}),
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title: post.title,
+      description,
+      ...(coverImage ? { images: [coverImage] } : {}),
+    },
+  }
 }
 
 export default async function BlogPostPage({ params }: Props) {
@@ -62,8 +117,23 @@ export default async function BlogPostPage({ params }: Props) {
               </div>
             )}
           </div>
+          <div className="mt-6 pt-6 border-t border-[var(--border)]">
+            <ShareButtons
+              url={`${getSiteUrl()}/blog/${slug}`}
+              title={post.title}
+              text={post.excerpt?.trim() || buildExcerpt(post.content)}
+            />
+          </div>
         </header>
         <PostContent html={post.content} />
+        <footer className="mt-12 pt-8 border-t border-[var(--border)]">
+          <p className="mb-3 text-sm font-medium text-[var(--foreground)]">Enjoyed this post? Share it</p>
+          <ShareButtons
+            url={`${getSiteUrl()}/blog/${slug}`}
+            title={post.title}
+            text={post.excerpt?.trim() || buildExcerpt(post.content)}
+          />
+        </footer>
       </main>
     </>
   )

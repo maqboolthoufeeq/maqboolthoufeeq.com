@@ -5,12 +5,21 @@ import BlogArchive from '@/components/blog/BlogArchive'
 import BlogTagsWidget from '@/components/blog/BlogTagsWidget'
 import { prisma } from '@/lib/prisma'
 import { getSiteContent } from '@/lib/site-content'
+import { getRequestOrigin } from '@/lib/request-origin'
+import { SITE_NAME, buildPageMetadata } from '@/lib/seo'
+import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
 
-export const metadata = {
-  title: 'Blog — Maqbool Thoufeeq',
-  description: 'Articles about web development, TypeScript, and engineering.',
+export async function generateMetadata(): Promise<Metadata> {
+  const origin = await getRequestOrigin()
+  return buildPageMetadata({
+    origin,
+    title: `Blog — ${SITE_NAME}`,
+    description: 'Articles about web development, TypeScript, and engineering.',
+    path: '/blog',
+    ogTitle: 'Blog',
+  })
 }
 
 const PAGE_SIZE = 6

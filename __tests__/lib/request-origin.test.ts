@@ -60,4 +60,14 @@ describe('getRequestOrigin', () => {
     headerMap({})
     expect(await getRequestOrigin()).toBe('https://custom.example.com')
   })
+
+  it('falls back to the site url when the host header is malformed (no crash)', async () => {
+    headerMap({ 'x-forwarded-host': 'bad host<>|', 'x-forwarded-proto': 'https' })
+    expect(await getRequestOrigin()).toBe('https://maqboolthoufeeq.com')
+  })
+
+  it('strips any path injected via the host header (returns origin only)', async () => {
+    headerMap({ 'x-forwarded-host': 'evil.com/inject', 'x-forwarded-proto': 'https' })
+    expect(await getRequestOrigin()).toBe('https://evil.com')
+  })
 })

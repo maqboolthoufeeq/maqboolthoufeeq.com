@@ -1,12 +1,21 @@
 import Navbar from '@/components/Navbar'
 import ProjectsClient from '@/components/sections/ProjectsClient'
 import { prisma } from '@/lib/prisma'
+import { getRequestOrigin } from '@/lib/request-origin'
+import { SITE_NAME, buildPageMetadata } from '@/lib/seo'
+import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
 
-export const metadata = {
-  title: 'Projects — Maqbool Thoufeeq',
-  description: 'A collection of projects built across web development and engineering.',
+export async function generateMetadata(): Promise<Metadata> {
+  const origin = await getRequestOrigin()
+  return buildPageMetadata({
+    origin,
+    title: `Projects — ${SITE_NAME}`,
+    description: 'A collection of projects built across web development and engineering.',
+    path: '/projects',
+    ogTitle: 'Projects',
+  })
 }
 
 export default async function ProjectsPage() {

@@ -4,7 +4,8 @@ import Navbar from '@/components/Navbar'
 import PostContent from '@/components/blog/PostContent'
 import ShareButtons from '@/components/blog/ShareButtons'
 import { prisma } from '@/lib/prisma'
-import { readingTime, getSiteUrl, buildExcerpt } from '@/lib/utils'
+import { readingTime, buildExcerpt } from '@/lib/utils'
+import { getRequestOrigin } from '@/lib/request-origin'
 import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
@@ -34,17 +35,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return { title: 'Post not found — Maqbool Thoufeeq' }
   }
 
-  const siteUrl = getSiteUrl()
-  const canonical = `${siteUrl}/blog/${slug}`
+  // Build every absolute URL from the *request* origin so og:url and og:image
+  // live on the exact host the crawler fetched (www vs apex vs *.vercel.app).
+  // A host mismatch makes the image redirect, which LinkedIn rejects with
+  // "cannot display preview".
+  const origin = await getRequestOrigin()
+  const canonical = `${origin}/blog/${slug}`
+  const ogImage = `${origin}/blog/${slug}/og`
   const description = (post.excerpt?.trim() || buildExcerpt(post.content)) || `${post.title} — by ${AUTHOR}`
 
-  // We intentionally do NOT set `images` here. Next.js auto-attaches the
-  // sibling opengraph-image route (served from our own domain at a guaranteed
-  // 1200x630 with correct width/height/type metadata). That route renders the
-  // cover image when present, or a branded card otherwise — which is what makes
-  // LinkedIn/Facebook/WhatsApp/X reliably display a preview regardless of the
-  // original cover image's size, aspect ratio or host.
   return {
+    metadataBase: new URL(origin),
     title: `${post.title} — ${SITE_NAME}`,
     description,
     authors: [{ name: AUTHOR }],
@@ -60,11 +61,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       modifiedTime: post.updatedAt?.toISOString(),
       authors: [AUTHOR],
       tags: post.tags.map((t) => t.name),
+      images: [{ url: ogImage, width: 1200, height: 630, type: 'image/png', alt: post.title }],
     },
     twitter: {
       card: 'summary_large_image',
       title: post.title,
       description,
+      images: [ogImage],
     },
   }
 }
@@ -74,6 +77,8 @@ export default async function BlogPostPage({ params }: Props) {
   const post = await prisma.post.findUnique({ where: { slug }, include: { tags: true } })
 
   if (!post || !post.published) notFound()
+
+  const shareUrl = `${await getRequestOrigin()}/blog/${slug}`
 
   return (
     <>
@@ -116,7 +121,7 @@ export default async function BlogPostPage({ params }: Props) {
           </div>
           <div className="mt-6 pt-6 border-t border-[var(--border)]">
             <ShareButtons
-              url={`${getSiteUrl()}/blog/${slug}`}
+              url={shareUrl}
               title={post.title}
               text={post.excerpt?.trim() || buildExcerpt(post.content)}
             />
@@ -126,7 +131,7 @@ export default async function BlogPostPage({ params }: Props) {
         <footer className="mt-12 pt-8 border-t border-[var(--border)]">
           <p className="mb-3 text-sm font-medium text-[var(--foreground)]">Enjoyed this post? Share it</p>
           <ShareButtons
-            url={`${getSiteUrl()}/blog/${slug}`}
+            url={shareUrl}
             title={post.title}
             text={post.excerpt?.trim() || buildExcerpt(post.content)}
           />

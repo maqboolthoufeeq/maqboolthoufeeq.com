@@ -18,7 +18,7 @@ export const OG_CACHE_HEADERS = {
 
 const BRAND_DOMAIN = 'maqboolthoufeeq.com'
 const BRAND_AUTHOR = 'Maqbool Thoufeeq'
-const BRAND_ROLE = 'Full-Stack Developer'
+const BRAND_ROLE = 'Lead Software Engineer'
 
 // Upper bound on the source cover image we'll inline. Generous for real photos
 // but blocks an admin-set 50MB image from bloating the card / exhausting memory

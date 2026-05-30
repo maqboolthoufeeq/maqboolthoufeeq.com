@@ -31,7 +31,7 @@ Fields:
   greeting      — e.g. "Hello, I'm"
   name          — first name
   lastName      — last name / family name
-  title         — professional title, e.g. "Full-Stack Developer"
+  title         — professional title, e.g. "Lead Software Engineer"
   description   — short bio paragraph
   cta1Label / cta1Href — primary call-to-action button
   cta2Label / cta2Href — secondary call-to-action button
@@ -43,26 +43,26 @@ Fields:
     inputSchema: {
       type: 'object',
       properties: {
-        greeting:     { type: 'string' },
-        name:         { type: 'string' },
-        lastName:     { type: 'string' },
-        title:        { type: 'string' },
-        description:  { type: 'string' },
-        cta1Label:    { type: 'string' },
-        cta1Href:     { type: 'string' },
-        cta2Label:    { type: 'string' },
-        cta2Href:     { type: 'string' },
-        imageUrl:     { type: 'string' },
+        greeting: { type: 'string' },
+        name: { type: 'string' },
+        lastName: { type: 'string' },
+        title: { type: 'string' },
+        description: { type: 'string' },
+        cta1Label: { type: 'string' },
+        cta1Href: { type: 'string' },
+        cta2Label: { type: 'string' },
+        cta2Href: { type: 'string' },
+        imageUrl: { type: 'string' },
         imageVisible: { type: 'boolean' },
-        imageShape:   { type: 'string', enum: ['circle', 'rounded', 'square'] },
-        imageSize:    { type: 'string', enum: ['sm', 'md', 'lg'] },
+        imageShape: { type: 'string', enum: ['circle', 'rounded', 'square'] },
+        imageSize: { type: 'string', enum: ['sm', 'md', 'lg'] },
         socialLinks: {
           type: 'array',
           items: {
             type: 'object',
             properties: {
               platform: { type: 'string', description: 'e.g. GitHub, LinkedIn, Twitter' },
-              href:     { type: 'string', description: 'Full URL' },
+              href: { type: 'string', description: 'Full URL' },
             },
             required: ['platform', 'href'],
           },
@@ -96,14 +96,14 @@ Fields:
       type: 'object',
       properties: {
         brandName: { type: 'string', description: 'Main brand / site name' },
-        brandTag:  { type: 'string', description: 'Subtitle or family name shown next to brand' },
+        brandTag: { type: 'string', description: 'Subtitle or family name shown next to brand' },
         links: {
           type: 'array',
           description: 'Navigation links',
           items: {
             type: 'object',
             properties: {
-              href:  { type: 'string' },
+              href: { type: 'string' },
               label: { type: 'string' },
             },
             required: ['href', 'label'],
@@ -119,9 +119,9 @@ Fields:
       type: 'object',
       properties: {
         description: { type: 'string' },
-        email:       { type: 'string' },
-        phone:       { type: 'string' },
-        address:     { type: 'string' },
+        email: { type: 'string' },
+        phone: { type: 'string' },
+        address: { type: 'string' },
         extra: {
           type: 'array',
           description: 'Extra info rows, e.g. timezone, availability',
@@ -140,7 +140,7 @@ Fields:
           items: {
             type: 'object',
             properties: {
-              href:  { type: 'string' },
+              href: { type: 'string' },
               label: { type: 'string' },
             },
             required: ['href', 'label'],
@@ -168,11 +168,11 @@ Fields:
     inputSchema: {
       type: 'object',
       properties: {
-        hero:        { type: 'boolean' },
-        about:       { type: 'boolean' },
-        projects:    { type: 'boolean' },
+        hero: { type: 'boolean' },
+        about: { type: 'boolean' },
+        projects: { type: 'boolean' },
         blogPreview: { type: 'boolean' },
-        contact:     { type: 'boolean' },
+        contact: { type: 'boolean' },
         blogArchive: { type: 'boolean' },
       },
     },

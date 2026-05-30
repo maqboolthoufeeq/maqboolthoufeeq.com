@@ -98,8 +98,9 @@ const DEFAULTS = {
     greeting: "Hello, I'm",
     name: 'Maqbool Thoufeeq',
     lastName: 'Tharayil',
-    title: 'Full-Stack Developer',
-    description: 'I build fast, beautiful web products — from polished frontends to scalable backend systems.',
+    title: 'Lead Sofware Engineer',
+    description:
+      'I design and scale multi-tenant SaaS platforms, AI-driven systems, and distributed architectures — with a focus on reliability, clean architecture, and measurable impact.',
     cta1Label: 'See my work',
     cta1Href: '/#projects',
     cta2Label: 'Get in touch',
@@ -113,10 +114,10 @@ const DEFAULTS = {
 
   about: {
     paragraphs: [
-      "I'm a Full-Stack Developer with a passion for crafting performant, accessible web experiences. I love the full spectrum — from pixel-perfect UIs to robust APIs and database design.",
-      "When I'm not coding, you'll find me exploring new technologies, contributing to open source, or writing about what I've learned on my blog.",
+      "I'm a Lead Software Engineer with 7+ years designing and scaling multi-tenant SaaS platforms, AI-driven systems, and distributed architectures. I've owned production-critical systems handling millions of daily requests, stabilized legacy platforms, and led engineering teams.",
+      'I specialize in Python (Django/FastAPI), AI integrations (RAG, LLMs, real-time voice AI), and distributed systems — with a focus on scalability, reliability, and clean architecture.',
     ],
-    skills: ['TypeScript', 'React', 'Next.js', 'Node.js', 'PostgreSQL', 'Prisma', 'Tailwind CSS', 'Docker', 'AWS', 'Git'],
+    skills: ['Python', 'Django', 'FastAPI', 'PostgreSQL', 'Redis', 'Celery', 'Weaviate', 'Temporal', 'Docker', 'AWS'],
   } satisfies AboutContent,
 
   contact: {

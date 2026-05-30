@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { DEFAULT_THEME_ID, getTheme, themeToCSS } from '@/lib/themes'
 import { DEFAULT_DESIGN_ID } from '@/lib/designs'
 import { getRequestOrigin } from '@/lib/request-origin'
+import { getSiteContent } from '@/lib/site-content'
 import { SITE_NAME, SITE_TAGLINE, ogCardUrl, ogImages } from '@/lib/seo'
 import { DesignSync } from './DesignSync'
 import VisitTracker from '@/components/VisitTracker'
@@ -21,8 +22,8 @@ export const lora = Lora({
 })
 
 export async function generateMetadata(): Promise<Metadata> {
-  const origin = await getRequestOrigin()
-  const title = `${SITE_NAME} — Full-Stack Developer`
+  const [origin, hero] = await Promise.all([getRequestOrigin(), getSiteContent('hero')])
+  const title = `${SITE_NAME} — ${hero.title}`
   // Default share image used as the fallback for any page that doesn't set its
   // own openGraph (and inherited by future pages automatically).
   const ogImage = ogCardUrl(origin, title, SITE_TAGLINE)

@@ -14,7 +14,7 @@ import type { Metadata } from 'next'
 
 export const SITE_NAME = 'Maqbool Thoufeeq'
 export const AUTHOR = 'Maqbool Thoufeeq'
-export const SITE_TAGLINE = 'Full-Stack Developer building fast, beautiful web products.'
+export const SITE_TAGLINE = 'Lead Software Engineer building scalable SaaS platforms, AI systems, and distributed architectures.'
 
 /**
  * Absolute URL of the dynamically rendered default share card (`/og`), with the

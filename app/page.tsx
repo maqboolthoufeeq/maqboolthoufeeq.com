@@ -4,6 +4,7 @@ import type { Metadata } from 'next'
 import { getRequestOrigin } from '@/lib/request-origin'
 import { SITE_NAME, SITE_TAGLINE, buildPageMetadata } from '@/lib/seo'
 import { getActiveTemplateId } from '@/lib/templates'
+import { getSiteContent } from '@/lib/site-content'
 import { auth } from '@/lib/auth'
 import AdminFab from '@/components/admin/AdminFab'
 import ClassicTemplate from '@/components/templates/ClassicTemplate'
@@ -14,10 +15,10 @@ import TerminalTemplate from '@/components/templates/TerminalTemplate'
 import MagazineTemplate from '@/components/templates/MagazineTemplate'
 
 export async function generateMetadata(): Promise<Metadata> {
-  const origin = await getRequestOrigin()
+  const [origin, hero] = await Promise.all([getRequestOrigin(), getSiteContent('hero')])
   return buildPageMetadata({
     origin,
-    title: `${SITE_NAME} — Full-Stack Developer`,
+    title: `${SITE_NAME} — ${hero.title}`,
     description: SITE_TAGLINE,
     path: '/',
     ogTitle: SITE_NAME,

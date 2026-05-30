@@ -29,3 +29,24 @@ export async function recordVisit(uniqueVisitor: boolean): Promise<void> {
     },
   })
 }
+
+/**
+ * Atomically increments the read counter for a single published post.
+ * Returns the updated view count, or null if the post doesn't exist / isn't
+ * published. Abuse is kept in check client-side (one count per browser per post
+ * via localStorage); this just performs the increment.
+ */
+export async function recordPostView(slug: string): Promise<number | null> {
+  const post = await prisma.post.findFirst({
+    where: { slug, published: true },
+    select: { id: true },
+  })
+  if (!post) return null
+
+  const updated = await prisma.post.update({
+    where: { id: post.id },
+    data: { views: { increment: 1 } },
+    select: { views: true },
+  })
+  return updated.views
+}

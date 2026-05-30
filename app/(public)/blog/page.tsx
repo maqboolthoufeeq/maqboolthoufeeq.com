@@ -1,3 +1,5 @@
+import Link from 'next/link'
+import { Plus } from 'lucide-react'
 import Navbar from '@/components/Navbar'
 import BlogSearch from '@/components/blog/BlogSearch'
 import BlogListClient from '@/components/blog/BlogListClient'
@@ -81,7 +83,18 @@ export default async function BlogPage({
     <>
       <Navbar />
       <main className="max-w-5xl mx-auto px-4 py-16">
-        <h1 className="text-3xl font-bold text-[var(--foreground)] mb-2">Blog</h1>
+        <div className="flex items-center justify-between gap-4 mb-2">
+          <h1 className="text-3xl font-bold text-[var(--foreground)]">Blog</h1>
+          {isAdmin && (
+            <Link
+              href="/admin/posts/new"
+              className="tap-scale inline-flex items-center gap-1.5 h-10 px-4 rounded-full bg-[var(--accent)] text-white text-sm font-medium hover:opacity-90 transition-opacity"
+            >
+              <Plus size={18} strokeWidth={2.4} />
+              <span className="hidden sm:inline">Create Post</span>
+            </Link>
+          )}
+        </div>
         <div className="w-10 h-0.5 bg-[var(--accent)] mb-10" />
 
         <div className={showSidebar ? 'flex gap-8 items-start' : undefined}>

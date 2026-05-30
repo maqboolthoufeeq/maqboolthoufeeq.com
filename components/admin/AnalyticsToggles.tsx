@@ -43,6 +43,13 @@ export default function AnalyticsToggles({ initial }: { initial: AnalyticsConten
         disabled={saving}
         onChange={(v) => update({ showPageViews: v })}
       />
+      <Row
+        label="Show stats on blog posts"
+        description="Publicly display each post's view and zap counts at the top of the post. (You always see them as admin.)"
+        checked={val.showBlogStats}
+        disabled={saving}
+        onChange={(v) => update({ showBlogStats: v })}
+      />
     </div>
   )
 }

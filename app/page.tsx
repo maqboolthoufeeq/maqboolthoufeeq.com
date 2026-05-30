@@ -4,6 +4,8 @@ import type { Metadata } from 'next'
 import { getRequestOrigin } from '@/lib/request-origin'
 import { SITE_NAME, SITE_TAGLINE, buildPageMetadata } from '@/lib/seo'
 import { getActiveTemplateId } from '@/lib/templates'
+import { auth } from '@/lib/auth'
+import AdminFab from '@/components/admin/AdminFab'
 import ClassicTemplate from '@/components/templates/ClassicTemplate'
 import CenteredTemplate from '@/components/templates/CenteredTemplate'
 import SidebarTemplate from '@/components/templates/SidebarTemplate'
@@ -22,9 +24,7 @@ export async function generateMetadata(): Promise<Metadata> {
   })
 }
 
-export default async function Home() {
-  const templateId = await getActiveTemplateId()
-
+function Template({ templateId }: { templateId: string }) {
   switch (templateId) {
     case 'centered':
       return <CenteredTemplate />
@@ -39,4 +39,16 @@ export default async function Home() {
     default:
       return <ClassicTemplate />
   }
+}
+
+export default async function Home() {
+  const [templateId, session] = await Promise.all([getActiveTemplateId(), auth()])
+  const isAdmin = !!session
+
+  return (
+    <>
+      <Template templateId={templateId} />
+      {isAdmin && <AdminFab />}
+    </>
+  )
 }

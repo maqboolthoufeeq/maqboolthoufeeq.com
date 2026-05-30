@@ -10,8 +10,11 @@ import TagChips from '@/components/blog/TagChips'
 import RelatedPosts from '@/components/blog/RelatedPosts'
 import PostNavigation from '@/components/blog/PostNavigation'
 import PostAdminControls from '@/components/blog/PostAdminControls'
+import PostViewTracker from '@/components/blog/PostViewTracker'
+import PostStats from '@/components/blog/PostStats'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
+import { getSiteContent } from '@/lib/site-content'
 import { getRelatedPosts, getAdjacentPosts } from '@/lib/related-posts'
 import { readingTime, buildExcerpt } from '@/lib/utils'
 import { sanitizePostHtml } from '@/lib/sanitize'
@@ -87,18 +90,24 @@ export default async function BlogPostPage({ params }: Props) {
 
   if (!post || !post.published) notFound()
 
-  const [shareOrigin, relatedPosts, adjacent, session] = await Promise.all([
+  const [shareOrigin, relatedPosts, adjacent, session, analytics] = await Promise.all([
     getRequestOrigin(),
     getRelatedPosts(slug, post.tags.map((t) => t.slug)),
     getAdjacentPosts(slug, post.publishedAt),
     auth(),
+    getSiteContent('analytics'),
   ])
   const isAdmin = !!session
   const shareUrl = `${shareOrigin}/blog/${slug}`
+  // Stats show publicly when the admin enables the toggle, and always to the
+  // admin (flagged as private when the public toggle is off).
+  const showStats = analytics.showBlogStats || isAdmin
+  const statsAdminOnly = isAdmin && !analytics.showBlogStats
 
   return (
     <>
       <Navbar />
+      <PostViewTracker slug={slug} />
       <main className="max-w-3xl mx-auto px-4 py-16">
         <Link
           href="/blog"
@@ -135,6 +144,11 @@ export default async function BlogPostPage({ params }: Props) {
             <span>{readingTime(post.content)} min read</span>
             <TagChips tags={post.tags} size="md" />
           </div>
+          {showStats && (
+            <div className="mt-4">
+              <PostStats views={post.views} zaps={post.zaps} adminOnly={statsAdminOnly} />
+            </div>
+          )}
           <div className="mt-6 pt-6 border-t border-[var(--border)] flex flex-wrap items-center justify-between gap-4">
             <ShareButtons
               url={shareUrl}

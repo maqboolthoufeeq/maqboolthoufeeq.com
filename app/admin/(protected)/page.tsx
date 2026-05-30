@@ -45,12 +45,12 @@ export default async function AdminDashboard() {
           </p>
         </section>
 
-        {/* Stats — 2 columns on mobile, 4 on desktop */}
+        {/* Stats — 2 columns on mobile, 4 on desktop. Each links to its section. */}
         <section className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-          <StatCard label="Total posts" value={postCount} />
-          <StatCard label="Published" value={publishedCount} />
-          <StatCard label="Projects" value={projectCount} />
-          <StatCard label="Tags" value={tagCount} />
+          <StatCard label="Total posts" value={postCount} href="/admin/posts" />
+          <StatCard label="Published" value={publishedCount} href="/admin/posts" />
+          <StatCard label="Projects" value={projectCount} href="/admin/projects" />
+          <StatCard label="Tags" value={tagCount} href="/admin/tags" />
         </section>
 
         {/* Traffic — visitor analytics, links through to the full page */}
@@ -142,12 +142,15 @@ export default async function AdminDashboard() {
   )
 }
 
-function StatCard({ label, value }: { label: string; value: number }) {
+function StatCard({ label, value, href }: { label: string; value: number; href: string }) {
   return (
-    <div className="p-4 sm:p-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)]">
+    <Link
+      href={href}
+      className="row-pressable block p-4 sm:p-5 rounded-2xl border border-[var(--border)] bg-[var(--surface)] hover:border-[var(--accent)] transition-colors"
+    >
       <p className="text-2xl sm:text-3xl font-bold text-[var(--accent)] tabular-nums">{value}</p>
       <p className="text-xs sm:text-sm text-[var(--muted)] mt-1">{label}</p>
-    </div>
+    </Link>
   )
 }
 

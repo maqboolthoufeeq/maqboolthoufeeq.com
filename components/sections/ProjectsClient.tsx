@@ -4,6 +4,8 @@ import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { Code2, ExternalLink, LayoutGrid, List } from 'lucide-react'
+import ProjectAdminControls from '@/components/projects/ProjectAdminControls'
+import ProjectDetailModal, { useOpenProject } from '@/components/sections/ProjectDetailModal'
 
 type Tag = { id: string; name: string }
 type Project = {
@@ -14,6 +16,7 @@ type Project = {
   imageUrl: string | null
   liveUrl: string | null
   repoUrl: string | null
+  images: string[]
   tags: Tag[]
 }
 
@@ -51,9 +54,9 @@ function TechTags({ tech, tags }: { tech: string[]; tags: Tag[] }) {
     <>
       {tech.length > 0 && (
         <div className="flex flex-wrap gap-1.5 mb-3">
-          {tech.map((t) => (
+          {tech.map((t, i) => (
             <span
-              key={t}
+              key={`${t}-${i}`}
               className="text-xs px-2 py-0.5 rounded-full bg-[var(--background)] border border-[var(--border)] text-[var(--muted)]"
             >
               {t}
@@ -80,13 +83,16 @@ function TechTags({ tech, tags }: { tech: string[]; tags: Tag[] }) {
 export default function ProjectsClient({
   projects,
   allTags,
+  isAdmin = false,
 }: {
   projects: Project[]
   allTags: Tag[]
+  isAdmin?: boolean
 }) {
   const [query, setQuery] = useState('')
   const [activeTag, setActiveTag] = useState('')
   const [view, setView] = useState<'grid' | 'list'>('grid')
+  const openProject = useOpenProject()
 
   const q = query.trim().toLowerCase()
   const filtered = projects.filter((p) => {
@@ -187,7 +193,8 @@ export default function ProjectsClient({
           {filtered.map((p) => (
             <li
               key={p.id}
-              className="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden flex flex-col hover:border-[var(--accent)] transition-colors"
+              onClick={() => openProject(p.id)}
+              className="cursor-pointer rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden flex flex-col hover:border-[var(--accent)] transition-colors"
             >
               {p.imageUrl && (
                 <div className="relative h-40 w-full bg-[var(--background)]">
@@ -195,10 +202,19 @@ export default function ProjectsClient({
                 </div>
               )}
               <div className="p-5 flex flex-col flex-1">
-                <h3 className="font-semibold text-[var(--foreground)] mb-1">{p.title}</h3>
-                <p className="text-sm text-[var(--muted)] mb-4 flex-1">{p.description}</p>
+                <h3 className="font-semibold text-[var(--foreground)] mb-1">
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); openProject(p.id) }}
+                    className="text-left hover:text-[var(--accent)] transition-colors focus:outline-none focus-visible:underline"
+                  >
+                    {p.title}
+                  </button>
+                </h3>
+                <p className="text-sm text-[var(--muted)] mb-4 flex-1 line-clamp-3">{p.description}</p>
                 <TechTags tech={p.tech} tags={p.tags} />
                 <ProjectLinks p={p} />
+                {isAdmin && <ProjectAdminControls id={p.id} title={p.title} />}
               </div>
             </li>
           ))}
@@ -210,7 +226,8 @@ export default function ProjectsClient({
             return (
               <li
                 key={p.id}
-                className="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden hover:border-[var(--accent)] transition-colors"
+                onClick={() => openProject(p.id)}
+                className="cursor-pointer rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden hover:border-[var(--accent)] transition-colors"
               >
                 <div className={`flex flex-col sm:flex-row${imageRight ? ' sm:flex-row-reverse' : ''}`}>
                   {p.imageUrl ? (
@@ -219,10 +236,19 @@ export default function ProjectsClient({
                     </div>
                   ) : null}
                   <div className="p-5 flex flex-col justify-center flex-1">
-                    <h3 className="font-semibold text-[var(--foreground)] mb-1">{p.title}</h3>
+                    <h3 className="font-semibold text-[var(--foreground)] mb-1">
+                  <button
+                    type="button"
+                    onClick={(e) => { e.stopPropagation(); openProject(p.id) }}
+                    className="text-left hover:text-[var(--accent)] transition-colors focus:outline-none focus-visible:underline"
+                  >
+                    {p.title}
+                  </button>
+                </h3>
                     <p className="text-sm text-[var(--muted)] mb-4">{p.description}</p>
                     <TechTags tech={p.tech} tags={p.tags} />
                     <ProjectLinks p={p} />
+                    {isAdmin && <ProjectAdminControls id={p.id} title={p.title} />}
                   </div>
                 </div>
               </li>
@@ -230,6 +256,9 @@ export default function ProjectsClient({
           })}
         </ul>
       )}
+
+      {/* URL-driven detail modal + lightbox (shared with the landing grid) */}
+      <ProjectDetailModal projects={projects} />
     </div>
   )
 }

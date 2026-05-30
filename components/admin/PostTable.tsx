@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 import {
   Search, Pencil, Trash2, FileText, ExternalLink,
   CalendarRange, X, SlidersHorizontal, Globe, EyeOff,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, Eye, Zap,
 } from 'lucide-react'
 
 type Post = {
@@ -16,6 +16,8 @@ type Post = {
   published: boolean
   publishedAt: Date | null
   createdAt: Date
+  views: number
+  zaps: number
 }
 
 export default function PostTable({ posts }: { posts: Post[] }) {
@@ -111,8 +113,8 @@ export default function PostTable({ posts }: { posts: Post[] }) {
             onClick={() => setShowDatePanel((v) => !v)}
             aria-label="Toggle date filter"
             className={`sm:hidden relative w-9 h-9 flex items-center justify-center rounded-lg border transition-all ${showDatePanel || dateFilterActive
-                ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
-                : 'border-[var(--border)] bg-[var(--background)] text-[var(--muted)]'
+              ? 'border-[var(--accent)] bg-[var(--accent)]/10 text-[var(--accent)]'
+              : 'border-[var(--border)] bg-[var(--background)] text-[var(--muted)]'
               }`}
           >
             <SlidersHorizontal size={14} />
@@ -164,6 +166,9 @@ export default function PostTable({ posts }: { posts: Post[] }) {
         <EmptyState hasFilters={hasFilters} />
       ) : (
         <>
+          {/* Legend — what the leading status dots mean */}
+          <StatusLegend />
+
           {/* Mobile cards */}
           <ul className="sm:hidden space-y-2">
             {filtered.map((post) => {
@@ -174,20 +179,21 @@ export default function PostTable({ posts }: { posts: Post[] }) {
                   <Link href={`/admin/posts/${post.id}/edit`} className="row-pressable block px-4 pt-4 pb-3">
                     <div className="flex items-start gap-3">
                       <span className={`shrink-0 mt-0.5 w-9 h-9 rounded-xl flex items-center justify-center transition-colors ${isPublished
-                          ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
-                          : 'bg-[var(--background)] text-[var(--muted)]'
+                        ? 'bg-[var(--accent)]/10 text-[var(--accent)]'
+                        : 'bg-[var(--background)] text-[var(--muted)]'
                         }`}>
                         <FileText size={15} />
                       </span>
                       <div className="min-w-0 flex-1">
                         <p className="font-semibold text-[14px] text-[var(--foreground)] leading-snug line-clamp-2">
+                          <StatusDot published={isPublished} className="mr-2 align-middle" />
                           {post.title}
                         </p>
                         <div className="flex items-center gap-2 mt-1.5 flex-wrap">
-                          <StatusPill published={isPublished} />
                           <span className="text-[11px] text-[var(--muted)]">
                             {formatDate(post.publishedAt ?? post.createdAt)}
                           </span>
+                          <StatBadges views={post.views} zaps={post.zaps} />
                         </div>
                       </div>
                     </div>
@@ -242,10 +248,10 @@ export default function PostTable({ posts }: { posts: Post[] }) {
             <table className="w-full">
               <thead>
                 <tr className="bg-[var(--surface)] border-b border-[var(--border)]">
-                  <th className="text-left px-5 py-3 text-[10px] uppercase tracking-widest font-semibold text-[var(--muted)]">Title</th>
-                  <th className="text-left px-5 py-3 text-[10px] uppercase tracking-widest font-semibold text-[var(--muted)]">Status</th>
-                  <th className="text-left px-5 py-3 text-[10px] uppercase tracking-widest font-semibold text-[var(--muted)]">Date</th>
-                  <th className="text-right px-5 py-3 text-[10px] uppercase tracking-widest font-semibold text-[var(--muted)]">Actions</th>
+                  <th className="text-left px-4 py-3 text-[10px] uppercase tracking-widest font-semibold text-[var(--muted)]">Title</th>
+                  <th className="text-left px-4 py-3 text-[10px] uppercase tracking-widest font-semibold text-[var(--muted)]">Date</th>
+                  <th className="text-left px-4 py-3 text-[10px] uppercase tracking-widest font-semibold text-[var(--muted)]">Stats</th>
+                  <th className="text-right px-4 py-3 text-[10px] uppercase tracking-widest font-semibold text-[var(--muted)]">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-[var(--border)]">
@@ -254,28 +260,31 @@ export default function PostTable({ posts }: { posts: Post[] }) {
                   const isBusy = toggling.has(post.id)
                   return (
                     <tr key={post.id} className="group hover:bg-[var(--surface)] transition-colors">
-                      <td className="px-5 py-4 min-w-0">
-                        <Link
-                          href={`/admin/posts/${post.id}/edit`}
-                          className="block font-semibold text-[13px] text-[var(--foreground)] hover:text-[var(--accent)] transition-colors truncate max-w-[380px]"
-                        >
-                          {post.title}
-                        </Link>
+                      <td className="px-4 py-4 w-full max-w-0">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <StatusDot published={isPublished} />
+                          <Link
+                            href={`/admin/posts/${post.id}/edit`}
+                            className="min-w-0 truncate font-semibold text-[13px] text-[var(--foreground)] hover:text-[var(--accent)] transition-colors"
+                          >
+                            {post.title}
+                          </Link>
+                        </div>
                       </td>
-                      <td className="px-5 py-4">
-                        <StatusPill published={isPublished} />
-                      </td>
-                      <td className="px-5 py-4 text-[13px] text-[var(--muted)] tabular-nums whitespace-nowrap">
+                      <td className="px-4 py-4 text-[13px] text-[var(--muted)] tabular-nums whitespace-nowrap">
                         {formatDate(post.publishedAt ?? post.createdAt)}
                       </td>
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-0.5 justify-end">
+                      <td className="px-4 py-4">
+                        <StatBadges views={post.views} zaps={post.zaps} />
+                      </td>
+                      <td className="px-4 py-4">
+                        <div className="flex items-center gap-0.5 justify-end whitespace-nowrap">
                           <a
                             href={`/blog/${post.slug}`}
                             target="_blank"
                             rel="noopener noreferrer"
                             title="View live post"
-                            className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--muted)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 transition-all opacity-0 group-hover:opacity-100"
+                            className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--muted)] hover:text-[var(--accent)] hover:bg-[var(--accent)]/10 transition-all"
                           >
                             <ExternalLink size={13} />
                           </a>
@@ -284,8 +293,8 @@ export default function PostTable({ posts }: { posts: Post[] }) {
                             disabled={isBusy}
                             title={isPublished ? 'Unpublish post' : 'Publish post'}
                             className={`h-8 px-2.5 flex items-center gap-1.5 rounded-lg text-[12px] font-semibold disabled:opacity-40 transition-all ${isPublished
-                                ? 'text-orange-500 hover:bg-orange-500/10'
-                                : 'text-emerald-600 hover:bg-emerald-500/10'
+                              ? 'text-orange-500 hover:bg-orange-500/10'
+                              : 'text-emerald-600 hover:bg-emerald-500/10'
                               }`}
                           >
                             {isBusy ? (
@@ -306,7 +315,7 @@ export default function PostTable({ posts }: { posts: Post[] }) {
                           <button
                             onClick={() => handleDelete(post.id, post.title)}
                             title="Delete post"
-                            className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--muted)] hover:text-red-500 hover:bg-red-500/10 transition-all opacity-0 group-hover:opacity-100"
+                            className="w-8 h-8 flex items-center justify-center rounded-lg text-[var(--muted)] hover:text-red-500 hover:bg-red-500/10 transition-all"
                           >
                             <Trash2 size={13} />
                           </button>
@@ -456,8 +465,8 @@ function DateRangePicker({
       <button
         onClick={() => setOpen((v) => !v)}
         className={`flex items-center gap-2 h-9 px-3 rounded-lg border text-sm transition-all ${open || hasValue
-            ? 'border-[var(--accent)] bg-[var(--accent)]/8 text-[var(--foreground)]'
-            : 'border-[var(--border)] bg-[var(--background)] text-[var(--muted)] hover:border-[var(--accent)]/50'
+          ? 'border-[var(--accent)] bg-[var(--accent)]/8 text-[var(--foreground)]'
+          : 'border-[var(--border)] bg-[var(--background)] text-[var(--muted)] hover:border-[var(--accent)]/50'
           } ${fullWidth ? 'w-full justify-between' : ''}`}
       >
         <CalendarRange size={13} className={hasValue ? 'text-[var(--accent)]' : 'text-[var(--muted)]'} />
@@ -543,10 +552,10 @@ function DateRangePicker({
                     onMouseEnter={() => setHoveredDay(ymd)}
                     onMouseLeave={() => setHoveredDay(null)}
                     className={`relative z-10 w-7 h-7 text-[13px] rounded-full flex items-center justify-center transition-all font-medium ${isSelected
-                        ? 'bg-[var(--accent)] text-white shadow-sm'
-                        : isToday
-                          ? 'text-[var(--accent)] font-semibold'
-                          : 'text-[var(--foreground)] hover:bg-[var(--accent)]/20'
+                      ? 'bg-[var(--accent)] text-white shadow-sm'
+                      : isToday
+                        ? 'text-[var(--accent)] font-semibold'
+                        : 'text-[var(--foreground)] hover:bg-[var(--accent)]/20'
                       }`}
                   >
                     {day}
@@ -579,20 +588,38 @@ function DateRangePicker({
 
 // ─── Supporting components ─────────────────────────────────────────────────────
 
-function StatusPill({ published }: { published: boolean }) {
+function StatBadges({ views, zaps }: { views: number; zaps: number }) {
+  return (
+    <span className="inline-flex items-center gap-3 text-[12px] text-[var(--muted)] tabular-nums whitespace-nowrap">
+      <span className="inline-flex items-center gap-1" title={`${views} views`}>
+        <Eye size={13} className="shrink-0" />
+        {views.toLocaleString('en-US')}
+      </span>
+      <span className="inline-flex items-center gap-1" title={`${zaps} zaps`}>
+        <Zap size={13} className="shrink-0" />
+        {zaps.toLocaleString('en-US')}
+      </span>
+    </span>
+  )
+}
+
+function StatusDot({ published, className = '' }: { published: boolean; className?: string }) {
   return (
     <span
-      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${published
-          ? 'badge-live text-emerald-600 dark:text-emerald-400 border border-emerald-500/20'
-          : 'bg-[var(--border)] text-[var(--muted)]'
-        }`}
-    >
-      {published ? (
-        <><span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse shrink-0" />Live</>
-      ) : (
-        'Draft'
-      )}
-    </span>
+      className={`inline-block w-2 h-2 rounded-full shrink-0 ${published ? 'bg-emerald-500' : 'bg-[var(--muted)]'} ${className}`}
+      title={published ? 'Live' : 'Draft'}
+      aria-label={published ? 'Live' : 'Draft'}
+    />
+  )
+}
+
+// Explains what the leading status dots mean — shown once above the list.
+function StatusLegend() {
+  return (
+    <div className="flex items-center gap-4 px-1 text-[11px] text-[var(--muted)]">
+      <span className="inline-flex items-center gap-1.5"><StatusDot published /> Live</span>
+      <span className="inline-flex items-center gap-1.5"><StatusDot published={false} /> Draft</span>
+    </div>
   )
 }
 

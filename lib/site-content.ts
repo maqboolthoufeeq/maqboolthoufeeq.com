@@ -78,6 +78,8 @@ export interface AnalyticsContent {
   showVisitors: boolean
   /** Show the total page-view count in the public landing-page footer. */
   showPageViews: boolean
+  /** Show per-post view/zap stats publicly at the top of each blog post. */
+  showBlogStats: boolean
 }
 
 const DEFAULTS = {
@@ -146,6 +148,7 @@ const DEFAULTS = {
   analytics: {
     showVisitors: false as boolean,
     showPageViews: false as boolean,
+    showBlogStats: false as boolean,
   } satisfies AnalyticsContent,
 }
 

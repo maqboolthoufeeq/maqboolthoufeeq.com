@@ -69,6 +69,16 @@ body {
 .animate-sheet-in { animation: sheet-in 0.28s cubic-bezier(0.32, 0.72, 0, 1); }
 .animate-sheet-fade { animation: sheet-fade 0.2s ease-out; }
 
+/* Gentle "scroll down for more" nudge */
+@keyframes nudge-down {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(3px); }
+}
+.animate-nudge-down { animation: nudge-down 1.3s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .animate-nudge-down { animation: none; }
+}
+
 /* Hide native browser scrollbars on the admin shell only on touch devices */
 @media (hover: none) and (pointer: coarse) {
   .admin-scroll { scrollbar-width: none; }

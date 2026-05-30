@@ -98,7 +98,7 @@ const DEFAULTS = {
     greeting: "Hello, I'm",
     name: 'Maqbool Thoufeeq',
     lastName: 'Tharayil',
-    title: 'Lead Sofware Engineer',
+    title: 'Lead Software Engineer',
     description:
       'I design and scale multi-tenant SaaS platforms, AI-driven systems, and distributed architectures — with a focus on reliability, clean architecture, and measurable impact.',
     cta1Label: 'See my work',

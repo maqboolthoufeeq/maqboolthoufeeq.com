@@ -40,14 +40,27 @@ In your Vercel project → **Settings** → **Environment Variables**, add these
 | `AUTH_SECRET` | Run `openssl rand -base64 32` in your terminal |
 | `ADMIN_EMAIL` | Your login email for the admin panel |
 | `ADMIN_PASSWORD_HASH` | See below |
-| `BLOB_READ_WRITE_TOKEN` | Vercel → Storage → Create Blob Store (auto-fills) |
-| `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | Your email provider (Gmail, etc.) |
+| `BLOB_READ_WRITE_TOKEN` | Auto-added by Vercel when you create a Blob store — see below |
+| `SMTP_HOST` | Your email provider's SMTP server, e.g. `smtp.gmail.com` |
+| `SMTP_PORT` | SMTP port, e.g. `587` (STARTTLS) or `465` (SSL) |
+| `SMTP_USER` | SMTP username (usually your full email address) |
+| `SMTP_PASS` | SMTP password (for Gmail, use an App Password — see below) |
+| `SMTP_FROM` | The "from" address shown on outgoing email |
 
 **Generate your admin password hash:**
 ```bash
 node -e "require('bcryptjs').hash('YourPassword123!', 12).then(console.log)"
 ```
 Copy the `$2b$12$...` output into `ADMIN_PASSWORD_HASH`.
+
+**Get your `BLOB_READ_WRITE_TOKEN`:** You don't create this one by hand — Vercel generates it for you when you set up a Blob store:
+
+1. In your Vercel project, go to **Storage** → **Create Database** → **Blob**.
+2. Give the store a name and create it, making sure it's **connected to this project**.
+3. Vercel automatically adds a `BLOB_READ_WRITE_TOKEN` environment variable to the connected project — you don't have to copy/paste it.
+4. **Redeploy** the project (or trigger your first deployment) so the new variable is picked up at runtime.
+
+> If you import and deploy the repo *before* creating the Blob store, the token simply won't exist yet — create the store, then redeploy and it'll be wired up automatically. You can always view/copy the generated value later under **Settings → Environment Variables**.
 
 **Gmail SMTP (easiest):** Use an [App Password](https://myaccount.google.com/apppasswords) as `SMTP_PASS` (requires 2-Step Verification on your Google account).
 

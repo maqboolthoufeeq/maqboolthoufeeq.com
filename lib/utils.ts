@@ -34,7 +34,9 @@ export function getPublicOrigin(req: NextRequest): string {
   return new URL(req.url).origin
 }
 
-const DEFAULT_SITE_URL = 'https://maqboolthoufeeq.com'
+// Last-resort fallback when no env var is set (local dev). Deployments should
+// set NEXT_PUBLIC_SITE_URL; on Vercel the production/preview URL is auto-detected.
+const DEFAULT_SITE_URL = 'http://localhost:3000'
 
 /**
  * Canonical site origin for use in server components / metadata where no

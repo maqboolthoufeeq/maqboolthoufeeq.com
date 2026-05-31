@@ -1,6 +1,6 @@
-import { buildPageMetadata, ogCardUrl, ogImages, SITE_NAME, SITE_TAGLINE } from '@/lib/seo'
+import { buildPageMetadata, ogCardUrl, ogImages } from '@/lib/seo'
 
-const ORIGIN = 'https://www.maqboolthoufeeq.com'
+const ORIGIN = 'https://www.example.com'
 
 describe('ogImages', () => {
   it('returns a single 1200x630 png descriptor', () => {
@@ -19,7 +19,7 @@ describe('ogImages', () => {
 
 describe('ogCardUrl', () => {
   it('points at the /og route on the given origin', () => {
-    expect(ogCardUrl(ORIGIN, 'Blog', 'Hello')).toMatch(/^https:\/\/www\.maqboolthoufeeq\.com\/og\?/)
+    expect(ogCardUrl(ORIGIN, 'Blog', 'Hello')).toMatch(/^https:\/\/www\.example\.com\/og\?/)
   })
 
   it('URL-encodes the title and subtitle', () => {
@@ -53,16 +53,21 @@ describe('buildPageMetadata', () => {
   })
 
   it('emits a complete Open Graph object with an absolute 1200x630 image', () => {
-    const m = buildPageMetadata({ origin: ORIGIN, title: 'Blog — X', description: 'desc', path: '/blog', ogTitle: 'Blog' })
+    const m = buildPageMetadata({ origin: ORIGIN, title: 'Blog — X', description: 'desc', path: '/blog', ogTitle: 'Blog', siteName: 'Jane Doe' })
     const og = m.openGraph as Record<string, unknown>
     expect(og.type).toBe('website')
-    expect(og.siteName).toBe(SITE_NAME)
+    expect(og.siteName).toBe('Jane Doe')
     expect(og.title).toBe('Blog')
     expect(og.url).toBe(`${ORIGIN}/blog`)
     const img = (og.images as Array<{ url: string; width: number; height: number }>)[0]
     expect(img.width).toBe(1200)
     expect(img.height).toBe(630)
-    expect(img.url).toMatch(/^https:\/\/www\.maqboolthoufeeq\.com\/og\?/)
+    expect(img.url).toMatch(/^https:\/\/www\.example\.com\/og\?/)
+  })
+
+  it('omits og:site_name when no siteName is provided', () => {
+    const m = buildPageMetadata({ origin: ORIGIN, title: 'Blog — X', description: 'desc', path: '/blog' })
+    expect((m.openGraph as Record<string, unknown>).siteName).toBeUndefined()
   })
 
   it('emits a summary_large_image Twitter card sharing the same image', () => {
@@ -91,11 +96,5 @@ describe('buildPageMetadata', () => {
     const og = m.openGraph as Record<string, unknown>
     expect(og.type).toBe('article')
     expect((og.images as Array<{ url: string }>)[0].url).toBe(`${ORIGIN}/blog/x/og`)
-  })
-
-  it('uses the site tagline constant for the default description on the home page', () => {
-    // sanity: the exported constants are wired up
-    expect(SITE_TAGLINE.length).toBeGreaterThan(0)
-    expect(SITE_NAME).toBe('Maqbool Thoufeeq')
   })
 })

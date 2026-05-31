@@ -11,7 +11,7 @@ describe('sitemap.xml', () => {
 
   beforeEach(() => {
     findMany.mockReset()
-    process.env = { ...ENV, NEXT_PUBLIC_SITE_URL: 'https://maqboolthoufeeq.com' }
+    process.env = { ...ENV, NEXT_PUBLIC_SITE_URL: 'https://example.com' }
   })
 
   afterAll(() => {
@@ -29,11 +29,11 @@ describe('sitemap.xml', () => {
 
     expect(urls).toEqual(
       expect.arrayContaining([
-        'https://maqboolthoufeeq.com',
-        'https://maqboolthoufeeq.com/blog',
-        'https://maqboolthoufeeq.com/projects',
-        'https://maqboolthoufeeq.com/blog/hello-world',
-        'https://maqboolthoufeeq.com/blog/second-post',
+        'https://example.com',
+        'https://example.com/blog',
+        'https://example.com/projects',
+        'https://example.com/blog/hello-world',
+        'https://example.com/blog/second-post',
       ]),
     )
   })
@@ -41,7 +41,7 @@ describe('sitemap.xml', () => {
   it('lists the home page without a trailing slash (matches its canonical)', async () => {
     findMany.mockResolvedValue([])
     const entries = await sitemap()
-    expect(entries[0].url).toBe('https://maqboolthoufeeq.com')
+    expect(entries[0].url).toBe('https://example.com')
   })
 
   it('queries only published posts', async () => {
@@ -68,9 +68,9 @@ describe('sitemap.xml', () => {
     findMany.mockRejectedValue(new Error('connection refused'))
     const entries = await sitemap()
     expect(entries.map((e) => e.url)).toEqual([
-      'https://maqboolthoufeeq.com',
-      'https://maqboolthoufeeq.com/blog',
-      'https://maqboolthoufeeq.com/projects',
+      'https://example.com',
+      'https://example.com/blog',
+      'https://example.com/projects',
     ])
   })
 })

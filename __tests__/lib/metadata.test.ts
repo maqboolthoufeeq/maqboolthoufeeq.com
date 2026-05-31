@@ -21,8 +21,8 @@ describe('getSiteUrl', () => {
   })
 
   it('falls back to the Vercel production domain with https', () => {
-    process.env.VERCEL_PROJECT_PRODUCTION_URL = 'maqboolthoufeeq.com'
-    expect(getSiteUrl()).toBe('https://maqboolthoufeeq.com')
+    process.env.VERCEL_PROJECT_PRODUCTION_URL = 'example.com'
+    expect(getSiteUrl()).toBe('https://example.com')
   })
 
   it('falls back to VERCEL_URL when no production domain is set', () => {
@@ -31,7 +31,7 @@ describe('getSiteUrl', () => {
   })
 
   it('uses the default site url as a last resort', () => {
-    expect(getSiteUrl()).toBe('https://maqboolthoufeeq.com')
+    expect(getSiteUrl()).toBe('http://localhost:3000')
   })
 
   it('strips trailing slashes', () => {
@@ -46,7 +46,7 @@ describe('getSiteUrl', () => {
 })
 
 describe('absoluteUrl', () => {
-  const base = 'https://maqboolthoufeeq.com'
+  const base = 'https://example.com'
 
   it('returns absolute URLs unchanged', () => {
     expect(absoluteUrl('https://cdn.example.com/a.png', base)).toBe('https://cdn.example.com/a.png')
@@ -54,11 +54,11 @@ describe('absoluteUrl', () => {
   })
 
   it('prefixes relative paths with the base origin', () => {
-    expect(absoluteUrl('/images/cover.png', base)).toBe('https://maqboolthoufeeq.com/images/cover.png')
+    expect(absoluteUrl('/images/cover.png', base)).toBe('https://example.com/images/cover.png')
   })
 
   it('adds a leading slash to bare paths', () => {
-    expect(absoluteUrl('cover.png', base)).toBe('https://maqboolthoufeeq.com/cover.png')
+    expect(absoluteUrl('cover.png', base)).toBe('https://example.com/cover.png')
   })
 
   it('handles a base with a trailing slash', () => {

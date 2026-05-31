@@ -2,7 +2,7 @@ import { ImageResponse } from 'next/og'
 import { prisma } from '@/lib/prisma'
 import { buildExcerpt } from '@/lib/utils'
 import { BrandedOgCard, CoverOgCard, fetchImageAsDataUri, OG_CACHE_HEADERS, OG_SIZE } from '@/lib/og-card'
-import { SITE_NAME, SITE_TAGLINE } from '@/lib/seo'
+import { getSeo } from '@/lib/site-content'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -24,11 +24,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
   // matching the main page route which 404s unpublished posts.
   const post = row?.published ? row : null
 
-  const title = post?.title ?? SITE_NAME
-  const subtitle = post?.excerpt?.trim() || (post ? buildExcerpt(post.content, 140) : SITE_TAGLINE)
+  const seo = await getSeo()
+  const title = post?.title ?? seo.siteName
+  const subtitle = post?.excerpt?.trim() || (post ? buildExcerpt(post.content, 140) : seo.tagline)
   const cover = await fetchImageAsDataUri(post?.coverImage)
 
-  const card = cover ? <CoverOgCard cover={cover} title={title} /> : <BrandedOgCard title={title} subtitle={subtitle} />
+  const card = cover
+    ? <CoverOgCard cover={cover} title={title} domain={seo.domain} author={seo.author} />
+    : <BrandedOgCard title={title} subtitle={subtitle} domain={seo.domain} author={seo.author} role={seo.role} />
 
   return new ImageResponse(card, { ...OG_SIZE, headers: OG_CACHE_HEADERS })
 }

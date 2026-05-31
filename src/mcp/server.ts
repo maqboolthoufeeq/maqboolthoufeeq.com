@@ -10,7 +10,7 @@
  * This stdio version is useful when running locally without exposing the app.
  *
  * Required env vars:
- *   BLOG_API_URL        — e.g. https://maqboolthoufeeq.com
+ *   BLOG_API_URL        — e.g. https://example.com
  *   MCP_ACCESS_TOKEN    — Bearer token obtained via OAuth flow
  *
  * OAuth Setup (one-time):

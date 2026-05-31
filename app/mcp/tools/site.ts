@@ -12,13 +12,13 @@ export const TOOLS: ToolDef[] = [
     name: 'get_site_section',
     description:
       'Read the current content of any site section. ' +
-      'Sections: hero | about | navbar | contact | footer | sections (visibility flags).',
+      'Sections: hero | about | navbar | contact | footer | sections (visibility flags) | seo (identity).',
     inputSchema: {
       type: 'object',
       properties: {
         section: {
           type: 'string',
-          enum: ['hero', 'about', 'navbar', 'contact', 'footer', 'sections'],
+          enum: ['hero', 'about', 'navbar', 'contact', 'footer', 'sections', 'seo'],
         },
       },
       required: ['section'],
@@ -160,6 +160,25 @@ Fields:
     },
   },
   {
+    name: 'update_seo',
+    description: `Update the site SEO / identity used in page titles, meta descriptions and social share cards.
+Every field is optional. Leave one blank to fall back to existing content:
+  siteName  — brand/site name. Blank → the Navbar brand name.
+  author    — content author. Blank → same as siteName.
+  role      — short role/subtitle shown on share cards. Blank → the Hero title.
+  tagline   — default social-share description. Blank → the Hero description.
+The site URL is configured via the NEXT_PUBLIC_SITE_URL environment variable, not here.`,
+    inputSchema: {
+      type: 'object',
+      properties: {
+        siteName: { type: 'string' },
+        author: { type: 'string' },
+        role: { type: 'string' },
+        tagline: { type: 'string' },
+      },
+    },
+  },
+  {
     name: 'update_sections',
     description:
       'Show or hide individual page sections on the landing page. ' +
@@ -182,7 +201,7 @@ Fields:
 export async function handle(name: string, args: Record<string, unknown>): Promise<ToolContent[]> {
   switch (name) {
     case 'get_site_section': {
-      const { section } = args as { section: 'hero' | 'about' | 'navbar' | 'contact' | 'footer' | 'sections' }
+      const { section } = args as { section: 'hero' | 'about' | 'navbar' | 'contact' | 'footer' | 'sections' | 'seo' }
       const value = await getSiteContent(section)
       return text(value)
     }
@@ -227,6 +246,13 @@ export async function handle(name: string, args: Record<string, unknown>): Promi
       const updated = { ...current, ...args }
       await setSiteContent('sections', updated)
       return text(`Section visibility updated.\n${JSON.stringify(updated, null, 2)}`)
+    }
+
+    case 'update_seo': {
+      const current = await getSiteContent('seo')
+      const updated = { ...current, ...args }
+      await setSiteContent('seo', updated)
+      return text(`SEO / identity updated.\n${JSON.stringify(updated, null, 2)}`)
     }
 
     default: throw new Error(`Unknown tool: ${name}`)

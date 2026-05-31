@@ -1,6 +1,6 @@
 import { buildShareLinks } from '@/lib/share'
 
-const url = 'https://maqboolthoufeeq.com/blog/hello-world'
+const url = 'https://example.com/blog/hello-world'
 const title = 'Hello, World & Friends'
 const text = 'A short summary of the post.'
 

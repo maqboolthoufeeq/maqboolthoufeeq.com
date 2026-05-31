@@ -2,7 +2,7 @@ import { headers } from 'next/headers'
 import { getSiteUrl } from './utils'
 
 /**
- * Resolve the origin of the *current request* (e.g. https://www.maqboolthoufeeq.com)
+ * Resolve the origin of the *current request* (e.g. https://www.example.com)
  * from the incoming headers. This is what makes social previews reliable: the
  * og:url and og:image we emit must live on the exact host the crawler fetched
  * — if they point at a different host (apex vs www, or a *.vercel.app domain)

@@ -6,8 +6,8 @@ import { prisma } from '@/lib/prisma'
 import { DEFAULT_THEME_ID, getTheme, themeToCSS } from '@/lib/themes'
 import { DEFAULT_DESIGN_ID } from '@/lib/designs'
 import { getRequestOrigin } from '@/lib/request-origin'
-import { getSiteContent } from '@/lib/site-content'
-import { SITE_NAME, SITE_TAGLINE, ogCardUrl, ogImages } from '@/lib/seo'
+import { getSeo } from '@/lib/site-content'
+import { ogCardUrl, ogImages } from '@/lib/seo'
 import { DesignSync } from './DesignSync'
 import VisitTracker from '@/components/VisitTracker'
 import './globals.css'
@@ -22,20 +22,20 @@ export const lora = Lora({
 })
 
 export async function generateMetadata(): Promise<Metadata> {
-  const [origin, hero] = await Promise.all([getRequestOrigin(), getSiteContent('hero')])
-  const title = `${SITE_NAME} — ${hero.title}`
+  const [origin, seo] = await Promise.all([getRequestOrigin(), getSeo()])
+  const title = `${seo.siteName} — ${seo.role}`
   // Default share image used as the fallback for any page that doesn't set its
   // own openGraph (and inherited by future pages automatically).
-  const ogImage = ogCardUrl(origin, title, SITE_TAGLINE)
+  const ogImage = ogCardUrl(origin, title, seo.tagline)
   return {
     metadataBase: new URL(origin),
     title,
-    description: SITE_TAGLINE,
+    description: seo.tagline,
     openGraph: {
       type: 'website',
-      siteName: SITE_NAME,
+      siteName: seo.siteName,
       title,
-      description: SITE_TAGLINE,
+      description: seo.tagline,
       url: origin,
       locale: 'en_US',
       images: ogImages(ogImage, title),
@@ -43,7 +43,7 @@ export async function generateMetadata(): Promise<Metadata> {
     twitter: {
       card: 'summary_large_image',
       title,
-      description: SITE_TAGLINE,
+      description: seo.tagline,
       images: [ogImage],
     },
   }

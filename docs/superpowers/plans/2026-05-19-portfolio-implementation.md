@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build maqboolthoufeeq.com — a full portfolio site with dark-glow aesthetic, headshot hero, blog, and admin CMS, deployed on Vercel.
+**Goal:** Build example.com — a full portfolio site with dark-glow aesthetic, headshot hero, blog, and admin CMS, deployed on Vercel.
 
 **Architecture:** Next.js 15 App Router single codebase. Public routes serve the portfolio (Hero/About/Projects/Stack/Contact) and blog from Neon Postgres via Prisma. Admin routes (/admin/*) protected by NextAuth v5 credentials provide a CMS for posts and projects. Vercel Blob stores uploaded images.
 
@@ -70,8 +70,8 @@
 - [ ] **Step 1: Scaffold the Next.js 15 project**
 
 ```bash
-cd /Users/maqbool/Desktop/mtt_projects/maqbool
-npx create-next-app@latest maqboolthoufeeqdotcom \
+cd ~/projects
+npx create-next-app@latest portfolio-site \
   --typescript \
   --tailwind \
   --eslint \
@@ -85,7 +85,7 @@ If the directory already exists and has files, scaffold in a temp dir and copy `
 - [ ] **Step 2: Install all dependencies**
 
 ```bash
-cd /Users/maqbool/Desktop/mtt_projects/maqbool/maqboolthoufeeqdotcom
+cd ~/projects/portfolio-site
 npm install \
   geist \
   @prisma/client \
@@ -554,9 +554,9 @@ import { ThemeProvider } from 'next-themes'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Maqbool Thoufeeq — Full-Stack Developer',
-  description: 'Full-Stack Developer building fast, beautiful web products with React, Node.js, and everything in between.',
-  metadataBase: new URL('https://maqboolthoufeeq.com'),
+  title: 'title',
+  description: 'description',
+  metadataBase: new URL('https://example.com'),
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
@@ -610,7 +610,7 @@ export function Navbar() {
     <header className="fixed top-0 inset-x-0 z-50 border-b border-[var(--border)] bg-[var(--background)]/80 backdrop-blur-sm">
       <nav className="mx-auto max-w-5xl px-4 h-14 flex items-center justify-between">
         <Link href="/" className="font-bold tracking-tight text-sm">
-          maqboolthoufeeq.com
+          example.com
         </Link>
 
         <div className="hidden md:flex items-center gap-6">
@@ -1036,7 +1036,7 @@ export function HeroSection() {
             <div className="absolute inset-0 rounded-full bg-[var(--accent)]/30 blur-2xl" />
             <Image
               src="/headshot.jpg"
-              alt="Maqbool Thoufeeq"
+              alt="Your Name"
               width={192}
               height={192}
               className="relative rounded-full border-2 border-[var(--accent)]/60 object-cover w-full h-full"
@@ -1047,7 +1047,7 @@ export function HeroSection() {
         <div>
           <p className="text-xs uppercase tracking-widest text-[var(--muted)] mb-2">Hello, I'm</p>
           <h1 className="text-4xl md:text-5xl font-extrabold tracking-tight leading-tight mb-2">
-            Maqbool Thoufeeq
+            Your Name
           </h1>
           <p className="text-[var(--accent)] font-medium mb-4">Full-Stack Developer</p>
           <p className="text-[var(--muted)] leading-relaxed max-w-md mb-8">
@@ -1236,17 +1236,17 @@ export function ContactSection() {
         </p>
         <div className="flex justify-center gap-4 flex-wrap">
           <Button asChild variant="outline" className="border-[var(--border)] gap-2">
-            <a href="mailto:maqbool@maqboolthoufeeq.com">
+            <a href="mailto:you@example.com">
               <Mail className="h-4 w-4" /> Email
             </a>
           </Button>
           <Button asChild variant="outline" className="border-[var(--border)] gap-2">
-            <a href="https://github.com/maqboolthoufeeq" target="_blank" rel="noopener noreferrer">
+            <a href="https://github.com/your-username" target="_blank" rel="noopener noreferrer">
               <Github className="h-4 w-4" /> GitHub
             </a>
           </Button>
           <Button asChild variant="outline" className="border-[var(--border)] gap-2">
-            <a href="https://linkedin.com/in/maqboolthoufeeq" target="_blank" rel="noopener noreferrer">
+            <a href="https://linkedin.com/in/your-username" target="_blank" rel="noopener noreferrer">
               <Linkedin className="h-4 w-4" /> LinkedIn
             </a>
           </Button>
@@ -1283,7 +1283,7 @@ export default function PublicLayout({ children }: { children: React.ReactNode }
       <Navbar />
       <main>{children}</main>
       <footer className="border-t border-[var(--border)] py-8 text-center text-xs text-[var(--muted)]">
-        {`© ${new Date().getFullYear()} Maqbool Thoufeeq`}
+        {`© ${new Date().getFullYear()} Your Name`}
       </footer>
     </>
   )
@@ -1492,7 +1492,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const post = await prisma.post.findUnique({ where: { slug } })
   if (!post) return {}
   return {
-    title: `${post.title} — Maqbool Thoufeeq`,
+    title: `${post.title} — Your Name`,
     description: post.excerpt ?? undefined,
   }
 }
@@ -2587,7 +2587,7 @@ In Vercel dashboard, add:
 ```
 DATABASE_URL         (Neon Postgres connection string)
 NEXTAUTH_SECRET      (32-char random string — run: openssl rand -base64 32)
-NEXTAUTH_URL         https://maqboolthoufeeq.com
+NEXTAUTH_URL         https://example.com
 ADMIN_EMAIL          your-email@example.com
 ADMIN_PASSWORD       your-strong-password
 BLOB_READ_WRITE_TOKEN  (from Vercel Blob settings)
@@ -2606,7 +2606,7 @@ Create a PR from `dev` to `main` in GitHub. Merge it. Vercel auto-deploys on mer
 
 - [ ] **Step 10: Smoke-test production**
 
-Visit `https://maqboolthoufeeq.com`:
+Visit `https://example.com`:
 - Homepage loads with all sections
 - Admin login works at `/admin/login`
 - Create a test project via CMS — confirm it appears on the homepage

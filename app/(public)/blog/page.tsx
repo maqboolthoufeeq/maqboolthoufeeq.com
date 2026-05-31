@@ -7,21 +7,22 @@ import BlogArchive from '@/components/blog/BlogArchive'
 import BlogTagsWidget from '@/components/blog/BlogTagsWidget'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
-import { getSiteContent } from '@/lib/site-content'
+import { getSiteContent, getSeo } from '@/lib/site-content'
 import { getRequestOrigin } from '@/lib/request-origin'
-import { SITE_NAME, buildPageMetadata } from '@/lib/seo'
+import { buildPageMetadata } from '@/lib/seo'
 import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
 
 export async function generateMetadata(): Promise<Metadata> {
-  const origin = await getRequestOrigin()
+  const [origin, seo] = await Promise.all([getRequestOrigin(), getSeo()])
   return buildPageMetadata({
     origin,
-    title: `Blog — ${SITE_NAME}`,
+    title: `Blog — ${seo.siteName}`,
     description: 'Articles about web development, TypeScript, and engineering.',
     path: '/blog',
     ogTitle: 'Blog',
+    siteName: seo.siteName,
   })
 }
 

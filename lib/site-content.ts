@@ -1,4 +1,5 @@
 import { prisma } from './prisma'
+import { getSiteUrl } from './utils'
 
 export type ImageShape = 'circle' | 'rounded' | 'square'
 export type ImageSize = 'sm' | 'md' | 'lg'
@@ -82,10 +83,27 @@ export interface AnalyticsContent {
   showBlogStats: boolean
 }
 
+/**
+ * Site identity used for SEO, page titles and social share cards. Every field
+ * is optional in practice: leave a field blank and it falls back to a sensible
+ * value derived from the Navbar/Hero content (see {@link getSeo}), so a fresh
+ * clone works out of the box and existing sites keep their identity.
+ */
+export interface SeoContent {
+  /** Brand/site name, e.g. "Jane Doe". Blank → derived from the navbar brand. */
+  siteName: string
+  /** Content author for metadata + share cards. Blank → same as siteName. */
+  author: string
+  /** One-line tagline used as the default share description. Blank → hero description. */
+  tagline: string
+  /** Professional role shown on share cards, e.g. "Software Engineer". Blank → hero title. */
+  role: string
+}
+
 const DEFAULTS = {
   navbar: {
-    brandName: 'Maqbool Thoufeeq',
-    brandTag: 'Tharayil',
+    brandName: 'Your Name',
+    brandTag: '',
     links: [
       { href: '/#about', label: 'About' },
       { href: '/#projects', label: 'Projects' },
@@ -96,11 +114,11 @@ const DEFAULTS = {
 
   hero: {
     greeting: "Hello, I'm",
-    name: 'Maqbool Thoufeeq',
-    lastName: 'Tharayil',
-    title: 'Lead Software Engineer',
+    name: 'Your Name',
+    lastName: '',
+    title: 'Your Title',
     description:
-      'I design and scale multi-tenant SaaS platforms, AI-driven systems, and distributed architectures — with a focus on reliability, clean architecture, and measurable impact.',
+      'A short sentence about what you do and what you build. Edit this in Admin → Landing page → Hero.',
     cta1Label: 'See my work',
     cta1Href: '/#projects',
     cta2Label: 'Get in touch',
@@ -114,10 +132,10 @@ const DEFAULTS = {
 
   about: {
     paragraphs: [
-      "I'm a Lead Software Engineer with 7+ years designing and scaling multi-tenant SaaS platforms, AI-driven systems, and distributed architectures. I've owned production-critical systems handling millions of daily requests, stabilized legacy platforms, and led engineering teams.",
-      'I specialize in Python (Django/FastAPI), AI integrations (RAG, LLMs, real-time voice AI), and distributed systems — with a focus on scalability, reliability, and clean architecture.',
+      'Write a short bio here. Tell visitors who you are, what you do, and what you care about. Edit this in Admin → Landing page → About.',
+      "Add a second paragraph for more detail — your background, interests, or what you're working on right now.",
     ],
-    skills: ['Python', 'Django', 'FastAPI', 'PostgreSQL', 'Redis', 'Celery', 'Weaviate', 'Temporal', 'Docker', 'AWS'],
+    skills: ['Add', 'your', 'skills', 'here'],
   } satisfies AboutContent,
 
   contact: {
@@ -127,15 +145,22 @@ const DEFAULTS = {
     address: '',
     extra: [] as ContactExtra[],
     links: [
-      { href: 'mailto:maqboolthoufeeq@gmail.com', label: 'Email' },
-      { href: 'https://github.com/maqboolthoufeeq', label: 'GitHub' },
-      { href: 'https://linkedin.com/in/maqboolthoufeeq', label: 'LinkedIn' },
+      { href: 'mailto:you@example.com', label: 'Email' },
+      { href: 'https://github.com/your-username', label: 'GitHub' },
+      { href: 'https://linkedin.com/in/your-username', label: 'LinkedIn' },
     ],
   } satisfies ContactContent,
 
   footer: {
-    copyrightName: 'Maqbool Thoufeeq',
+    copyrightName: 'Your Name',
   } satisfies FooterContent,
+
+  seo: {
+    siteName: '',
+    author: '',
+    tagline: '',
+    role: '',
+  } satisfies SeoContent,
 
   sections: {
     hero: true as boolean,
@@ -171,4 +196,52 @@ export async function setSiteContent<K extends ContentKey>(key: K, value: Conten
     create: { key, value: value as object },
     update: { value: value as object },
   })
+}
+
+/** Fully-resolved site identity, ready to drop into metadata + share cards. */
+export interface ResolvedSeo {
+  siteName: string
+  author: string
+  tagline: string
+  role: string
+  /** Canonical origin, e.g. https://example.com (no trailing slash). */
+  siteUrl: string
+  /** Bare host, e.g. example.com — used on the share-card footer. */
+  domain: string
+}
+
+const GENERIC_SEO = {
+  siteName: 'My Portfolio',
+  tagline: 'Personal portfolio and blog.',
+  role: 'Portfolio',
+} as const
+
+/**
+ * Resolve the effective site identity for SEO, titles and Open Graph cards.
+ *
+ * Each explicit `seo` field wins; when one is blank it falls back to the
+ * content the user is already editing (Navbar brand / Hero name, title and
+ * description) and finally to a generic placeholder. This keeps a freshly
+ * cloned site working with zero config while letting anyone override every
+ * value from Admin → Landing page → SEO & identity.
+ */
+export async function getSeo(): Promise<ResolvedSeo> {
+  const [seo, navbar, hero] = await Promise.all([
+    getSiteContent('seo'),
+    getSiteContent('navbar'),
+    getSiteContent('hero'),
+  ])
+
+  const brand = [navbar.brandName, navbar.brandTag].map((s) => s?.trim()).filter(Boolean).join(' ')
+  const heroName = [hero.name, hero.lastName].map((s) => s?.trim()).filter(Boolean).join(' ')
+
+  const siteName = seo.siteName?.trim() || brand || heroName || GENERIC_SEO.siteName
+  const author = seo.author?.trim() || siteName
+  const role = seo.role?.trim() || hero.title?.trim() || GENERIC_SEO.role
+  const tagline = seo.tagline?.trim() || hero.description?.trim() || GENERIC_SEO.tagline
+
+  const siteUrl = getSiteUrl()
+  const domain = siteUrl.replace(/^https?:\/\//i, '').replace(/\/+$/, '')
+
+  return { siteName, author, tagline, role, siteUrl, domain }
 }

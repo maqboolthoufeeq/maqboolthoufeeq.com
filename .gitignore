@@ -44,7 +44,7 @@ Thumbs.db
 # Local reference/config files not part of the codebase
 reference-site.png
 ruflo.md
-ruflo_maqbool.md
+ruflo_*.md
 
 # Vercel
 .vercel

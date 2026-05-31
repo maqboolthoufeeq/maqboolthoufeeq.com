@@ -19,7 +19,8 @@ import { getRelatedPosts, getAdjacentPosts } from '@/lib/related-posts'
 import { readingTime, buildExcerpt } from '@/lib/utils'
 import { sanitizePostHtml } from '@/lib/sanitize'
 import { getRequestOrigin } from '@/lib/request-origin'
-import { SITE_NAME, AUTHOR, ogImages } from '@/lib/seo'
+import { getSeo } from '@/lib/site-content'
+import { ogImages } from '@/lib/seo'
 import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
@@ -43,34 +44,35 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   })
 
   if (!post || !post.published) {
-    return { title: 'Post not found — Maqbool Thoufeeq' }
+    const { siteName } = await getSeo()
+    return { title: `Post not found — ${siteName}` }
   }
 
   // Build every absolute URL from the *request* origin so og:url and og:image
   // live on the exact host the crawler fetched (www vs apex vs *.vercel.app).
   // A host mismatch makes the image redirect, which LinkedIn rejects with
   // "cannot display preview".
-  const origin = await getRequestOrigin()
+  const [origin, seo] = await Promise.all([getRequestOrigin(), getSeo()])
   const canonical = `${origin}/blog/${slug}`
   const ogImage = `${origin}/blog/${slug}/og`
-  const description = (post.excerpt?.trim() || buildExcerpt(post.content)) || `${post.title} — by ${AUTHOR}`
+  const description = (post.excerpt?.trim() || buildExcerpt(post.content)) || `${post.title} — by ${seo.author}`
 
   return {
     metadataBase: new URL(origin),
-    title: `${post.title} — ${SITE_NAME}`,
+    title: `${post.title} — ${seo.siteName}`,
     description,
-    authors: [{ name: AUTHOR }],
+    authors: [{ name: seo.author }],
     keywords: post.tags.map((t) => t.name),
     alternates: { canonical },
     openGraph: {
       type: 'article',
       url: canonical,
-      siteName: SITE_NAME,
+      siteName: seo.siteName,
       title: post.title,
       description,
       publishedTime: post.publishedAt?.toISOString(),
       modifiedTime: post.updatedAt?.toISOString(),
-      authors: [AUTHOR],
+      authors: [seo.author],
       section: post.tags[0]?.name,
       tags: post.tags.map((t) => t.name),
       images: ogImages(ogImage, post.title),

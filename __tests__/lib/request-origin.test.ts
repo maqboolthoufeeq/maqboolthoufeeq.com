@@ -26,23 +26,23 @@ describe('getRequestOrigin', () => {
   })
 
   it('builds the origin from x-forwarded-host + x-forwarded-proto', async () => {
-    headerMap({ 'x-forwarded-host': 'www.maqboolthoufeeq.com', 'x-forwarded-proto': 'https' })
-    expect(await getRequestOrigin()).toBe('https://www.maqboolthoufeeq.com')
+    headerMap({ 'x-forwarded-host': 'www.example.com', 'x-forwarded-proto': 'https' })
+    expect(await getRequestOrigin()).toBe('https://www.example.com')
   })
 
   it('prefers x-forwarded-host over host', async () => {
-    headerMap({ 'x-forwarded-host': 'www.maqboolthoufeeq.com', host: 'internal:3000', 'x-forwarded-proto': 'https' })
-    expect(await getRequestOrigin()).toBe('https://www.maqboolthoufeeq.com')
+    headerMap({ 'x-forwarded-host': 'www.example.com', host: 'internal:3000', 'x-forwarded-proto': 'https' })
+    expect(await getRequestOrigin()).toBe('https://www.example.com')
   })
 
   it('falls back to the host header when no forwarded host', async () => {
-    headerMap({ host: 'maqboolthoufeeq.com', 'x-forwarded-proto': 'https' })
-    expect(await getRequestOrigin()).toBe('https://maqboolthoufeeq.com')
+    headerMap({ host: 'example.com', 'x-forwarded-proto': 'https' })
+    expect(await getRequestOrigin()).toBe('https://example.com')
   })
 
   it('defaults the protocol to https', async () => {
-    headerMap({ host: 'maqboolthoufeeq.com' })
-    expect(await getRequestOrigin()).toBe('https://maqboolthoufeeq.com')
+    headerMap({ host: 'example.com' })
+    expect(await getRequestOrigin()).toBe('https://example.com')
   })
 
   it('handles a comma-separated x-forwarded-proto', async () => {
@@ -52,7 +52,7 @@ describe('getRequestOrigin', () => {
 
   it('falls back to the configured site url when no host header is present', async () => {
     headerMap({})
-    expect(await getRequestOrigin()).toBe('https://maqboolthoufeeq.com')
+    expect(await getRequestOrigin()).toBe('http://localhost:3000')
   })
 
   it('respects NEXT_PUBLIC_SITE_URL in the no-host fallback', async () => {
@@ -63,7 +63,7 @@ describe('getRequestOrigin', () => {
 
   it('falls back to the site url when the host header is malformed (no crash)', async () => {
     headerMap({ 'x-forwarded-host': 'bad host<>|', 'x-forwarded-proto': 'https' })
-    expect(await getRequestOrigin()).toBe('https://maqboolthoufeeq.com')
+    expect(await getRequestOrigin()).toBe('http://localhost:3000')
   })
 
   it('strips any path injected via the host header (returns origin only)', async () => {

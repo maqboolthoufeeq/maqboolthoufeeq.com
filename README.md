@@ -82,6 +82,22 @@ That's it — your site is live.
 
 ---
 
+## Make it your own
+
+This repo ships with **neutral placeholder content** ("Your Name", "Your Title", `you@example.com`, …) — there's nothing to edit in the source code to rebrand it. Everything that identifies the site is editable from the admin panel and stored in your database:
+
+1. Deploy, then log in at `yourdomain.com/admin`.
+2. Go to **Admin → Landing page** and fill in each section:
+   - **Navbar / Hero** — your name, title, tagline, profile image, social links.
+   - **About / Contact / Footer** — bio, skills, email, contact links, copyright.
+   - **SEO & identity** — site name, author, tagline and role used in browser tab titles, Google results and social share cards. Leave any field blank and it automatically reuses your Navbar brand / Hero values, so you only enter things once.
+3. Set `NEXT_PUBLIC_SITE_URL` to your domain (used for canonical links and share-image URLs).
+4. Optionally drop a `public/headshot.jpg` (or set an image URL in the Hero section) to replace the placeholder avatar.
+
+No code changes, redeploys, or rebuilds are needed to change content — saving in the admin updates the live site immediately.
+
+---
+
 ## Admin panel
 
 Visit `yourdomain.com/admin` to log in. Email 2FA is required when signing in from a new browser.
@@ -92,7 +108,7 @@ Visit `yourdomain.com/admin` to log in. Email 2FA is required when signing in fr
 | `/admin/posts` | Write and manage blog posts |
 | `/admin/projects` | Manage portfolio projects (drag to reorder) |
 | `/admin/tags` | Manage blog tags |
-| `/admin/site-content` | Edit homepage section visibility |
+| `/admin/site-content` | Edit all landing-page content, SEO & identity, and section visibility |
 
 ---
 

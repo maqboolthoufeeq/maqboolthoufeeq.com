@@ -12,9 +12,13 @@ import type { Metadata } from 'next'
  * which LinkedIn/Facebook reject with "cannot display preview".
  */
 
-export const SITE_NAME = 'Maqbool Thoufeeq'
-export const AUTHOR = 'Maqbool Thoufeeq'
-export const SITE_TAGLINE = 'Lead Software Engineer building scalable SaaS platforms, AI systems, and distributed architectures.'
+/**
+ * NOTE: The site name, author and tagline are no longer hardcoded here. They
+ * are resolved at request time from admin-editable content via `getSeo()` in
+ * `lib/site-content.ts`, so anyone deploying their own copy can change the full
+ * site identity from the admin panel without touching code. The helpers below
+ * stay pure (no DB access) and simply take whatever values the caller resolved.
+ */
 
 /**
  * Absolute URL of the dynamically rendered default share card (`/og`), with the
@@ -48,9 +52,9 @@ export function ogImages(url: string, alt: string): OgImage[] {
 }
 
 type PageMetaInput = {
-  /** Request origin, e.g. https://www.maqboolthoufeeq.com (no trailing slash). */
+  /** Request origin, e.g. https://www.example.com (no trailing slash). */
   origin: string
-  /** Full document <title>, e.g. "Blog — Maqbool Thoufeeq". */
+  /** Full document <title>, e.g. "Blog — Jane Doe". */
   title: string
   description: string
   /** Pathname for the canonical URL, e.g. "/blog". Omit (or "/") for the home page. */
@@ -59,6 +63,8 @@ type PageMetaInput = {
   ogTitle?: string
   /** Absolute image URL; falls back to a tailored dynamic `/og` card. */
   image?: string
+  /** og:site_name — the resolved brand/site name (see `getSeo`). */
+  siteName?: string
   type?: 'website' | 'article'
 }
 
@@ -75,6 +81,7 @@ export function buildPageMetadata({
   path = '',
   ogTitle,
   image,
+  siteName,
   type = 'website',
 }: PageMetaInput): Metadata {
   const normalizedPath = path === '/' ? '' : path
@@ -89,7 +96,7 @@ export function buildPageMetadata({
     alternates: { canonical },
     openGraph: {
       type,
-      siteName: SITE_NAME,
+      ...(siteName ? { siteName } : {}),
       title: heading,
       description,
       url: canonical,

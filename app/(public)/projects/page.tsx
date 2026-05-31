@@ -6,19 +6,21 @@ import ProjectsClient from '@/components/sections/ProjectsClient'
 import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { getRequestOrigin } from '@/lib/request-origin'
-import { SITE_NAME, buildPageMetadata } from '@/lib/seo'
+import { getSeo } from '@/lib/site-content'
+import { buildPageMetadata } from '@/lib/seo'
 import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
 
 export async function generateMetadata(): Promise<Metadata> {
-  const origin = await getRequestOrigin()
+  const [origin, seo] = await Promise.all([getRequestOrigin(), getSeo()])
   return buildPageMetadata({
     origin,
-    title: `Projects — ${SITE_NAME}`,
+    title: `Projects — ${seo.siteName}`,
     description: 'A collection of projects built across web development and engineering.',
     path: '/projects',
     ogTitle: 'Projects',
+    siteName: seo.siteName,
   })
 }
 

@@ -4,7 +4,7 @@ describe('robots.txt', () => {
   const ENV = process.env
 
   beforeEach(() => {
-    process.env = { ...ENV, NEXT_PUBLIC_SITE_URL: 'https://maqboolthoufeeq.com' }
+    process.env = { ...ENV, NEXT_PUBLIC_SITE_URL: 'https://example.com' }
   })
 
   afterAll(() => {
@@ -24,10 +24,10 @@ describe('robots.txt', () => {
   })
 
   it('references the sitemap on the canonical host', () => {
-    expect(robots().sitemap).toBe('https://maqboolthoufeeq.com/sitemap.xml')
+    expect(robots().sitemap).toBe('https://example.com/sitemap.xml')
   })
 
   it('declares the canonical host as a bare domain (no scheme, per spec)', () => {
-    expect(robots().host).toBe('maqboolthoufeeq.com')
+    expect(robots().host).toBe('example.com')
   })
 })

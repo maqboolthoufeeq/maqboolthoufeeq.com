@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import { ChevronRight } from 'lucide-react'
-import type { HeroContent, AboutContent, ContactContent, FooterContent, ContactLink, ContactExtra, NavbarContent, NavLink, ImageShape, ImageSize, SectionVisibility, SocialLink } from '@/lib/site-content'
+import type { HeroContent, AboutContent, ContactContent, FooterContent, ContactLink, ContactExtra, NavbarContent, NavLink, ImageShape, ImageSize, SectionVisibility, SocialLink, SeoContent } from '@/lib/site-content'
 
 const SOCIAL_PLATFORMS = [
   { value: 'github', label: 'GitHub' },
@@ -225,7 +225,7 @@ export function NavbarForm({ initial }: { initial: NavbarContent }) {
         <input
           value={brandTag}
           onChange={(e) => { setBrandTag(e.target.value); setSaved(false) }}
-          placeholder="e.g. Tharayil"
+          placeholder="e.g. Doe"
           className={inputCls}
         />
       </Field>
@@ -448,7 +448,7 @@ export function HeroForm({ initial }: { initial: HeroContent }) {
         <input value={form.name} onChange={(e) => set('name', e.target.value)} className={inputCls} />
       </Field>
       <Field label="Last name (shown smaller below name)">
-        <input value={(form as HeroContent & { lastName?: string }).lastName ?? ''} onChange={(e) => set('lastName' as keyof HeroContent, e.target.value)} placeholder="e.g. Tharayil" className={inputCls} />
+        <input value={(form as HeroContent & { lastName?: string }).lastName ?? ''} onChange={(e) => set('lastName' as keyof HeroContent, e.target.value)} placeholder="e.g. Doe" className={inputCls} />
       </Field>
       <Field label="Title / role">
         <input value={form.title} onChange={(e) => set('title', e.target.value)} className={inputCls} />
@@ -784,6 +784,81 @@ export function FooterForm({ initial }: { initial: FooterContent }) {
       </Field>
       <p className="text-xs text-[var(--muted)]">
         Preview: {new Date().getFullYear()} {form.copyrightName}
+      </p>
+      <SaveButton saving={saving} saved={saved} />
+    </form>
+  )
+}
+
+// ─── SEO & Identity ───────────────────────────────────────────────────────────
+
+export function SeoForm({ initial }: { initial: SeoContent }) {
+  const [form, setForm] = useState(initial)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [error, setError] = useState('')
+
+  function set(key: keyof SeoContent, value: string) {
+    setForm((f) => ({ ...f, [key]: value }))
+    setSaved(false)
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setSaving(true)
+    setError('')
+    try {
+      await save('seo', form)
+      setSaved(true)
+    } catch {
+      setError('Failed to save')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {error && <p className="text-red-400 text-sm">{error}</p>}
+      <p className="text-xs text-[var(--muted)]">
+        Controls page titles, search-engine descriptions and social share cards. Leave a field blank
+        to reuse what you&apos;ve already set elsewhere (Navbar brand, Hero name / title / description).
+      </p>
+      <Field label="Site name">
+        <input
+          value={form.siteName}
+          onChange={(e) => set('siteName', e.target.value)}
+          placeholder="Blank → your Navbar brand name"
+          className={inputCls}
+        />
+      </Field>
+      <Field label="Author">
+        <input
+          value={form.author}
+          onChange={(e) => set('author', e.target.value)}
+          placeholder="Blank → same as site name"
+          className={inputCls}
+        />
+      </Field>
+      <Field label="Role / subtitle (share cards)">
+        <input
+          value={form.role}
+          onChange={(e) => set('role', e.target.value)}
+          placeholder="Blank → your Hero title"
+          className={inputCls}
+        />
+      </Field>
+      <Field label="Tagline (default share description)">
+        <textarea
+          value={form.tagline}
+          onChange={(e) => set('tagline', e.target.value)}
+          placeholder="Blank → your Hero description"
+          rows={2}
+          className={textareaCls}
+        />
+      </Field>
+      <p className="text-xs text-[var(--muted)]">
+        The site URL itself comes from the <code>NEXT_PUBLIC_SITE_URL</code> environment variable.
       </p>
       <SaveButton saving={saving} saved={saved} />
     </form>

@@ -16,9 +16,21 @@ export const OG_CACHE_HEADERS = {
   'Cache-Control': 'public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800',
 } as const
 
-const BRAND_DOMAIN = 'maqboolthoufeeq.com'
-const BRAND_AUTHOR = 'Maqbool Thoufeeq'
-const BRAND_ROLE = 'Lead Software Engineer'
+/**
+ * Generic fallbacks for the share-card branding. Real values are resolved per
+ * request from admin-editable content (`getSeo`) and passed in as props, so a
+ * deployed site shows its own identity; these only apply if a caller omits them.
+ */
+const FALLBACK_DOMAIN = 'example.com'
+const FALLBACK_AUTHOR = 'Your Name'
+const FALLBACK_ROLE = 'Portfolio'
+
+/** Branding shown on the card footer — resolved from site identity (`getSeo`). */
+export type OgBrand = {
+  author?: string
+  role?: string
+  domain?: string
+}
 
 // Upper bound on the source cover image we'll inline. Generous for real photos
 // but blocks an admin-set 50MB image from bloating the card / exhausting memory
@@ -51,7 +63,9 @@ export async function fetchImageAsDataUri(src: string | null | undefined): Promi
 }
 
 /** A featured-image card: the cover photo full-bleed with a title overlay. */
-export function CoverOgCard({ cover, title }: { cover: string; title: string }): ReactElement {
+export function CoverOgCard({ cover, title, domain, author }: { cover: string; title: string } & OgBrand): ReactElement {
+  const brandDomain = domain || FALLBACK_DOMAIN
+  const brandAuthor = author || FALLBACK_AUTHOR
   return (
     <div style={{ position: 'relative', display: 'flex', width: '100%', height: '100%' }}>
       {/* Satori requires a raw img element; next/image is not supported here. */}
@@ -83,7 +97,7 @@ export function CoverOgCard({ cover, title }: { cover: string; title: string }):
         </div>
         <div style={{ marginTop: 24, fontSize: 28, color: '#e2e8f0' }}>
           {/* Single text node: Satori rejects multiple children without display:flex. */}
-          {`${BRAND_DOMAIN} · ${BRAND_AUTHOR}`}
+          {`${brandDomain} · ${brandAuthor}`}
         </div>
       </div>
     </div>
@@ -91,7 +105,10 @@ export function CoverOgCard({ cover, title }: { cover: string; title: string }):
 }
 
 /** A branded gradient card used as the fallback / default when there's no cover. */
-export function BrandedOgCard({ title, subtitle }: { title: string; subtitle?: string }): ReactElement {
+export function BrandedOgCard({ title, subtitle, domain, author, role }: { title: string; subtitle?: string } & OgBrand): ReactElement {
+  const brandDomain = domain || FALLBACK_DOMAIN
+  const brandAuthor = author || FALLBACK_AUTHOR
+  const brandRole = role || FALLBACK_ROLE
   return (
     <div
       style={{
@@ -107,7 +124,7 @@ export function BrandedOgCard({ title, subtitle }: { title: string; subtitle?: s
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', fontSize: 30, color: '#94a3b8' }}>
-        {BRAND_DOMAIN}
+        {brandDomain}
       </div>
       <div style={{ display: 'flex', flexDirection: 'column' }}>
         <div style={{ fontSize: 64, fontWeight: 700, lineHeight: 1.1, maxWidth: 1000 }}>{title}</div>
@@ -118,7 +135,7 @@ export function BrandedOgCard({ title, subtitle }: { title: string; subtitle?: s
         ) : null}
       </div>
       <div style={{ display: 'flex', alignItems: 'center', fontSize: 28, color: '#94a3b8' }}>
-        {`By ${BRAND_AUTHOR} · ${BRAND_ROLE}`}
+        {`By ${brandAuthor} · ${brandRole}`}
       </div>
     </div>
   )

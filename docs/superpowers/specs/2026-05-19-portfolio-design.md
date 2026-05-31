@@ -1,4 +1,4 @@
-# maqboolthoufeeq.com — Portfolio Site Design Spec
+# example.com — Portfolio Site Design Spec
 
 **Date:** 2026-05-19  
 **Status:** Approved
@@ -7,7 +7,7 @@
 
 ## Overview
 
-A full personal website for Maqbool Thoufeeq (Full-Stack Developer) 15 App Router. The site has a dark-first aesthetic with a light/dark toggle, a database-backed portfolio and blog, and a private admin CMS for managing content without touching code.
+A full personal website for Your Name (Full-Stack Developer) 15 App Router. The site has a dark-first aesthetic with a light/dark toggle, a database-backed portfolio and blog, and a private admin CMS for managing content without touching code.
 
 ---
 
@@ -16,7 +16,7 @@ A full personal website for Maqbool Thoufeeq (Full-Stack Developer) 15 App Route
 Single Next.js 15 App Router project — frontend and backend in one codebase, deployed on Vercel.
 
 ```
-maqboolthoufeeqdotcom/
+portfolio-site/
 ├── app/
 │   ├── (public)/
 │   │   ├── page.tsx                  # Homepage
@@ -201,7 +201,7 @@ model Post {
 ```
 DATABASE_URL=           # Neon Postgres connection string
 NEXTAUTH_SECRET=        # Random 32-char secret
-NEXTAUTH_URL=           # https://maqboolthoufeeq.com
+NEXTAUTH_URL=           # https://example.com
 ADMIN_EMAIL=            # Admin login email
 ADMIN_PASSWORD=         # Admin login password (compared with bcrypt at login)
 BLOB_READ_WRITE_TOKEN=  # Vercel Blob token

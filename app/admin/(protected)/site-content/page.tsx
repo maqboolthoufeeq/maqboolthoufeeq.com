@@ -6,19 +6,21 @@ import {
   AboutForm,
   ContactForm,
   FooterForm,
+  SeoForm,
   SectionToggle,
   CollapsibleSection,
 } from '@/components/admin/SiteContentForm'
 import AdminShell from '@/components/admin/AdminShell'
 
 export default async function SiteContentPage() {
-  const [navbar, hero, about, contact, footer, sections] = await Promise.all([
+  const [navbar, hero, about, contact, footer, sections, seo] = await Promise.all([
     getSiteContent('navbar'),
     getSiteContent('hero'),
     getSiteContent('about'),
     getSiteContent('contact'),
     getSiteContent('footer'),
     getSiteContent('sections'),
+    getSiteContent('seo'),
   ])
 
   return (
@@ -93,6 +95,13 @@ export default async function SiteContentPage() {
 
         <CollapsibleSection title="Footer" description="Copyright name in the site footer.">
           <FooterForm initial={footer} />
+        </CollapsibleSection>
+
+        <CollapsibleSection
+          title="SEO & identity"
+          description="Site name, author, tagline and role used in page titles, search results and social share cards."
+        >
+          <SeoForm initial={seo} />
         </CollapsibleSection>
       </div>
     </AdminShell>

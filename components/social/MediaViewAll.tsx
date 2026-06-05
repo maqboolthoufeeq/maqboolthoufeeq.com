@@ -7,6 +7,7 @@ import { auth } from '@/lib/auth'
 import { getMediaPageData } from '@/lib/media'
 import type { Platform } from '@/lib/social'
 import MediaShowcase, { type ShowcaseRow } from '@/components/social/MediaShowcase'
+import { type ModalGroup } from '@/components/social/MediaModal'
 
 /**
  * Full "view all" page body for one platform: a Featured row on top, then one
@@ -43,6 +44,15 @@ export default async function MediaViewAll({
     })
   }
 
+  // Swipe lanes = a non-overlapping partition (each topic + uncategorised), so
+  // horizontal swipe moves topic→topic without the cross-cutting Featured row.
+  const modalGroups: ModalGroup[] = [
+    ...data.groups.map((g) => ({ id: g.id, title: g.name, items: g.items })),
+    ...(data.uncategorized.length > 0
+      ? [{ id: 'uncat', title: data.groups.length > 0 ? 'More' : 'Latest', items: data.uncategorized }]
+      : []),
+  ]
+
   return (
     <>
       <Navbar />
@@ -75,7 +85,7 @@ export default async function MediaViewAll({
           </p>
         ) : (
           <Suspense fallback={null}>
-            <MediaShowcase rows={rows} allItems={data.all} topicNav />
+            <MediaShowcase rows={rows} topicNav modalGroups={modalGroups} />
           </Suspense>
         )}
       </main>

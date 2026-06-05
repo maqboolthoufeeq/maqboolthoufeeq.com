@@ -4,7 +4,7 @@ import { useState } from 'react'
 import type { MediaCardData } from '@/lib/media'
 import type { Platform } from '@/lib/social'
 import MediaCarousel from './MediaCarousel'
-import MediaModal, { useOpenMedia } from './MediaModal'
+import MediaModal, { useOpenMedia, type ModalGroup } from './MediaModal'
 import { InstagramIcon, YoutubeIcon } from './icons'
 
 export type ShowcaseRow = {
@@ -24,15 +24,19 @@ export type ShowcaseRow = {
  */
 export default function MediaShowcase({
   rows,
-  allItems,
   topicNav = false,
+  modalGroups,
 }: {
   rows: ShowcaseRow[]
-  allItems: MediaCardData[]
   topicNav?: boolean
+  /** Swipe lanes for the player (defaults to the visible rows). Pass an explicit
+   *  non-overlapping partition where display rows overlap (e.g. a Featured row). */
+  modalGroups?: ModalGroup[]
 }) {
   const openMedia = useOpenMedia()
   const visibleRows = rows.filter((r) => r.items.length > 0)
+  const groups: ModalGroup[] =
+    modalGroups ?? visibleRows.map((r) => ({ id: r.id, title: r.title, items: r.items }))
 
   return (
     <>
@@ -59,7 +63,7 @@ export default function MediaShowcase({
         ))}
       </div>
 
-      <MediaModal items={allItems} />
+      <MediaModal groups={groups} />
     </>
   )
 }

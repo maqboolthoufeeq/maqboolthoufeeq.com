@@ -1,22 +1,30 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
   DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors, type DragEndEvent,
 } from '@dnd-kit/core'
-import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
+import { SortableContext, rectSortingStrategy, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Search, Star, EyeOff, Plus, GripVertical } from 'lucide-react'
+import { Search, Star, EyeOff, Plus, GripVertical, List, Grid3x3, LayoutGrid } from 'lucide-react'
 import type { Platform } from '@/lib/social'
 import { InstagramIcon, YoutubeIcon } from '@/components/social/icons'
-import MediaItemCard, { type MediaListItem, type MediaItemCardProps } from '@/components/admin/MediaItemCard'
+import MediaItemCard, { type MediaListItem, type MediaItemCardProps, type MediaLayout } from '@/components/admin/MediaItemCard'
 
 export type { MediaListItem }
 
 type Category = { id: string; name: string }
 type Filter = 'all' | 'featured' | 'hidden' | 'uncat' | `cat:${string}`
+type View = 'comfortable' | 'small' | 'list'
+
+const VIEW_STORAGE_KEY = 'admin-media-view'
+const VIEW_OPTIONS: { key: View; label: string; icon: typeof List }[] = [
+  { key: 'list', label: 'List', icon: List },
+  { key: 'small', label: 'Small', icon: Grid3x3 },
+  { key: 'comfortable', label: 'Large', icon: LayoutGrid },
+]
 
 const TABS: { key: Platform; label: string; icon: typeof InstagramIcon }[] = [
   { key: 'instagram', label: 'Reels', icon: InstagramIcon },
@@ -34,7 +42,18 @@ export default function MediaList({
   const [tab, setTab] = useState<Platform>('instagram')
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
+  const [view, setView] = useState<View>('comfortable')
   const router = useRouter()
+
+  // Remember the chosen card size across visits.
+  useEffect(() => {
+    const saved = localStorage.getItem(VIEW_STORAGE_KEY)
+    if (saved === 'comfortable' || saved === 'small' || saved === 'list') setView(saved)
+  }, [])
+  function chooseView(v: View) {
+    setView(v)
+    try { localStorage.setItem(VIEW_STORAGE_KEY, v) } catch { /* ignore */ }
+  }
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -137,6 +156,8 @@ export default function MediaList({
     ...(inTab.some((i) => !i.categoryId) ? [{ key: 'uncat' as Filter, label: 'No topic' }] : []),
   ]
 
+  const layout: MediaLayout = view === 'list' ? 'list' : 'card'
+
   return (
     <div className="space-y-4">
       {/* Platform tabs */}
@@ -178,49 +199,71 @@ export default function MediaList({
         </Link>
       </div>
 
-      {/* Filter chips */}
+      {/* Filter chips + view size */}
       {inTab.length > 0 && (
-        <div className="flex gap-2 overflow-x-auto no-scrollbar -mx-1 px-1 pb-0.5">
-          {chips.map((c) => (
-            <button
-              key={c.key}
-              type="button"
-              onClick={() => setFilter(c.key)}
-              className={[
-                'shrink-0 inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-medium border transition-colors',
-                filter === c.key
-                  ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
-                  : 'border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--foreground)]',
-              ].join(' ')}
-            >
-              {c.icon}
-              {c.label}
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <div className="flex gap-2 overflow-x-auto no-scrollbar flex-1 -mx-1 px-1 pb-0.5">
+            {chips.map((c) => (
+              <button
+                key={c.key}
+                type="button"
+                onClick={() => setFilter(c.key)}
+                className={[
+                  'shrink-0 inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-xs font-medium border transition-colors',
+                  filter === c.key
+                    ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
+                    : 'border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--foreground)]',
+                ].join(' ')}
+              >
+                {c.icon}
+                {c.label}
+              </button>
+            ))}
+          </div>
+          <div className="shrink-0 flex items-center gap-0.5 p-0.5 rounded-lg border border-[var(--border)] bg-[var(--surface)]">
+            {VIEW_OPTIONS.map(({ key, label, icon: Icon }) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => chooseView(key)}
+                aria-label={`${label} view`}
+                title={`${label} view`}
+                className={[
+                  'tap-scale inline-flex h-7 w-7 items-center justify-center rounded-md transition-colors',
+                  view === key ? 'bg-[var(--accent)] text-white' : 'text-[var(--muted)] hover:text-[var(--foreground)]',
+                ].join(' ')}
+              >
+                <Icon size={15} />
+              </button>
+            ))}
+          </div>
         </div>
       )}
 
-      {/* Grid */}
+      {/* Items */}
       {inTab.length === 0 ? (
         <EmptyState platform={tab} />
       ) : filtered.length === 0 ? (
         <p className="text-[var(--muted)] text-sm text-center py-12">Nothing matches this filter.</p>
       ) : canReorder ? (
         <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-          <SortableContext items={filtered.map((i) => i.id)} strategy={rectSortingStrategy}>
-            <Grid>
+          <SortableContext
+            items={filtered.map((i) => i.id)}
+            strategy={view === 'list' ? verticalListSortingStrategy : rectSortingStrategy}
+          >
+            <Container view={view}>
               {filtered.map((item) => (
-                <SortableCard key={item.id} item={item} onFeatured={toggleFeatured} onPublished={togglePublished} onDelete={handleDelete} />
+                <SortableCard key={item.id} item={item} layout={layout} onFeatured={toggleFeatured} onPublished={togglePublished} onDelete={handleDelete} />
               ))}
-            </Grid>
+            </Container>
           </SortableContext>
         </DndContext>
       ) : (
-        <Grid>
+        <Container view={view}>
           {filtered.map((item) => (
-            <MediaItemCard key={item.id} item={item} onFeatured={toggleFeatured} onPublished={togglePublished} onDelete={handleDelete} />
+            <MediaItemCard key={item.id} item={item} layout={layout} onFeatured={toggleFeatured} onPublished={togglePublished} onDelete={handleDelete} />
           ))}
-        </Grid>
+        </Container>
       )}
 
       {canReorder && filtered.length > 1 && (
@@ -230,18 +273,24 @@ export default function MediaList({
   )
 }
 
-function Grid({ children }: { children: React.ReactNode }) {
-  return <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 items-start">{children}</div>
+function Container({ view, children }: { view: View; children: React.ReactNode }) {
+  if (view === 'list') return <div className="flex flex-col gap-2">{children}</div>
+  const cols =
+    view === 'small'
+      ? 'grid-cols-3 sm:grid-cols-5 lg:grid-cols-6 gap-2'
+      : 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3'
+  return <div className={`grid ${cols} items-start`}>{children}</div>
 }
 
 function SortableCard(props: Omit<MediaItemCardProps, 'dragHandle' | 'setNodeRef' | 'style'>) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: props.item.id })
+  // Neutral grip — MediaItemCard positions it per layout.
   const handle = (
     <button
       {...listeners}
       {...attributes}
       aria-label="Drag to reorder"
-      className="absolute right-2 top-10 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full bg-black/45 text-white/80 backdrop-blur-sm touch-none cursor-grab active:cursor-grabbing hover:bg-black/70"
+      className="inline-flex items-center justify-center touch-none cursor-grab active:cursor-grabbing text-current"
     >
       <GripVertical size={13} />
     </button>

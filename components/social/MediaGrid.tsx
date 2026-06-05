@@ -18,7 +18,7 @@ export default function MediaGrid({ items }: { items: MediaCardData[] }) {
           <MediaCard key={item.id} item={item} onOpen={openMedia} />
         ))}
       </div>
-      <MediaModal items={items} />
+      <MediaModal groups={[{ id: 'all', items }]} />
     </>
   )
 }

@@ -27,7 +27,7 @@ export default async function SocialMedia() {
       <div className="w-10 h-0.5 bg-[var(--accent)] mt-3 mb-10" />
 
       <Suspense fallback={null}>
-        <MediaShowcase rows={rows} allItems={[...reels, ...videos]} />
+        <MediaShowcase rows={rows} />
       </Suspense>
     </section>
   )

@@ -56,6 +56,21 @@ const GROUPS = [
     ],
   },
   {
+    label: 'Social Media',
+    tools: [
+      { name: 'list_media',    desc: 'List reels & videos' },
+      { name: 'get_media',     desc: 'Fetch one by ID' },
+      { name: 'add_media',     desc: 'Add from URL (auto-fetch)' },
+      { name: 'update_media',  desc: 'Update a reel / video' },
+      { name: 'delete_media',  desc: 'Delete a reel / video' },
+      { name: 'reorder_media', desc: 'Set display order' },
+      { name: 'list_topics',   desc: 'List topics' },
+      { name: 'create_topic',  desc: 'Create a topic' },
+      { name: 'update_topic',  desc: 'Rename / reorder topic' },
+      { name: 'delete_topic',  desc: 'Delete a topic' },
+    ],
+  },
+  {
     label: 'Media & Utilities',
     tools: [
       { name: 'upload_image_from_url', desc: 'Download & re-host image' },
@@ -102,14 +117,15 @@ export default function McpTools({ initialDisabled }: Props) {
     setSaved(true)
   }
 
-  const enabledCount = GROUPS.flatMap((g) => g.tools).length - disabled.size
+  const totalCount = GROUPS.flatMap((g) => g.tools).length
+  const enabledCount = totalCount - disabled.size
 
   return (
     <section className="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6">
       <div className="flex items-center justify-between mb-5">
         <div>
           <h2 className="font-semibold text-[var(--foreground)]">Tools</h2>
-          <p className="text-xs text-[var(--muted)] mt-0.5">{enabledCount} of 30 enabled</p>
+          <p className="text-xs text-[var(--muted)] mt-0.5">{enabledCount} of {totalCount} enabled</p>
         </div>
         <button
           onClick={save}

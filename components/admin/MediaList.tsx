@@ -2,16 +2,19 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { useRouter, usePathname, useSearchParams } from 'next/navigation'
 import {
   DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors, type DragEndEvent,
 } from '@dnd-kit/core'
 import { SortableContext, rectSortingStrategy, verticalListSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
-import { Search, Star, EyeOff, Plus, GripVertical, List, Grid3x3, LayoutGrid } from 'lucide-react'
+import { Search, Star, EyeOff, Plus, GripVertical, List, Grid3x3, LayoutGrid, ListChecks, Trash2, X } from 'lucide-react'
 import type { Platform } from '@/lib/social'
 import { InstagramIcon, YoutubeIcon } from '@/components/social/icons'
 import MediaItemCard, { type MediaListItem, type MediaItemCardProps, type MediaLayout } from '@/components/admin/MediaItemCard'
+import ConfirmDialog from '@/components/admin/ConfirmDialog'
+
+function tabToSlug(p: Platform) { return p === 'youtube' ? 'videos' : 'reels' }
 
 export type { MediaListItem }
 
@@ -39,11 +42,26 @@ export default function MediaList({
   categories: Category[]
 }) {
   const [items, setItems] = useState(initialItems)
-  const [tab, setTab] = useState<Platform>('instagram')
   const [query, setQuery] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
   const [view, setView] = useState<View>('comfortable')
+  const [selectMode, setSelectMode] = useState(false)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [pendingDelete, setPendingDelete] = useState<string[] | null>(null)
+  const [deleting, setDeleting] = useState(false)
   const router = useRouter()
+  const pathname = usePathname()
+  const searchParams = useSearchParams()
+
+  // The active platform tab lives in the URL (?tab=reels|videos) so it's
+  // shareable, reloadable and back-button friendly.
+  const tab: Platform = searchParams.get('tab') === 'videos' ? 'youtube' : 'instagram'
+  function selectTab(p: Platform) {
+    router.replace(`${pathname}?tab=${tabToSlug(p)}`, { scroll: false })
+    setQuery(''); setFilter('all'); exitSelect()
+  }
+  // Clear selection whenever the tab changes (incl. via back/forward).
+  useEffect(() => { setSelectMode(false); setSelected(new Set()) }, [tab])
 
   // Remember the chosen card size across visits.
   useEffect(() => {
@@ -91,7 +109,18 @@ export default function MediaList({
     })
   }, [inTab, q, filter])
 
-  const canReorder = filter === 'all' && !q
+  const canReorder = filter === 'all' && !q && !selectMode
+
+  // Keep the selection in sync with what's visible: prune ids that get
+  // filtered/searched out or deleted, so the count never claims hidden items.
+  useEffect(() => {
+    setSelected((prev) => {
+      if (prev.size === 0) return prev
+      const visible = new Set(filtered.map((i) => i.id))
+      const next = new Set([...prev].filter((id) => visible.has(id)))
+      return next.size === prev.size ? prev : next
+    })
+  }, [filtered])
 
   async function patch(id: string, body: Record<string, unknown>) {
     return fetch(`/api/media/${id}`, {
@@ -141,11 +170,51 @@ export default function MediaList({
     else router.refresh()
   }
 
-  async function handleDelete(item: MediaListItem) {
-    if (!confirm(`Delete “${item.title}”?`)) return
-    setItems((all) => all.filter((i) => i.id !== item.id))
-    await fetch(`/api/media/${item.id}`, { method: 'DELETE' })
-    router.refresh()
+  // Single-item delete (card trash) and multi-select delete share one dialog.
+  function handleDelete(item: MediaListItem) {
+    setPendingDelete([item.id])
+  }
+
+  // ── Multi-select ────────────────────────────────────────────────────────────
+  function exitSelect() {
+    setSelectMode(false)
+    setSelected(new Set())
+  }
+  function toggleSelect(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+  const allFilteredSelected = filtered.length > 0 && filtered.every((i) => selected.has(i.id))
+  function toggleSelectAll() {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (allFilteredSelected) filtered.forEach((i) => next.delete(i.id))
+      else filtered.forEach((i) => next.add(i.id))
+      return next
+    })
+  }
+  async function confirmDelete() {
+    const ids = pendingDelete
+    if (!ids?.length) return
+    setDeleting(true)
+    try {
+      const res = await Promise.all(ids.map((id) => fetch(`/api/media/${id}`, { method: 'DELETE' })))
+      // fetch resolves even on 4xx/5xx — only mutate local state if every delete succeeded.
+      if (res.some((r) => !r.ok)) throw new Error('delete-failed')
+      const del = new Set(ids)
+      setItems((all) => all.filter((i) => !del.has(i.id)))
+      if (selectMode) exitSelect()
+    } catch {
+      alert('Some items couldn’t be deleted. Please try again.')
+    } finally {
+      setDeleting(false)
+      setPendingDelete(null)
+      router.refresh() // re-sync from server in either case
+    }
   }
 
   const chips: { key: Filter; label: string; icon?: React.ReactNode }[] = [
@@ -166,7 +235,7 @@ export default function MediaList({
           <button
             key={key}
             type="button"
-            onClick={() => { setTab(key); setQuery(''); setFilter('all') }}
+            onClick={() => selectTab(key)}
             className={[
               'tap-scale flex-1 h-10 rounded-xl text-sm font-medium inline-flex items-center justify-center gap-2 transition-colors',
               tab === key ? 'bg-[var(--accent)] text-white' : 'text-[var(--muted)] hover:text-[var(--foreground)]',
@@ -220,6 +289,19 @@ export default function MediaList({
               </button>
             ))}
           </div>
+          <button
+            type="button"
+            onClick={() => (selectMode ? exitSelect() : setSelectMode(true))}
+            aria-label="Select items"
+            title="Select multiple"
+            className={[
+              'tap-scale shrink-0 inline-flex h-8 px-2.5 items-center gap-1.5 rounded-lg border text-xs font-medium transition-colors',
+              selectMode ? 'border-[var(--accent)] bg-[var(--accent)] text-white' : 'border-[var(--border)] text-[var(--muted)] hover:text-[var(--foreground)]',
+            ].join(' ')}
+          >
+            <ListChecks size={15} />
+            <span className="hidden sm:inline">Select</span>
+          </button>
           <div className="shrink-0 flex items-center gap-0.5 p-0.5 rounded-lg border border-[var(--border)] bg-[var(--surface)]">
             {VIEW_OPTIONS.map(({ key, label, icon: Icon }) => (
               <button
@@ -246,7 +328,7 @@ export default function MediaList({
       ) : filtered.length === 0 ? (
         <p className="text-[var(--muted)] text-sm text-center py-12">Nothing matches this filter.</p>
       ) : canReorder ? (
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+        <DndContext id="media-reorder" sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
           <SortableContext
             items={filtered.map((i) => i.id)}
             strategy={view === 'list' ? verticalListSortingStrategy : rectSortingStrategy}
@@ -261,7 +343,17 @@ export default function MediaList({
       ) : (
         <Container view={view}>
           {filtered.map((item) => (
-            <MediaItemCard key={item.id} item={item} layout={layout} onFeatured={toggleFeatured} onPublished={togglePublished} onDelete={handleDelete} />
+            <MediaItemCard
+              key={item.id}
+              item={item}
+              layout={layout}
+              onFeatured={toggleFeatured}
+              onPublished={togglePublished}
+              onDelete={handleDelete}
+              selectable={selectMode}
+              selected={selected.has(item.id)}
+              onToggleSelect={() => toggleSelect(item.id)}
+            />
           ))}
         </Container>
       )}
@@ -269,6 +361,46 @@ export default function MediaList({
       {canReorder && filtered.length > 1 && (
         <p className="text-xs text-[var(--muted)] text-center">Drag the handle to reorder • tap ★ to feature • tap the eye to hide.</p>
       )}
+
+      {/* Bulk-select action bar */}
+      {selectMode && (
+        <div className="sticky bottom-3 z-30 mt-2">
+          <div className="mx-auto flex max-w-2xl items-center gap-2 rounded-2xl border border-[var(--border)] bg-[var(--surface)]/95 backdrop-blur-xl px-3 py-2 shadow-xl">
+            <button
+              type="button"
+              onClick={toggleSelectAll}
+              disabled={filtered.length === 0}
+              className="tap-scale text-xs font-medium text-[var(--accent)] disabled:opacity-40 px-1"
+            >
+              {allFilteredSelected ? 'Clear' : 'Select all'}
+            </button>
+            <span className="text-sm text-[var(--foreground)] flex-1 text-center tabular-nums">
+              {selected.size} selected
+            </span>
+            <button
+              type="button"
+              onClick={() => setPendingDelete([...selected])}
+              disabled={selected.size === 0}
+              className="tap-scale inline-flex items-center gap-1.5 h-9 px-3 rounded-xl bg-red-600 text-white text-sm font-semibold hover:bg-red-700 disabled:opacity-40"
+            >
+              <Trash2 size={15} /> Delete
+            </button>
+            <button type="button" onClick={exitSelect} aria-label="Cancel selection" className="tap-scale h-9 w-9 inline-flex items-center justify-center rounded-xl text-[var(--muted)] hover:bg-[var(--background)]">
+              <X size={18} />
+            </button>
+          </div>
+        </div>
+      )}
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        busy={deleting}
+        title={`Delete ${pendingDelete?.length ?? 0} ${tab === 'instagram' ? 'reel' : 'video'}${(pendingDelete?.length ?? 0) !== 1 ? 's' : ''}?`}
+        message="This permanently removes the selected items from your site. This can’t be undone."
+        confirmLabel={`Delete ${pendingDelete?.length ?? 0}`}
+        onConfirm={confirmDelete}
+        onCancel={() => { if (!deleting) setPendingDelete(null) }}
+      />
     </div>
   )
 }

@@ -87,6 +87,16 @@ export default async function SiteContentPage() {
             . When on, a scrollable Reels row and Videos row appear on the landing page, each
             linking to a full page grouped by topic.
           </p>
+          <div className="mt-4 space-y-2">
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2.5">
+              <span className="text-sm font-medium text-[var(--foreground)]">Reels row</span>
+              <SectionToggle sectionKey="socialReels" initialSections={sections} />
+            </div>
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2.5">
+              <span className="text-sm font-medium text-[var(--foreground)]">Videos row</span>
+              <SectionToggle sectionKey="socialVideos" initialSections={sections} />
+            </div>
+          </div>
         </CollapsibleSection>
 
         <CollapsibleSection

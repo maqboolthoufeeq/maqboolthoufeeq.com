@@ -41,12 +41,18 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
   return NextResponse.json({ error: 'Could not generate a unique slug' }, { status: 409 })
 }
 
-export async function DELETE(_req: NextRequest, { params }: Ctx) {
+export async function DELETE(req: NextRequest, { params }: Ctx) {
   const session = await auth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id } = await params
-  // Items keep existing; their categoryId is set null via the schema relation.
+  const withItems = new URL(req.url).searchParams.get('withItems') === '1'
+
+  if (withItems) {
+    // Cascade: delete every reel/video inside this topic, then the topic.
+    await prisma.mediaItem.deleteMany({ where: { categoryId: id } })
+  }
+  // Otherwise items keep existing; their categoryId is set null via the relation.
   await prisma.mediaCategory.delete({ where: { id } })
   return new NextResponse(null, { status: 204 })
 }

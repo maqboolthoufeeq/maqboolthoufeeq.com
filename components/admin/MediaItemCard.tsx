@@ -1,7 +1,7 @@
 'use client'
 
 import Link from 'next/link'
-import { Pencil, Trash2, Star, Eye, EyeOff, Film } from 'lucide-react'
+import { Pencil, Trash2, Star, Eye, EyeOff, Film, Check } from 'lucide-react'
 import { type Platform, resolveThumbnail, youTubeThumbnail, mediaOrientation, aspectClassForOrientation } from '@/lib/social'
 import { InstagramIcon, YoutubeIcon } from '@/components/social/icons'
 
@@ -36,6 +36,10 @@ export type MediaItemCardProps = {
   dragHandle?: React.ReactNode
   setNodeRef?: (el: HTMLDivElement | null) => void
   style?: React.CSSProperties
+  /** Selection mode — clicking the card toggles selection instead of navigating. */
+  selectable?: boolean
+  selected?: boolean
+  onToggleSelect?: () => void
 }
 
 /**
@@ -45,11 +49,26 @@ export type MediaItemCardProps = {
  */
 export default function MediaItemCard({
   item, onFeatured, onPublished, onDelete, layout = 'card', backTo = '/admin/media', extraAction, dragHandle, setNodeRef, style,
+  selectable = false, selected = false, onToggleSelect,
 }: MediaItemCardProps) {
   const orientation = mediaOrientation(item.platform, item.sourceUrl)
   const thumb = resolveThumbnail(item.platform, item.embedId, item.thumbnailUrl, 'maxres')
   const PlatformIcon = item.platform === 'instagram' ? InstagramIcon : YoutubeIcon
   const editHref = `/admin/media/${item.id}/edit?from=${encodeURIComponent(backTo)}`
+  const linkOff = selectable ? 'pointer-events-none' : ''
+
+  const checkbox = (
+    <span
+      aria-hidden
+      className={[
+        'inline-flex items-center justify-center rounded-full border-2 transition-colors',
+        layout === 'list' ? 'h-6 w-6' : 'h-7 w-7',
+        selected ? 'bg-[var(--accent)] border-[var(--accent)] text-white' : 'border-white/80 bg-black/30 text-transparent',
+      ].join(' ')}
+    >
+      <Check size={layout === 'list' ? 13 : 15} strokeWidth={3} />
+    </span>
+  )
 
   const featureBtn = (
     <button
@@ -90,10 +109,18 @@ export default function MediaItemCard({
       <div
         ref={setNodeRef}
         style={style}
-        className={`group flex items-center gap-2 rounded-xl border border-[var(--border)] bg-[var(--surface)] pl-1 pr-2 py-1.5 ${item.published ? '' : 'opacity-75'}`}
+        onClick={selectable ? onToggleSelect : undefined}
+        className={[
+          'group flex items-center gap-2 rounded-xl border bg-[var(--surface)] pl-1 pr-2 py-1.5',
+          item.published ? '' : 'opacity-75',
+          selectable ? 'cursor-pointer select-none' : '',
+          selected ? 'border-[var(--accent)] ring-1 ring-[var(--accent)]' : 'border-[var(--border)]',
+        ].join(' ')}
       >
-        {dragHandle && <span className="shrink-0 w-6 inline-flex items-center justify-center text-[var(--muted)]">{dragHandle}</span>}
-        <Link href={editHref} className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-black">
+        {selectable
+          ? <span className="shrink-0 pl-1.5 inline-flex items-center text-[var(--muted)]">{checkbox}</span>
+          : dragHandle && <span className="shrink-0 w-6 inline-flex items-center justify-center text-[var(--muted)]">{dragHandle}</span>}
+        <Link href={editHref} tabIndex={selectable ? -1 : undefined} className={`relative h-12 w-12 shrink-0 overflow-hidden rounded-lg bg-black ${linkOff}`}>
           {thumb ? (
             <img src={thumb} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" onError={(e) => { if (item.platform === 'youtube') (e.currentTarget as HTMLImageElement).src = youTubeThumbnail(item.embedId, 'hq') }} />
           ) : (
@@ -102,19 +129,22 @@ export default function MediaItemCard({
           <span className="absolute left-0.5 top-0.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-black/55 text-white"><PlatformIcon size={9} /></span>
         </Link>
         <div className="min-w-0 flex-1">
-          <Link href={editHref} className="block text-sm font-medium text-[var(--foreground)] truncate hover:text-[var(--accent)]">{item.title}</Link>
+          <Link href={editHref} tabIndex={selectable ? -1 : undefined} className={`block text-sm font-medium text-[var(--foreground)] truncate hover:text-[var(--accent)] ${linkOff}`}>{item.title}</Link>
           <div className="flex items-center gap-1.5 mt-0.5">
             {item.categoryName && <span className="text-[10px] text-[var(--muted)] truncate">{item.categoryName}</span>}
+            {item.featured && <span className="inline-flex items-center gap-0.5 text-[10px] text-[var(--accent)]"><Star size={10} className="fill-current" /></span>}
             {!item.published && <span className="inline-flex items-center gap-0.5 text-[10px] text-[var(--muted)]"><EyeOff size={10} /> Hidden</span>}
           </div>
         </div>
-        <div className="flex items-center gap-0.5 shrink-0">
-          {featureBtn}
-          {publishBtn}
-          {extraAction}
-          {editBtn}
-          {deleteBtn}
-        </div>
+        {!selectable && (
+          <div className="flex items-center gap-0.5 shrink-0">
+            {featureBtn}
+            {publishBtn}
+            {extraAction}
+            {editBtn}
+            {deleteBtn}
+          </div>
+        )}
       </div>
     )
   }
@@ -124,40 +154,55 @@ export default function MediaItemCard({
     <div
       ref={setNodeRef}
       style={style}
-      className={`group relative rounded-2xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden flex flex-col ${item.published ? '' : 'opacity-75'}`}
+      onClick={selectable ? onToggleSelect : undefined}
+      className={[
+        'group relative rounded-2xl border bg-[var(--surface)] overflow-hidden flex flex-col',
+        item.published ? '' : 'opacity-75',
+        selectable ? 'cursor-pointer select-none' : '',
+        selected ? 'border-[var(--accent)] ring-2 ring-[var(--accent)]' : 'border-[var(--border)]',
+      ].join(' ')}
     >
-      <Link href={editHref} className={`relative block w-full bg-black ${aspectClassForOrientation(orientation)}`}>
+      <Link href={editHref} tabIndex={selectable ? -1 : undefined} className={`relative block w-full bg-black ${aspectClassForOrientation(orientation)} ${linkOff}`}>
         {thumb ? (
           <img src={thumb} alt="" loading="lazy" className="absolute inset-0 h-full w-full object-cover" onError={(e) => { if (item.platform === 'youtube') (e.currentTarget as HTMLImageElement).src = youTubeThumbnail(item.embedId, 'hq') }} />
         ) : (
           <div className="absolute inset-0 flex items-center justify-center text-white/40"><Film size={24} /></div>
         )}
         <span className="absolute left-2 top-2 inline-flex h-6 w-6 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm"><PlatformIcon size={12} /></span>
+        {selected && <span className="absolute inset-0 bg-[var(--accent)]/20" />}
         {!item.published && (
           <span className="absolute inset-x-0 bottom-0 bg-black/60 text-white text-[10px] font-semibold text-center py-1 inline-flex items-center justify-center gap-1"><EyeOff size={11} /> Hidden</span>
         )}
       </Link>
 
-      {featureBtn}
-      {dragHandle && (
-        <span className="absolute right-2 top-10 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full bg-black/45 text-white/80 backdrop-blur-sm hover:bg-black/70">{dragHandle}</span>
+      {selectable ? (
+        <span className="absolute right-2 top-2 z-10">{checkbox}</span>
+      ) : (
+        <>
+          {featureBtn}
+          {dragHandle && (
+            <span className="absolute right-2 top-10 z-10 inline-flex h-7 w-7 items-center justify-center rounded-full bg-black/45 text-white/80 backdrop-blur-sm hover:bg-black/70">{dragHandle}</span>
+          )}
+        </>
       )}
 
       <div className="p-2.5 flex flex-col gap-1.5 flex-1">
-        <Link href={editHref} className="text-sm font-medium text-[var(--foreground)] leading-snug line-clamp-2 hover:text-[var(--accent)]">{item.title}</Link>
+        <Link href={editHref} tabIndex={selectable ? -1 : undefined} className={`text-sm font-medium text-[var(--foreground)] leading-snug line-clamp-2 hover:text-[var(--accent)] ${linkOff}`}>{item.title}</Link>
         {item.categoryName && (
           <span className="inline-flex w-fit items-center text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-[var(--background)] border border-[var(--border)] text-[var(--muted)]">{item.categoryName}</span>
         )}
-        <div className="mt-auto flex items-center justify-between pt-1.5 border-t border-[var(--border)]">
-          <div className="flex items-center gap-0.5 -ml-1">
-            {publishBtn}
-            {extraAction}
+        {!selectable && (
+          <div className="mt-auto flex items-center justify-between pt-1.5 border-t border-[var(--border)]">
+            <div className="flex items-center gap-0.5 -ml-1">
+              {publishBtn}
+              {extraAction}
+            </div>
+            <div className="flex items-center gap-0.5 -mr-1">
+              {editBtn}
+              {deleteBtn}
+            </div>
           </div>
-          <div className="flex items-center gap-0.5 -mr-1">
-            {editBtn}
-            {deleteBtn}
-          </div>
-        </div>
+        )}
       </div>
     </div>
   )

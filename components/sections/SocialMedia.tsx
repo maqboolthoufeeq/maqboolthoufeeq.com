@@ -1,23 +1,31 @@
 import { Suspense } from 'react'
 import { getMediaForLanding } from '@/lib/media'
+import { getSiteContent } from '@/lib/site-content'
 import MediaShowcase, { type ShowcaseRow } from '@/components/social/MediaShowcase'
 
 /**
  * Landing-page social section: a horizontally scrollable row of Instagram reels
  * and another of YouTube videos, each with a "View all" link through to its
- * dedicated page. Renders nothing until there's something to show.
+ * dedicated page. The Reels and Videos rows can be toggled independently from
+ * Admin → Landing page → Social media. Renders nothing when both are empty/off.
  */
 export default async function SocialMedia() {
-  const [reels, videos] = await Promise.all([
+  const [reels, videos, sections] = await Promise.all([
     getMediaForLanding('instagram', 12),
     getMediaForLanding('youtube', 12),
+    getSiteContent('sections'),
   ])
 
-  if (reels.length === 0 && videos.length === 0) return null
+  const socialOff = sections.socialMedia === false
+  const reelItems = socialOff || sections.socialReels === false ? [] : reels
+  const videoItems = socialOff || sections.socialVideos === false ? [] : videos
 
+  if (reelItems.length === 0 && videoItems.length === 0) return null
+
+  // Empty rows are filtered out by MediaShowcase, so a toggled-off row vanishes.
   const rows: ShowcaseRow[] = [
-    { id: 'reels', title: 'Reels', href: '/reels', iconPlatform: 'instagram', items: reels },
-    { id: 'videos', title: 'Videos', href: '/videos', iconPlatform: 'youtube', items: videos },
+    { id: 'reels', title: 'Reels', href: '/reels', iconPlatform: 'instagram', items: reelItems },
+    { id: 'videos', title: 'Videos', href: '/videos', iconPlatform: 'youtube', items: videoItems },
   ]
 
   return (

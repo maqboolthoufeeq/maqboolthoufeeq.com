@@ -1,3 +1,4 @@
+import { Suspense } from 'react'
 import Link from 'next/link'
 import { FolderOpen } from 'lucide-react'
 import MediaList, { type MediaListItem } from '@/components/admin/MediaList'
@@ -55,7 +56,9 @@ export default async function AdminMediaPage() {
         </Link>
       }
     >
-      <MediaList initialItems={items} categories={categories} />
+      <Suspense fallback={null}>
+        <MediaList initialItems={items} categories={categories} />
+      </Suspense>
     </AdminShell>
   )
 }

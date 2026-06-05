@@ -6,7 +6,15 @@ import { slugify, isUniqueConstraintError } from '@/lib/utils'
 export async function GET() {
   const categories = await prisma.mediaCategory.findMany({
     orderBy: [{ order: 'asc' }, { name: 'asc' }],
-    include: { _count: { select: { items: true } } },
+    include: {
+      _count: { select: { items: true } },
+      // A few thumbnails for the topic's grid-card preview collage.
+      items: {
+        take: 4,
+        orderBy: { order: 'asc' },
+        select: { id: true, platform: true, embedId: true, thumbnailUrl: true, sourceUrl: true },
+      },
+    },
   })
   return NextResponse.json(categories)
 }

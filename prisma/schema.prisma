@@ -46,6 +46,43 @@ model Tag {
   projects Project[] @relation("ProjectTags")
 }
 
+// A topic / playlist that groups social media items (reels and videos), shown
+// as its own row on the public "view all" pages — like a YouTube playlist.
+model MediaCategory {
+  id        String      @id @default(cuid())
+  name      String
+  slug      String      @unique
+  order     Int         @default(0)
+  createdAt DateTime    @default(now())
+  updatedAt DateTime    @updatedAt
+  items     MediaItem[]
+}
+
+// An Instagram reel or a YouTube video curated from the admin and showcased on
+// the landing page + dedicated /reels and /videos pages.
+model MediaItem {
+  id              String         @id @default(cuid())
+  platform        String         // 'instagram' | 'youtube'
+  title           String
+  description     String?
+  sourceUrl       String         // original Instagram/YouTube URL the admin pasted
+  embedId         String         // extracted shortcode (IG) or video id (YT)
+  thumbnailUrl    String?        // custom thumbnail; YouTube auto-derives when blank
+  previewVideoUrl String?        // optional short MP4 used for hover/scroll preview
+  featured        Boolean        @default(false)
+  published       Boolean        @default(true)
+  showDate        Boolean        @default(false) // show the "added" date publicly
+  displayDate     DateTime?      // overrides createdAt for the public date label
+  order           Int            @default(0)
+  categoryId      String?
+  category        MediaCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([platform])
+  @@index([categoryId])
+}
+
 model SiteContent {
   key       String   @id
   value     Json

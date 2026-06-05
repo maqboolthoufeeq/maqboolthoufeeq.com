@@ -4,6 +4,7 @@ import { getSiteContent } from '@/lib/site-content'
 import { prisma } from '@/lib/prisma'
 import { readingTime } from '@/lib/utils'
 import VisitorCount from '@/components/VisitorCount'
+import SocialMedia from '@/components/sections/SocialMedia'
 
 export default async function BentoTemplate() {
   const [hero, about, footer, sections] = await Promise.all([
@@ -271,6 +272,8 @@ export default async function BentoTemplate() {
             </Link>
           )}
         </div>
+
+        {sections.socialMedia && <SocialMedia />}
       </main>
 
       <footer

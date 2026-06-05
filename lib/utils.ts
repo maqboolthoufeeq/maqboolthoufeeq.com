@@ -21,8 +21,44 @@ export function readingTime(content: string): number {
   return Math.max(1, Math.ceil(words / 200))
 }
 
+/**
+ * Short "how recent is this" label: relative for the last few weeks
+ * ("3d ago", "2w ago"), absolute month/year beyond that ("Jun 2026").
+ * Computed against the current time, so use in a client component.
+ */
+export function formatRelativeDate(input: string | number | Date): string {
+  const d = new Date(input)
+  const diff = Date.now() - d.getTime()
+  const min = Math.floor(diff / 60000)
+  const hr = Math.floor(min / 60)
+  const day = Math.floor(hr / 24)
+  if (min < 1) return 'Just now'
+  if (min < 60) return `${min}m ago`
+  if (hr < 24) return `${hr}h ago`
+  if (day < 7) return `${day}d ago`
+  if (day < 35) return `${Math.floor(day / 7)}w ago`
+  return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+}
+
 export function isExternal(href: string): boolean {
   return href.startsWith('http://') || href.startsWith('https://')
+}
+
+/** Parse a value into a Date, or null when empty / unparseable. */
+export function parseDateOrNull(value: unknown): Date | null {
+  if (value === null || value === undefined || value === '') return null
+  const d = new Date(value as string | number)
+  return Number.isNaN(d.getTime()) ? null : d
+}
+
+/** True for a Prisma "unique constraint failed" error (code P2002). */
+export function isUniqueConstraintError(err: unknown): boolean {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    'code' in err &&
+    (err as { code?: unknown }).code === 'P2002'
+  )
 }
 
 export function getPublicOrigin(req: NextRequest): string {

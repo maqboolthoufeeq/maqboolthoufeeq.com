@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { FileText, Folder, Tags, Inbox, Layout, Palette, Cpu, BarChart3, Users, Eye, ChevronRight, LogOut } from 'lucide-react'
+import { FileText, Folder, Tags, Inbox, Layout, Palette, Cpu, BarChart3, Users, Eye, ChevronRight, LogOut, Clapperboard } from 'lucide-react'
 import { signOutAction } from '@/lib/admin-actions'
 import { prisma } from '@/lib/prisma'
 import { getSiteStats } from '@/lib/analytics'
@@ -84,6 +84,12 @@ export default async function AdminDashboard() {
               icon={Folder}
               title="Projects"
               description="Add and order portfolio projects"
+            />
+            <AdminLinkRow
+              href="/admin/media"
+              icon={Clapperboard}
+              title="Social media"
+              description="Instagram reels and YouTube videos"
             />
             <AdminLinkRow
               href="/admin/contact"

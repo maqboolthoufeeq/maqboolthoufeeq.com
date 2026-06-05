@@ -13,6 +13,7 @@ import {
   Layout,
   Tags,
   Palette,
+  Clapperboard,
   LogOut,
   X,
   ExternalLink,
@@ -253,6 +254,12 @@ function MoreSheet({ onClose }: { onClose: () => void }) {
         </div>
 
         <ul className="px-2 pb-4 space-y-1">
+          <SheetItem
+            icon={Clapperboard}
+            label="Social media"
+            description="Reels & videos"
+            onClick={() => go('/admin/media')}
+          />
           <SheetItem
             icon={Layout}
             label="Edit landing page"

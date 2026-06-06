@@ -2,6 +2,7 @@ import Navbar from '@/components/Navbar'
 import Hero from '@/components/sections/Hero'
 import About from '@/components/sections/About'
 import Projects from '@/components/sections/Projects'
+import SocialMedia from '@/components/sections/SocialMedia'
 import BlogPreview from '@/components/sections/BlogPreview'
 import Contact from '@/components/sections/Contact'
 import VisitorCount from '@/components/VisitorCount'
@@ -20,6 +21,7 @@ export default async function ClassicTemplate() {
         {sections.hero && <Hero />}
         {sections.about && <About />}
         {sections.projects && <Projects />}
+        {sections.socialMedia && <SocialMedia />}
         {sections.blogPreview && <BlogPreview />}
         {sections.contact && <Contact />}
       </main>

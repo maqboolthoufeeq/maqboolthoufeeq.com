@@ -75,6 +75,31 @@ export default async function SiteContentPage() {
         </CollapsibleSection>
 
         <CollapsibleSection
+          title="Social media"
+          description="Instagram reels & YouTube videos rows on the landing page."
+          toggle={<SectionToggle sectionKey="socialMedia" initialSections={sections} />}
+        >
+          <p className="text-sm text-[var(--muted)]">
+            Add and organise reels & videos in{' '}
+            <Link href="/admin/media" className="text-[var(--accent)] hover:underline">
+              Admin → Social media
+            </Link>
+            . When on, a scrollable Reels row and Videos row appear on the landing page, each
+            linking to a full page grouped by topic.
+          </p>
+          <div className="mt-4 space-y-2">
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2.5">
+              <span className="text-sm font-medium text-[var(--foreground)]">Reels row</span>
+              <SectionToggle sectionKey="socialReels" initialSections={sections} />
+            </div>
+            <div className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2.5">
+              <span className="text-sm font-medium text-[var(--foreground)]">Videos row</span>
+              <SectionToggle sectionKey="socialVideos" initialSections={sections} />
+            </div>
+          </div>
+        </CollapsibleSection>
+
+        <CollapsibleSection
           title="Contact"
           description="Description text and social/contact links."
           toggle={<SectionToggle sectionKey="contact" initialSections={sections} />}

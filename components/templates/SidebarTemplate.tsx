@@ -3,6 +3,7 @@ import Image from 'next/image'
 import { getSiteContent } from '@/lib/site-content'
 import { prisma } from '@/lib/prisma'
 import VisitorCount from '@/components/VisitorCount'
+import SocialMedia from '@/components/sections/SocialMedia'
 
 export default async function SidebarTemplate() {
   const [hero, about, footer, sections] = await Promise.all([
@@ -221,6 +222,9 @@ export default async function SidebarTemplate() {
               </div>
             </section>
           )}
+
+          {/* Social media */}
+          {sections.socialMedia && <SocialMedia />}
 
           {/* Blog */}
           {sections.blogPreview && posts.length > 0 && (

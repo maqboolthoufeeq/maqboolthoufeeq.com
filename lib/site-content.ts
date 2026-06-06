@@ -70,6 +70,11 @@ export interface SectionVisibility {
   about: boolean
   projects: boolean
   blogPreview: boolean
+  socialMedia: boolean
+  /** Show the Reels row inside the social section (independent of videos). */
+  socialReels: boolean
+  /** Show the Videos row inside the social section (independent of reels). */
+  socialVideos: boolean
   contact: boolean
   blogArchive: boolean
 }
@@ -167,6 +172,9 @@ const DEFAULTS = {
     about: true as boolean,
     projects: true as boolean,
     blogPreview: true as boolean,
+    socialMedia: true as boolean,
+    socialReels: true as boolean,
+    socialVideos: true as boolean,
     contact: true as boolean,
     blogArchive: true as boolean,
   } satisfies SectionVisibility,

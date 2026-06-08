@@ -10,6 +10,8 @@ import { auth } from '@/lib/auth'
 import { getSiteContent, getSeo } from '@/lib/site-content'
 import { getRequestOrigin } from '@/lib/request-origin'
 import { buildPageMetadata } from '@/lib/seo'
+import { blogListingNode, breadcrumbNode, pageGraph } from '@/lib/structured-data'
+import { JsonLd } from '@/components/JsonLd'
 import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
@@ -19,7 +21,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return buildPageMetadata({
     origin,
     title: `Blog — ${seo.siteName}`,
-    description: 'Articles about web development, TypeScript, and engineering.',
+    description: `Articles on backend engineering, AI systems, distributed systems and developer tooling by ${seo.author}.`,
     path: '/blog',
     ogTitle: 'Blog',
     siteName: seo.siteName,
@@ -41,7 +43,7 @@ export default async function BlogPage({
     ...(tag ? { tags: { some: { slug: tag } } } : {}),
   }
 
-  const [posts, total, tags, archivePosts, sections, session] = await Promise.all([
+  const [posts, total, tags, archivePosts, sections, session, origin, seo] = await Promise.all([
     prisma.post.findMany({
       where,
       orderBy: { publishedAt: 'desc' },
@@ -70,6 +72,8 @@ export default async function BlogPage({
     }),
     getSiteContent('sections'),
     auth(),
+    getRequestOrigin(),
+    getSeo(),
   ])
   const isAdmin = !!session
 
@@ -77,11 +81,27 @@ export default async function BlogPage({
     .filter((p) => p.publishedAt !== null)
     .map((p) => ({ slug: p.slug, title: p.title, publishedAt: (p.publishedAt as Date).toISOString() }))
 
+  // Blog + breadcrumb structured data, built from the full published list so
+  // search/AI engines see the whole catalogue, each post linked to the author.
+  const blogStructuredData = pageGraph([
+    blogListingNode({
+      origin,
+      seo,
+      description: 'Articles on backend engineering, AI systems, distributed systems and developer tooling.',
+      posts: archiveData.map((p) => ({ slug: p.slug, title: p.title, datePublished: p.publishedAt })),
+    }),
+    breadcrumbNode(origin, [
+      { name: 'Home', path: '/' },
+      { name: 'Blog', path: '/blog' },
+    ]),
+  ])
+
   const showArchive = sections.blogArchive && archiveData.length > 0
   const showSidebar = showArchive || tags.length > 0
 
   return (
     <>
+      <JsonLd data={blogStructuredData} />
       <Navbar />
       <main className="max-w-5xl mx-auto px-4 py-16">
         <div className="flex items-center justify-between gap-4 mb-2">

@@ -192,7 +192,15 @@ type ContentValue<K extends ContentKey> = (typeof DEFAULTS)[K]
 export async function getSiteContent<K extends ContentKey>(key: K): Promise<ContentValue<K>> {
   const row = await prisma.siteContent.findUnique({ where: { key } })
   if (!row) {
-    await prisma.siteContent.create({ data: { key, value: DEFAULTS[key] as object } })
+    // Lazily seed defaults, tolerating a concurrent request that seeded the same
+    // key first (unique-constraint race → P2002). Without this, the first burst
+    // of hits on a fresh database — now including the favicon/manifest/sitemap
+    // routes — could 500 on the losing request.
+    try {
+      await prisma.siteContent.create({ data: { key, value: DEFAULTS[key] as object } })
+    } catch {
+      /* another request created this key concurrently — fine, use the defaults */
+    }
     return DEFAULTS[key]
   }
   return { ...DEFAULTS[key], ...(row.value as object) } as ContentValue<K>

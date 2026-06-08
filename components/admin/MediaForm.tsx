@@ -6,9 +6,12 @@ import {
   X, Upload, Film, Sparkles, Loader2, RefreshCw, AlertCircle, CheckCircle2, ChevronRight,
 } from 'lucide-react'
 import Switch from '@/components/admin/Switch'
+import { LinksEditor, AttachmentsEditor } from '@/components/admin/MediaExtrasFields'
 import { InstagramIcon, YoutubeIcon } from '@/components/social/icons'
 import {
   type Platform,
+  type MediaLink,
+  type MediaAttachment,
   detectPlatform,
   parseEmbedId,
   isPlatform,
@@ -25,6 +28,8 @@ type FormData = {
   description: string
   thumbnailUrl: string
   previewVideoUrl: string
+  links: MediaLink[]
+  attachments: MediaAttachment[]
   categoryId: string
   featured: boolean
   published: boolean
@@ -52,6 +57,8 @@ export default function MediaForm({ mediaId, initial, defaultPlatform = 'instagr
     description: initial?.description ?? '',
     thumbnailUrl: initial?.thumbnailUrl ?? '',
     previewVideoUrl: initial?.previewVideoUrl ?? '',
+    links: initial?.links ?? [],
+    attachments: initial?.attachments ?? [],
     categoryId: initial?.categoryId ?? '',
     featured: initial?.featured ?? false,
     published: initial?.published ?? true,
@@ -342,6 +349,10 @@ export default function MediaForm({ mediaId, initial, defaultPlatform = 'instagr
           className="w-full px-3 py-2.5 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)] text-sm resize-y"
         />
       </Field>
+
+      {/* Links & attachments — shown publicly under the reel/video */}
+      <LinksEditor links={form.links} onChange={(links) => set('links', links)} />
+      <AttachmentsEditor attachments={form.attachments} onChange={(attachments) => set('attachments', attachments)} />
 
       {/* Topic */}
       <Field label="Topic" hint="Groups it into a row on the view-all page">

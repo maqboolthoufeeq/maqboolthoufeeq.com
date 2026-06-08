@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { isPlatform, parseEmbedId, detectPlatform, isHttpUrl, mediaLengthError } from '@/lib/social'
+import {
+  isPlatform, parseEmbedId, detectPlatform, isHttpUrl, mediaLengthError,
+  sanitizeMediaLinks, sanitizeMediaAttachments,
+} from '@/lib/social'
 import { parseDateOrNull } from '@/lib/utils'
 
 export async function GET(req: NextRequest) {
@@ -34,6 +38,8 @@ export async function POST(req: NextRequest) {
     sourceUrl,
     thumbnailUrl,
     previewVideoUrl,
+    links,
+    attachments,
     featured,
     published,
     showDate,
@@ -82,6 +88,8 @@ export async function POST(req: NextRequest) {
       embedId,
       thumbnailUrl: thumbnailUrl?.trim() || null,
       previewVideoUrl: previewVideoUrl?.trim() || null,
+      links: sanitizeMediaLinks(links) as unknown as Prisma.InputJsonValue,
+      attachments: sanitizeMediaAttachments(attachments) as unknown as Prisma.InputJsonValue,
       featured: Boolean(featured),
       published: published === undefined ? true : Boolean(published),
       showDate: Boolean(showDate),

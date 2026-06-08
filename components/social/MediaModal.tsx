@@ -2,13 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter, usePathname, useSearchParams } from 'next/navigation'
-import { X, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ExternalLink, Play } from 'lucide-react'
+import { X, ChevronLeft, ChevronRight, ChevronUp, ChevronDown, ExternalLink, Play, Info } from 'lucide-react'
 import type { MediaCardData } from '@/lib/media'
 import {
   youTubeEmbedUrl, instagramEmbedUrl, permalinkFor, mediaOrientation, resolveThumbnail, youTubeThumbnail,
 } from '@/lib/social'
 import { formatRelativeDate } from '@/lib/utils'
 import { InstagramIcon, YoutubeIcon } from '@/components/social/icons'
+import MediaExtras from '@/components/social/MediaExtras'
 
 /** A topic/feed lane: vertical swipe moves within it, horizontal between lanes. */
 export type ModalGroup = { id: string; title?: string; items: MediaCardData[] }
@@ -45,10 +46,14 @@ export default function MediaModal({ groups }: { groups: ModalGroup[] }) {
   const [mediaId, setMediaId] = useState<string | null>(null)
   const [desktop, setDesktop] = useState(isDesktopNow)
   const [playing, setPlaying] = useState(false)
+  const [detailsOpen, setDetailsOpen] = useState(false)
   const touch = useRef<{ x: number; y: number } | null>(null)
 
   useEffect(() => setMediaId(searchParams.get('media')), [searchParams])
-  useEffect(() => setPlaying(false), [mediaId]) // a new item starts as a poster
+  useEffect(() => {
+    setPlaying(false) // a new item starts as a poster
+    setDetailsOpen(false) // …and with its details sheet closed
+  }, [mediaId])
 
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 768px)')
@@ -136,6 +141,9 @@ export default function MediaModal({ groups }: { groups: ModalGroup[] }) {
   const poster = resolveThumbnail(selected.platform, selected.embedId, selected.thumbnailUrl, 'maxres')
   const posterFallback = selected.platform === 'youtube' ? youTubeThumbnail(selected.embedId, 'hq') : null
   const showIframe = desktop || playing
+  const hasExtras = selected.links.length > 0 || selected.attachments.length > 0
+  const extrasCount = selected.links.length + selected.attachments.length
+  const hasDetails = hasExtras || !!selected.description
 
   function onTouchStart(e: React.TouchEvent) {
     const t = e.touches[0]
@@ -298,12 +306,6 @@ export default function MediaModal({ groups }: { groups: ModalGroup[] }) {
             </div>
           </div>
 
-          {/* Mobile: hint */}
-          {!showIframe && (multiItem || multiTopic) && (
-            <span className="md:hidden absolute bottom-3 inset-x-0 z-[76] text-center text-[11px] text-white/60 pointer-events-none">
-              {multiItem ? 'Swipe up/down for more' : ''}{multiItem && multiTopic ? ' · ' : ''}{multiTopic ? 'left/right for topics' : ''}
-            </span>
-          )}
         </div>
 
         {/* Desktop: side panel */}
@@ -313,6 +315,11 @@ export default function MediaModal({ groups }: { groups: ModalGroup[] }) {
             <div className="mt-2">{metaLine}</div>
             {selected.description && (
               <p className="mt-4 whitespace-pre-line text-sm leading-relaxed text-[var(--muted)]">{selected.description}</p>
+            )}
+            {hasExtras && (
+              <div className="mt-5">
+                <MediaExtras links={selected.links} attachments={selected.attachments} />
+              </div>
             )}
           </div>
           <div className="shrink-0 border-t border-[var(--border)] p-4 flex items-center justify-between gap-3">
@@ -335,6 +342,92 @@ export default function MediaModal({ groups }: { groups: ModalGroup[] }) {
           </div>
         </div>
       </div>
+
+      {/* Mobile: bottom action bar — open on platform + a Details sheet (description, links, files).
+          The gradient ignores pointer events so swipes still register; only the buttons are tappable. */}
+      <div className="md:hidden absolute inset-x-0 bottom-0 z-[82] px-3 pt-10 pb-[max(0.6rem,env(safe-area-inset-bottom))] bg-gradient-to-t from-black/90 via-black/45 to-transparent pointer-events-none">
+        {!showIframe && (multiItem || multiTopic) && (
+          <p className="mb-2 text-center text-[11px] text-white/60">
+            {multiItem ? 'Swipe up/down for more' : ''}
+            {multiItem && multiTopic ? ' · ' : ''}
+            {multiTopic ? 'left/right for topics' : ''}
+          </p>
+        )}
+        <div className="flex items-center justify-center gap-2 pointer-events-auto">
+          <a
+            href={permalink}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="tap-scale inline-flex items-center gap-1.5 h-10 px-4 rounded-full bg-white/15 text-white text-sm font-medium backdrop-blur-sm hover:bg-white/25 transition-colors"
+          >
+            <ExternalLink size={15} /> {isReel ? 'Instagram' : 'YouTube'}
+          </a>
+          {hasDetails && (
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); setDetailsOpen(true) }}
+              className="tap-scale inline-flex items-center gap-1.5 h-10 px-4 rounded-full bg-white/15 text-white text-sm font-medium backdrop-blur-sm hover:bg-white/25 transition-colors"
+            >
+              <Info size={15} /> Details
+              {extrasCount > 0 && (
+                <span className="ml-0.5 inline-flex h-5 min-w-[1.25rem] items-center justify-center rounded-full bg-[var(--accent)] px-1.5 text-[11px] font-semibold text-white">
+                  {extrasCount}
+                </span>
+              )}
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* Mobile: details bottom sheet */}
+      {detailsOpen && (
+        <div
+          className="md:hidden fixed inset-0 z-[88] flex items-end"
+          onClick={() => setDetailsOpen(false)}
+          onTouchStart={(e) => e.stopPropagation()}
+          onTouchEnd={(e) => e.stopPropagation()}
+        >
+          <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" />
+          <div
+            className="relative w-full max-h-[85dvh] overflow-y-auto rounded-t-2xl bg-[var(--surface)] px-5 pt-4 pb-[max(1.5rem,env(safe-area-inset-bottom))] shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <span className="mx-auto mb-3 block h-1 w-10 rounded-full bg-[var(--border)]" />
+            <div className="flex items-start justify-between gap-3">
+              <h2 className="text-base font-bold leading-snug text-[var(--foreground)] line-clamp-2">{selected.title}</h2>
+              <button
+                onClick={() => setDetailsOpen(false)}
+                aria-label="Close details"
+                className="shrink-0 flex h-8 w-8 items-center justify-center rounded-full bg-[var(--background)] text-[var(--muted)] hover:text-[var(--foreground)] transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-[var(--muted)]">
+              <span className="inline-flex items-center gap-1"><PlatformIcon size={13} /> {isReel ? 'Reel' : 'Video'}</span>
+              {lane.title && (<><span aria-hidden>·</span><span>{lane.title}</span></>)}
+              {dateLabel && (<><span aria-hidden>·</span><span suppressHydrationWarning>{dateLabel}</span></>)}
+            </div>
+            {selected.description && (
+              <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-[var(--muted)]">{selected.description}</p>
+            )}
+            {hasExtras && (
+              <div className="mt-5">
+                <MediaExtras links={selected.links} attachments={selected.attachments} />
+              </div>
+            )}
+            <a
+              href={permalink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-5 inline-flex items-center gap-1.5 text-sm font-medium text-[var(--accent)] hover:underline"
+            >
+              <ExternalLink size={14} /> Open on {isReel ? 'Instagram' : 'YouTube'}
+            </a>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

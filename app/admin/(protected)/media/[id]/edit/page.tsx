@@ -2,7 +2,7 @@ import MediaForm from '@/components/admin/MediaForm'
 import AdminShell from '@/components/admin/AdminShell'
 import { prisma } from '@/lib/prisma'
 import { notFound } from 'next/navigation'
-import type { Platform } from '@/lib/social'
+import { type Platform, sanitizeMediaLinks, sanitizeMediaAttachments } from '@/lib/social'
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ from?: string }> }
 
@@ -24,6 +24,8 @@ export default async function EditMediaPage({ params, searchParams }: Props) {
     description: item.description ?? '',
     thumbnailUrl: item.thumbnailUrl ?? '',
     previewVideoUrl: item.previewVideoUrl ?? '',
+    links: sanitizeMediaLinks(item.links),
+    attachments: sanitizeMediaAttachments(item.attachments),
     categoryId: item.categoryId ?? '',
     featured: item.featured,
     published: item.published,

@@ -85,7 +85,13 @@ export default async function MediaViewAll({
           </p>
         ) : (
           <Suspense fallback={null}>
-            <MediaShowcase rows={rows} topicNav modalGroups={modalGroups} />
+            <MediaShowcase
+              rows={rows}
+              topicNav
+              modalGroups={modalGroups}
+              dateFilter
+              itemNoun={isReel ? 'reel' : 'video'}
+            />
           </Suspense>
         )}
       </main>

@@ -163,6 +163,115 @@ export function mediaLengthError(fields: {
   return null
 }
 
+/** A related link an admin attaches to a reel/video (shown publicly, opens in a new tab). */
+export interface MediaLink {
+  label: string
+  url: string
+}
+
+/** A downloadable/previewable file an admin attaches to a reel/video. */
+export interface MediaAttachment {
+  name: string
+  url: string
+  /** File size in bytes, when known. */
+  size: number | null
+  /** MIME type, when known — used to pick a preview affordance. */
+  type: string | null
+}
+
+/** How many links / attachments a single item may hold (defensive, keeps the UI sane). */
+export const MEDIA_LINK_LIMIT = 20
+export const MEDIA_ATTACHMENT_LIMIT = 20
+
+export type AttachmentKind = 'image' | 'video' | 'audio' | 'pdf' | 'doc'
+
+/** Coarse file kind (from MIME, falling back to the extension) for icons & previews. */
+export function attachmentKind(att: { name: string; type: string | null }): AttachmentKind {
+  const t = att.type ?? ''
+  if (t.startsWith('image/')) return 'image'
+  if (t.startsWith('video/')) return 'video'
+  if (t.startsWith('audio/')) return 'audio'
+  if (t === 'application/pdf') return 'pdf'
+  const ext = att.name.split('.').pop()?.toLowerCase() ?? ''
+  if (['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif', 'svg'].includes(ext)) return 'image'
+  if (['mp4', 'webm', 'ogg', 'mov', 'm4v'].includes(ext)) return 'video'
+  if (['mp3', 'wav', 'm4a', 'aac', 'oga'].includes(ext)) return 'audio'
+  if (ext === 'pdf') return 'pdf'
+  return 'doc'
+}
+
+/** Human-readable file size, or null when the size is unknown. */
+export function formatBytes(bytes: number | null | undefined): string | null {
+  if (bytes == null) return null
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+const MEDIA_LABEL_LIMIT = 120
+const MEDIA_FILENAME_LIMIT = 200
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === 'object' && !Array.isArray(value) ? (value as Record<string, unknown>) : null
+}
+
+/**
+ * Normalise an admin-typed link URL: accept it as-is when it already has an
+ * http(s) scheme, otherwise assume https:// (so "example.com/x" just works).
+ * Returns null when the result still isn't a valid, short-enough http(s) URL —
+ * which also defuses other schemes (javascript:, data:) by re-hosting them.
+ */
+function normalizeLinkUrl(raw: string): string | null {
+  const value = raw.trim()
+  if (!value) return null
+  const withScheme = /^https?:\/\//i.test(value) ? value : `https://${value}`
+  return withScheme.length <= MEDIA_LIMITS.url && isHttpUrl(withScheme) ? withScheme : null
+}
+
+/**
+ * Coerce arbitrary input (an API body or a stored JSON column) into a clean list
+ * of links: each must have a valid http(s) URL; the label falls back to the URL.
+ * Used in both directions so the same rules guard writes and reads.
+ */
+export function sanitizeMediaLinks(input: unknown): MediaLink[] {
+  if (!Array.isArray(input)) return []
+  const out: MediaLink[] = []
+  for (const raw of input) {
+    const rec = asRecord(raw)
+    if (!rec) continue
+    const url = normalizeLinkUrl(String(rec.url ?? ''))
+    if (!url) continue
+    let label = String(rec.label ?? '').trim()
+    if (!label) label = url
+    if (label.length > MEDIA_LABEL_LIMIT) label = label.slice(0, MEDIA_LABEL_LIMIT)
+    out.push({ label, url })
+    if (out.length >= MEDIA_LINK_LIMIT) break
+  }
+  return out
+}
+
+/**
+ * Coerce arbitrary input into a clean list of attachments: each must have a valid
+ * http(s) URL; name falls back to "Attachment"; size/type are kept when sane.
+ */
+export function sanitizeMediaAttachments(input: unknown): MediaAttachment[] {
+  if (!Array.isArray(input)) return []
+  const out: MediaAttachment[] = []
+  for (const raw of input) {
+    const rec = asRecord(raw)
+    if (!rec) continue
+    const url = String(rec.url ?? '').trim()
+    if (!url || url.length > MEDIA_LIMITS.url || !isHttpUrl(url)) continue
+    let name = String(rec.name ?? '').trim()
+    if (!name) name = 'Attachment'
+    if (name.length > MEDIA_FILENAME_LIMIT) name = name.slice(0, MEDIA_FILENAME_LIMIT)
+    const size = typeof rec.size === 'number' && Number.isFinite(rec.size) && rec.size >= 0 ? Math.floor(rec.size) : null
+    const type = typeof rec.type === 'string' && rec.type.length <= 100 ? rec.type : null
+    out.push({ name, url, size, type })
+    if (out.length >= MEDIA_ATTACHMENT_LIMIT) break
+  }
+  return out
+}
+
 type YouTubeThumbQuality = 'maxres' | 'sd' | 'hq' | 'mq'
 
 const YT_THUMB_FILE: Record<YouTubeThumbQuality, string> = {

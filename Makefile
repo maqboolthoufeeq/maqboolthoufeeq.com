@@ -29,6 +29,9 @@ help:
 	@echo "  Git"
 	@echo "    make br           Create a new feature branch  (prompts for name)"
 	@echo ""
+	@echo "  claude"
+	@echo "    make claude       AI assistant for code completion and more"
+	@echo ""	
 
 # ── dev ───────────────────────────────────────────────────────────────────────
 dev:
@@ -94,3 +97,7 @@ br:
 
 %:
 	@:
+
+claude: ## Run Claude Code with permission prompts skipped
+	@claude --dangerously-skip-permissions
+

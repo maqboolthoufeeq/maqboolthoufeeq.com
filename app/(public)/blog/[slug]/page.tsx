@@ -16,11 +16,13 @@ import { prisma } from '@/lib/prisma'
 import { auth } from '@/lib/auth'
 import { getSiteContent } from '@/lib/site-content'
 import { getRelatedPosts, getAdjacentPosts } from '@/lib/related-posts'
-import { readingTime, buildExcerpt } from '@/lib/utils'
+import { readingTime, buildExcerpt, stripHtml } from '@/lib/utils'
 import { sanitizePostHtml } from '@/lib/sanitize'
 import { getRequestOrigin } from '@/lib/request-origin'
 import { getSeo } from '@/lib/site-content'
 import { ogImages } from '@/lib/seo'
+import { articleNode, breadcrumbNode, pageGraph } from '@/lib/structured-data'
+import { JsonLd } from '@/components/JsonLd'
 import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
@@ -101,6 +103,29 @@ export default async function BlogPostPage({ params }: Props) {
   ])
   const isAdmin = !!session
   const shareUrl = `${shareOrigin}/blog/${slug}`
+
+  // Article + breadcrumb structured data — the per-post entity that makes Google
+  // eligible for rich article results and lets AI engines attribute & cite this
+  // page to the author (linked by @id to the sitewide Person).
+  const articleDescription = post.excerpt?.trim() || buildExcerpt(post.content)
+  const structuredData = pageGraph([
+    articleNode({
+      origin: shareOrigin,
+      slug,
+      title: post.title,
+      description: articleDescription,
+      image: post.coverImage || undefined,
+      datePublished: post.publishedAt?.toISOString(),
+      dateModified: post.updatedAt?.toISOString(),
+      tags: post.tags.map((t) => t.name),
+      wordCount: stripHtml(post.content).split(/\s+/).filter(Boolean).length,
+    }),
+    breadcrumbNode(shareOrigin, [
+      { name: 'Home', path: '/' },
+      { name: 'Blog', path: '/blog' },
+      { name: post.title, path: `/blog/${slug}` },
+    ]),
+  ])
   // Stats show publicly when the admin enables the toggle, and always to the
   // admin (flagged as private when the public toggle is off).
   const showStats = analytics.showBlogStats || isAdmin
@@ -108,6 +133,7 @@ export default async function BlogPostPage({ params }: Props) {
 
   return (
     <>
+      <JsonLd data={structuredData} />
       <Navbar />
       <PostViewTracker slug={slug} />
       <main className="max-w-3xl mx-auto px-4 py-16">

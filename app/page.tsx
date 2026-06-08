@@ -4,7 +4,10 @@ import type { Metadata } from 'next'
 import { getRequestOrigin } from '@/lib/request-origin'
 import { buildPageMetadata } from '@/lib/seo'
 import { getActiveTemplateId } from '@/lib/templates'
-import { getSeo } from '@/lib/site-content'
+import { getSeo, getSiteContent } from '@/lib/site-content'
+import { absoluteUrl } from '@/lib/utils'
+import { profilePageNode } from '@/lib/structured-data'
+import { JsonLd } from '@/components/JsonLd'
 import { auth } from '@/lib/auth'
 import AdminFab from '@/components/admin/AdminFab'
 import ClassicTemplate from '@/components/templates/ClassicTemplate'
@@ -44,11 +47,24 @@ function Template({ templateId }: { templateId: string }) {
 }
 
 export default async function Home() {
-  const [templateId, session] = await Promise.all([getActiveTemplateId(), auth()])
+  const [templateId, session, origin, seo, hero] = await Promise.all([
+    getActiveTemplateId(),
+    auth(),
+    getRequestOrigin(),
+    getSeo(),
+    getSiteContent('hero'),
+  ])
   const isAdmin = !!session
+
+  const profile = profilePageNode({
+    origin,
+    seo,
+    imageUrl: hero.imageUrl ? absoluteUrl(hero.imageUrl, origin) : undefined,
+  })
 
   return (
     <>
+      <JsonLd data={profile} />
       <Template templateId={templateId} />
       {isAdmin && <AdminFab />}
     </>

@@ -12,6 +12,13 @@ const nextConfig: NextConfig = {
   async rewrites() {
     return [
       {
+        // Serve the dynamic photo icon for blind /favicon.ico probes too (Next
+        // injects rel="icon" → /icon from app/icon.tsx; this also answers clients
+        // and scrapers that request /favicon.ico directly).
+        source: '/favicon.ico',
+        destination: '/icon',
+      },
+      {
         source: '/.well-known/oauth-authorization-server',
         destination: '/api/oauth-metadata/authorization-server',
       },

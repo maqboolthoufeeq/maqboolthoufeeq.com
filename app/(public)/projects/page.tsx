@@ -8,6 +8,8 @@ import { auth } from '@/lib/auth'
 import { getRequestOrigin } from '@/lib/request-origin'
 import { getSeo } from '@/lib/site-content'
 import { buildPageMetadata } from '@/lib/seo'
+import { collectionPageNode, breadcrumbNode, pageGraph } from '@/lib/structured-data'
+import { JsonLd } from '@/components/JsonLd'
 import type { Metadata } from 'next'
 
 export const dynamic = 'force-dynamic'
@@ -25,12 +27,14 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function ProjectsPage() {
-  const [projects, session] = await Promise.all([
+  const [projects, session, origin, seo] = await Promise.all([
     prisma.project.findMany({
       orderBy: [{ featured: 'desc' }, { order: 'asc' }],
       include: { tags: { select: { id: true, name: true } } },
     }),
     auth(),
+    getRequestOrigin(),
+    getSeo(),
   ])
   const isAdmin = !!session
 
@@ -39,8 +43,24 @@ export default async function ProjectsPage() {
     for (const t of p.tags) tagMap.set(t.id, t)
   }
 
+  // CollectionPage + ItemList of projects, plus a breadcrumb trail.
+  const projectsStructuredData = pageGraph([
+    collectionPageNode({
+      origin,
+      name: `Projects — ${seo.siteName}`,
+      path: '/projects',
+      description: 'Selected engineering projects across backend, AI systems and distributed architecture.',
+      items: projects.map((p) => ({ name: p.title, url: p.liveUrl || p.repoUrl || undefined })),
+    }),
+    breadcrumbNode(origin, [
+      { name: 'Home', path: '/' },
+      { name: 'Projects', path: '/projects' },
+    ]),
+  ])
+
   return (
     <>
+      <JsonLd data={projectsStructuredData} />
       <Navbar />
       <main className="max-w-5xl mx-auto px-4 py-16">
         <div className="flex items-center justify-between gap-4 mb-2">

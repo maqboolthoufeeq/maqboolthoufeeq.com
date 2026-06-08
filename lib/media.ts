@@ -1,5 +1,11 @@
 import { prisma } from './prisma'
-import type { Platform } from './social'
+import {
+  type Platform,
+  type MediaLink,
+  type MediaAttachment,
+  sanitizeMediaLinks,
+  sanitizeMediaAttachments,
+} from './social'
 
 /**
  * Plain, client-safe shape of a media item — every field is JSON-serialisable
@@ -20,6 +26,12 @@ export interface MediaCardData {
   categoryName: string | null
   /** ISO date to show publicly, or null when the admin hid it. */
   date: string | null
+  /** ISO date always present (displayDate ?? createdAt) — drives sorting and the date filter. */
+  sortDate: string
+  /** Related links the admin attached (opens in a new tab). */
+  links: MediaLink[]
+  /** Downloadable / previewable files the admin attached. */
+  attachments: MediaAttachment[]
 }
 
 export interface MediaCategoryGroup {
@@ -49,6 +61,8 @@ type MediaRow = {
   embedId: string
   thumbnailUrl: string | null
   previewVideoUrl: string | null
+  links: unknown
+  attachments: unknown
   featured: boolean
   showDate: boolean
   displayDate: Date | null
@@ -71,6 +85,9 @@ function toCard(item: MediaRow): MediaCardData {
     categoryId: item.categoryId,
     categoryName: item.category?.name ?? null,
     date: item.showDate ? (item.displayDate ?? item.createdAt).toISOString() : null,
+    sortDate: (item.displayDate ?? item.createdAt).toISOString(),
+    links: sanitizeMediaLinks(item.links),
+    attachments: sanitizeMediaAttachments(item.attachments),
   }
 }
 

@@ -82,6 +82,50 @@ async function verifyMagicBytes(file: File): Promise<boolean> {
   }
 }
 
+// Files an authenticated admin can attach to a reel/video. Broader than the
+// public contact allowlist (the uploader is trusted), but still MIME-gated.
+const MEDIA_ATTACHMENT_MIME_EXT: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/webp': 'webp',
+  'image/gif': 'gif',
+  'video/mp4': 'mp4',
+  'video/webm': 'webm',
+  'audio/mpeg': 'mp3',
+  'application/pdf': 'pdf',
+  'application/msword': 'doc',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'docx',
+  'application/vnd.ms-excel': 'xls',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'xlsx',
+  'application/vnd.ms-powerpoint': 'ppt',
+  'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'pptx',
+  'text/plain': 'txt',
+  'text/csv': 'csv',
+  'application/zip': 'zip',
+}
+const MAX_MEDIA_ATTACHMENT_BYTES = 25 * 1024 * 1024 // 25 MB
+
+/** Comma-joined `accept` attribute matching the media-attachment allowlist. */
+export const MEDIA_ATTACHMENT_ACCEPT = Object.keys(MEDIA_ATTACHMENT_MIME_EXT).join(',')
+
+/**
+ * Upload an admin-supplied attachment for a reel/video to Vercel Blob. The file
+ * is stored under a random path with the extension derived from its MIME type
+ * (never the client filename); the caller keeps the original name for display.
+ */
+export async function uploadMediaAttachment(file: File): Promise<{ url: string; ext: string }> {
+  const ext = MEDIA_ATTACHMENT_MIME_EXT[file.type]
+  if (!ext) {
+    throw new Error('Unsupported file type. Allowed: images, video, PDF, Office docs, text, CSV, ZIP.')
+  }
+  if (file.size > MAX_MEDIA_ATTACHMENT_BYTES) {
+    throw new Error('File must be smaller than 25 MB')
+  }
+  const randomName = `media-attachments/${crypto.randomBytes(16).toString('hex')}.${ext}`
+  const { url } = await put(randomName, file, { access: 'public' })
+  return { url, ext }
+}
+
 export async function uploadContactAttachment(file: File): Promise<string> {
   const ext = MIME_TO_EXT[file.type]
   if (!ext) {

@@ -9,7 +9,7 @@ import { text } from '../types'
 
 const ITEM_SELECT = {
   id: true, platform: true, title: true, description: true, sourceUrl: true, embedId: true,
-  thumbnailUrl: true, previewVideoUrl: true, featured: true, published: true,
+  thumbnailUrl: true, previewVideoUrl: true, links: true, attachments: true, featured: true, published: true,
   showDate: true, displayDate: true, order: true, categoryId: true,
   category: { select: { id: true, name: true, slug: true } },
 } as const

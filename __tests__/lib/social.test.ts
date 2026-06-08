@@ -16,6 +16,12 @@ import {
   isYouTubeShortUrl,
   mediaOrientation,
   aspectClassForOrientation,
+  sanitizeMediaLinks,
+  sanitizeMediaAttachments,
+  attachmentKind,
+  formatBytes,
+  MEDIA_LINK_LIMIT,
+  MEDIA_ATTACHMENT_LIMIT,
 } from '@/lib/social'
 
 describe('parseYouTubeId', () => {
@@ -220,5 +226,95 @@ describe('platform helpers', () => {
     expect(isPlatform('youtube')).toBe(true)
     expect(isPlatform('tiktok')).toBe(false)
     expect(isPlatform(null)).toBe(false)
+  })
+})
+
+describe('sanitizeMediaLinks', () => {
+  it('keeps valid links and trims them', () => {
+    expect(sanitizeMediaLinks([{ label: '  Read more ', url: 'https://example.com/a ' }])).toEqual([
+      { label: 'Read more', url: 'https://example.com/a' },
+    ])
+  })
+
+  it('adds https:// when the scheme is missing', () => {
+    expect(sanitizeMediaLinks([{ label: 'Site', url: 'example.com/x' }])).toEqual([
+      { label: 'Site', url: 'https://example.com/x' },
+    ])
+  })
+
+  it('falls back to the URL as the label', () => {
+    expect(sanitizeMediaLinks([{ url: 'https://example.com' }])).toEqual([
+      { label: 'https://example.com', url: 'https://example.com' },
+    ])
+  })
+
+  it('drops junk entries and never emits a non-http(s) URL', () => {
+    const out = sanitizeMediaLinks([
+      { label: 'empty', url: '' },
+      { label: 'bad', url: 'javascript:alert(1)' },
+      'not-an-object',
+      null,
+      { label: 'ok', url: 'https://good.com' },
+    ])
+    expect(out).toEqual([{ label: 'ok', url: 'https://good.com' }])
+    expect(out.every((l) => /^https?:\/\//.test(l.url))).toBe(true)
+  })
+
+  it('returns [] for non-array input', () => {
+    expect(sanitizeMediaLinks(undefined)).toEqual([])
+    expect(sanitizeMediaLinks('nope')).toEqual([])
+  })
+
+  it('caps the number of links', () => {
+    const many = Array.from({ length: MEDIA_LINK_LIMIT + 5 }, (_, i) => ({ label: `L${i}`, url: `https://e.com/${i}` }))
+    expect(sanitizeMediaLinks(many)).toHaveLength(MEDIA_LINK_LIMIT)
+  })
+})
+
+describe('sanitizeMediaAttachments', () => {
+  it('keeps a well-formed attachment', () => {
+    expect(
+      sanitizeMediaAttachments([{ name: 'Report.pdf', url: 'https://blob/x.pdf', size: 1234, type: 'application/pdf' }]),
+    ).toEqual([{ name: 'Report.pdf', url: 'https://blob/x.pdf', size: 1234, type: 'application/pdf' }])
+  })
+
+  it('defaults a missing name and normalises bad size/type', () => {
+    expect(sanitizeMediaAttachments([{ url: 'https://blob/x', size: -3, type: 42 }])).toEqual([
+      { name: 'Attachment', url: 'https://blob/x', size: null, type: null },
+    ])
+  })
+
+  it('drops entries without a valid http(s) URL', () => {
+    expect(sanitizeMediaAttachments([{ name: 'x', url: 'ftp://nope' }, { name: 'y', url: '' }])).toEqual([])
+  })
+
+  it('caps the number of attachments', () => {
+    const many = Array.from({ length: MEDIA_ATTACHMENT_LIMIT + 3 }, (_, i) => ({ name: `f${i}`, url: `https://b/${i}` }))
+    expect(sanitizeMediaAttachments(many)).toHaveLength(MEDIA_ATTACHMENT_LIMIT)
+  })
+})
+
+describe('attachmentKind', () => {
+  it('detects by MIME type first', () => {
+    expect(attachmentKind({ name: 'weird', type: 'image/png' })).toBe('image')
+    expect(attachmentKind({ name: 'weird', type: 'video/mp4' })).toBe('video')
+    expect(attachmentKind({ name: 'weird', type: 'audio/mpeg' })).toBe('audio')
+    expect(attachmentKind({ name: 'weird', type: 'application/pdf' })).toBe('pdf')
+  })
+
+  it('falls back to the file extension', () => {
+    expect(attachmentKind({ name: 'a.JPG', type: null })).toBe('image')
+    expect(attachmentKind({ name: 'a.mov', type: null })).toBe('video')
+    expect(attachmentKind({ name: 'a.pdf', type: null })).toBe('pdf')
+    expect(attachmentKind({ name: 'a.docx', type: null })).toBe('doc')
+  })
+})
+
+describe('formatBytes', () => {
+  it('formats sizes and handles unknowns', () => {
+    expect(formatBytes(null)).toBeNull()
+    expect(formatBytes(512)).toBe('512 B')
+    expect(formatBytes(2048)).toBe('2.0 KB')
+    expect(formatBytes(5 * 1024 * 1024)).toBe('5.0 MB')
   })
 })

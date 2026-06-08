@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { Prisma } from '@prisma/client'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
-import { isPlatform, parseEmbedId, isHttpUrl, mediaLengthError } from '@/lib/social'
+import {
+  isPlatform, parseEmbedId, isHttpUrl, mediaLengthError,
+  sanitizeMediaLinks, sanitizeMediaAttachments,
+} from '@/lib/social'
 import { parseDateOrNull } from '@/lib/utils'
 
 type Ctx = { params: Promise<{ id: string }> }
@@ -32,6 +36,8 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
     platform,
     thumbnailUrl,
     previewVideoUrl,
+    links,
+    attachments,
     featured,
     published,
     showDate,
@@ -78,6 +84,8 @@ export async function PATCH(req: NextRequest, { params }: Ctx) {
       ...(embedId !== undefined && { embedId }),
       ...(thumbnailUrl !== undefined && { thumbnailUrl: thumbnailUrl?.trim() || null }),
       ...(previewVideoUrl !== undefined && { previewVideoUrl: previewVideoUrl?.trim() || null }),
+      ...(links !== undefined && { links: sanitizeMediaLinks(links) as unknown as Prisma.InputJsonValue }),
+      ...(attachments !== undefined && { attachments: sanitizeMediaAttachments(attachments) as unknown as Prisma.InputJsonValue }),
       ...(featured !== undefined && { featured: Boolean(featured) }),
       ...(published !== undefined && { published: Boolean(published) }),
       ...(showDate !== undefined && { showDate: Boolean(showDate) }),

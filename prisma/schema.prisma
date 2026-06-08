@@ -69,6 +69,8 @@ model MediaItem {
   embedId         String         // extracted shortcode (IG) or video id (YT)
   thumbnailUrl    String?        // custom thumbnail; YouTube auto-derives when blank
   previewVideoUrl String?        // optional short MP4 used for hover/scroll preview
+  links           Json           @default("[]") // [{ label, url }] — related links shown publicly
+  attachments     Json           @default("[]") // [{ name, url, size, type }] — downloadable files
   featured        Boolean        @default(false)
   published       Boolean        @default(true)
   showDate        Boolean        @default(false) // show the "added" date publicly

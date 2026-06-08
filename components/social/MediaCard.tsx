@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
-import { Play } from 'lucide-react'
+import { Play, Link2, Paperclip } from 'lucide-react'
 import type { MediaCardData } from '@/lib/media'
 import { InstagramIcon, YoutubeIcon } from '@/components/social/icons'
 import { formatRelativeDate } from '@/lib/utils'
@@ -189,6 +189,20 @@ export default function MediaCard({
         {item.categoryName && (
           <span className="mt-1 inline-block text-[11px] font-medium text-white/70">
             {item.categoryName}
+          </span>
+        )}
+        {(item.links.length > 0 || item.attachments.length > 0) && (
+          <span className="mt-1.5 flex items-center gap-1.5 text-[10px] font-medium text-white/85">
+            {item.links.length > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-black/45 px-1.5 py-0.5 backdrop-blur-sm">
+                <Link2 size={10} /> {item.links.length}
+              </span>
+            )}
+            {item.attachments.length > 0 && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-black/45 px-1.5 py-0.5 backdrop-blur-sm">
+                <Paperclip size={10} /> {item.attachments.length}
+              </span>
+            )}
           </span>
         )}
       </span>

@@ -11,20 +11,20 @@ const ICON_CACHE_HEADERS = {
 
 /**
  * Shared renderer for the site favicon / app icons (`app/icon.tsx`,
- * `app/apple-icon.tsx`). Produces a square PNG so the OWNER'S PHOTO shows as the
+ * `app/apple-icon.tsx`). Produces a round PNG so the OWNER'S PHOTO shows as the
  * favicon next to Google search results and in browser tabs / PWA installs.
  *
  * The photo is the admin-configured Hero image, fetched and inlined as a data
  * URI (same proven path as the `/og` share card). When no usable photo exists
  * (fresh clone, unreachable image, or a transient DB error) it falls back to a
- * branded monogram built from the site identity — so the favicon NEVER hard
- * fails (a 500 here would leave Google/browsers with no icon) and there is zero
- * hardcoded personal data.
+ * branded round monogram built from the site identity — so the favicon NEVER
+ * hard fails (a 500 here would leave Google/browsers with no icon) and there is
+ * zero hardcoded personal data.
  *
- * Google's favicon guidance: a square icon, a multiple of 48px, served from a
+ * Google's favicon guidance: a square canvas, a multiple of 48px, served from a
  * stable crawlable URL with `rel="icon"` (Next injects that automatically from
- * these file conventions). 256px+ renders crisply in tabs and scales cleanly to
- * the 16/32/48px Google displays.
+ * these file conventions). 512px renders crisply and scales cleanly to the
+ * 16/32/48px Google displays.
  */
 export async function buildIconResponse(dimension: number): Promise<ImageResponse> {
   // Tolerate a transient DB error: fall through to the monogram rather than 500.
@@ -40,21 +40,29 @@ export async function buildIconResponse(dimension: number): Promise<ImageRespons
   if (photo) {
     return new ImageResponse(
       (
-        // Satori needs a raw <img>; full-bleed cover keeps the face centered.
+        // Full-bleed circle on a transparent canvas → a true round silhouette
+        // with NO white square: borderRadius on the <img> itself is the reliable
+        // Satori clip, and objectFit:cover fills the whole frame so the source's
+        // white corners are clipped away and the circle fills the tab edge-to-edge.
         <img
           src={photo}
           width={dimension}
           height={dimension}
           alt=""
-          style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            borderRadius: '50%',
+          }}
         />
       ),
       { width: dimension, height: dimension, headers: ICON_CACHE_HEADERS },
     )
   }
 
-  // Fallback: a branded monogram from the resolved identity (never hardcoded,
-  // and resilient if the identity itself can't be loaded).
+  // Fallback: a branded round monogram from the resolved identity (never
+  // hardcoded, and resilient if the identity itself can't be loaded).
   let siteName = ''
   try {
     siteName = (await getSeo()).siteName
@@ -75,6 +83,7 @@ export async function buildIconResponse(dimension: number): Promise<ImageRespons
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
+          borderRadius: '50%',
           background: 'linear-gradient(135deg, #0d0d0f 0%, #1a1a2e 100%)',
           color: '#a855f7',
           fontSize: dimension * 0.5,

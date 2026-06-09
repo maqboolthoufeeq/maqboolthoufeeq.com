@@ -14,6 +14,7 @@ import {
   Tags,
   Palette,
   Clapperboard,
+  Link2,
   LogOut,
   X,
   ExternalLink,
@@ -259,6 +260,12 @@ function MoreSheet({ onClose }: { onClose: () => void }) {
             label="Social media"
             description="Reels & videos"
             onClick={() => go('/admin/media')}
+          />
+          <SheetItem
+            icon={Link2}
+            label="Link hub"
+            description="Topics, links, files & embeds"
+            onClick={() => go('/admin/hub')}
           />
           <SheetItem
             icon={Layout}

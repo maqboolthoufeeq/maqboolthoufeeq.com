@@ -8,7 +8,18 @@ import { auth } from '@/lib/auth'
 const linkCls = 'px-3 py-1.5 text-sm text-[var(--muted)] hover:text-[var(--foreground)] rounded-lg hover:bg-[var(--surface)] transition-all'
 
 export default async function Navbar() {
-  const [navbar, session] = await Promise.all([getSiteContent('navbar'), auth()])
+  const [navbar, hub, session] = await Promise.all([
+    getSiteContent('navbar'),
+    getSiteContent('hub'),
+    auth(),
+  ])
+
+  // The Link Hub is a single admin toggle (Admin → Landing page → Link hub):
+  // when on, its link is appended to both the desktop list and the mobile menu
+  // without disturbing the admin's manually-ordered nav links.
+  const links = hub.navEnabled
+    ? [...navbar.links, { href: '/hub', label: hub.navLabel || 'Hub' }]
+    : navbar.links
 
   return (
     <header className="sticky top-0 z-50 border-b border-[var(--border)] bg-[var(--background)]/80 backdrop-blur-md">
@@ -29,7 +40,7 @@ export default async function Navbar() {
 
         <div className="flex items-center gap-1">
           <ul className="hidden sm:flex items-center gap-1">
-            {navbar.links.map(({ href, label }) => (
+            {links.map(({ href, label }) => (
               <li key={href}>
                 {isExternal(href) ? (
                   <a href={href} target="_blank" rel="noopener noreferrer" className={linkCls}>
@@ -55,7 +66,7 @@ export default async function Navbar() {
             <span className="sr-only">Admin</span>
           </Link>
           <ThemeToggle />
-          <MobileMenu links={navbar.links} />
+          <MobileMenu links={links} />
         </div>
       </nav>
     </header>

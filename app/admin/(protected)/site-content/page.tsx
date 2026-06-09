@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { getSiteContent } from '@/lib/site-content'
 import {
   NavbarForm,
+  HubForm,
   HeroForm,
   AboutForm,
   ContactForm,
@@ -13,8 +14,9 @@ import {
 import AdminShell from '@/components/admin/AdminShell'
 
 export default async function SiteContentPage() {
-  const [navbar, hero, about, contact, footer, sections, seo] = await Promise.all([
+  const [navbar, hub, hero, about, contact, footer, sections, seo] = await Promise.all([
     getSiteContent('navbar'),
+    getSiteContent('hub'),
     getSiteContent('hero'),
     getSiteContent('about'),
     getSiteContent('contact'),
@@ -28,6 +30,13 @@ export default async function SiteContentPage() {
       <div className="space-y-4 sm:space-y-6 max-w-2xl mx-auto">
         <CollapsibleSection title="Navbar" description="Brand name and navigation links.">
           <NavbarForm initial={navbar} />
+        </CollapsibleSection>
+
+        <CollapsibleSection
+          title="Link hub"
+          description="A Linktree-style page of topics, links, files and embeds. Toggle its navbar link."
+        >
+          <HubForm initial={hub} />
         </CollapsibleSection>
 
         <CollapsibleSection

@@ -2,8 +2,9 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
+import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
-import type { HeroContent, AboutContent, ContactContent, FooterContent, ContactLink, ContactExtra, NavbarContent, NavLink, ImageShape, ImageSize, SectionVisibility, SocialLink, SeoContent } from '@/lib/site-content'
+import type { HeroContent, AboutContent, ContactContent, FooterContent, ContactLink, ContactExtra, NavbarContent, NavLink, ImageShape, ImageSize, SectionVisibility, SocialLink, SeoContent, HubContent } from '@/lib/site-content'
 
 const SOCIAL_PLATFORMS = [
   { value: 'github', label: 'GitHub' },
@@ -274,6 +275,78 @@ export function NavbarForm({ initial }: { initial: NavbarContent }) {
           + Add link
         </button>
       </div>
+      <SaveButton saving={saving} saved={saved} />
+    </form>
+  )
+}
+
+// ─── Link Hub ─────────────────────────────────────────────────────────────────
+
+export function HubForm({ initial }: { initial: HubContent }) {
+  const [form, setForm] = useState(initial)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [error, setError] = useState('')
+
+  function set<K extends keyof HubContent>(key: K, value: HubContent[K]) {
+    setForm((f) => ({ ...f, [key]: value }))
+    setSaved(false)
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setSaving(true)
+    setError('')
+    try {
+      await save('hub', { ...form, navLabel: form.navLabel.trim() || 'Hub' })
+      setSaved(true)
+    } catch {
+      setError('Failed to save')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      {error && <p className="text-red-400 text-sm">{error}</p>}
+
+      <div className="flex items-center justify-between gap-3 rounded-xl border border-[var(--border)] bg-[var(--background)] px-3 py-2.5">
+        <div className="min-w-0">
+          <span className="text-sm font-medium text-[var(--foreground)]">Show in navbar</span>
+          <p className="text-xs text-[var(--muted)] mt-0.5">Adds a “{form.navLabel.trim() || 'Hub'}” link to the site header.</p>
+        </div>
+        <button
+          type="button"
+          onClick={() => set('navEnabled', !form.navEnabled)}
+          aria-pressed={form.navEnabled}
+          className={[
+            'shrink-0 flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-full border transition-all',
+            form.navEnabled
+              ? 'border-green-500/40 text-green-400 bg-green-500/10 hover:bg-green-500/20'
+              : 'border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--foreground)]',
+          ].join(' ')}
+        >
+          <span className={`w-1.5 h-1.5 rounded-full ${form.navEnabled ? 'bg-green-400' : 'bg-[var(--muted)]'}`} />
+          {form.navEnabled ? 'In navbar' : 'Hidden'}
+        </button>
+      </div>
+
+      <Field label="Navbar label">
+        <input value={form.navLabel} onChange={(e) => set('navLabel', e.target.value)} placeholder="Hub" className={inputCls} />
+      </Field>
+      <Field label="Hub page heading">
+        <input value={form.title} onChange={(e) => set('title', e.target.value)} placeholder="Hub" className={inputCls} />
+      </Field>
+      <Field label="Hub page subtitle">
+        <textarea value={form.subtitle} onChange={(e) => set('subtitle', e.target.value)} rows={2} className={textareaCls} />
+      </Field>
+
+      <p className="text-xs text-[var(--muted)]">
+        Add topics, subtopics and content in{' '}
+        <Link href="/admin/hub" className="text-[var(--accent)] hover:underline">Admin → Link hub</Link>.
+      </p>
+
       <SaveButton saving={saving} saved={saved} />
     </form>
   )

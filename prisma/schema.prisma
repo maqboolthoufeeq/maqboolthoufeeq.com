@@ -39,11 +39,92 @@ model Post {
 }
 
 model Tag {
-  id       String    @id @default(cuid())
-  name     String    @unique
-  slug     String    @unique
-  posts    Post[]    @relation("PostTags")
-  projects Project[] @relation("ProjectTags")
+  id        String     @id @default(cuid())
+  name      String     @unique
+  slug      String     @unique
+  posts     Post[]     @relation("PostTags")
+  projects  Project[]  @relation("ProjectTags")
+  hubTopics HubTopic[] @relation("HubTopicTags")
+  hubItems  HubItem[]  @relation("HubItemTags")
+}
+
+// ─── Link Hub ────────────────────────────────────────────────────────────────
+// A Linktree-style content hub: a tree of topics/subtopics, each holding rich
+// content blocks (links, text, markdown, images, video, audio, pdf, files,
+// embeds). Categories + Tags are cross-cutting facets used for search/filter.
+
+// A flat, colour-coded facet an admin can attach to topics and content blocks
+// to power the public filter chips (distinct from the topic hierarchy).
+model HubCategory {
+  id        String     @id @default(cuid())
+  name      String
+  slug      String     @unique
+  color     String?    // optional hex accent for the chip, validated server-side
+  order     Int        @default(0)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  topics    HubTopic[]
+  items     HubItem[]
+}
+
+// A node in the hub tree: a main topic (parentId null) or a subtopic. Nests
+// arbitrarily deep via the self-relation; deleting a node cascades to its
+// children and their content.
+model HubTopic {
+  id          String       @id @default(cuid())
+  title       String
+  slug        String       @unique
+  description String?      // short summary shown in the list + detail header
+  icon        String?      // optional emoji or lucide icon name
+  coverImage  String?      // optional cover/thumbnail (blob or external https)
+  order       Int          @default(0)
+  published   Boolean      @default(true)
+  showDate    Boolean      @default(false) // show the date publicly
+  displayDate DateTime?    // overrides createdAt for the public date label + sort
+  parentId    String?
+  parent      HubTopic?    @relation("HubTopicTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children    HubTopic[]   @relation("HubTopicTree")
+  categoryId  String?
+  category    HubCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  items       HubItem[]
+  tags        Tag[]        @relation("HubTopicTags")
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([parentId])
+  @@index([categoryId])
+}
+
+// A single content block inside a topic/subtopic. `type` discriminates the
+// payload; every field is validated/sanitised per-type before storage so no
+// unsafe scheme or markup is ever persisted (see lib/hub-content.ts).
+model HubItem {
+  id          String       @id @default(cuid())
+  topicId     String
+  topic       HubTopic     @relation(fields: [topicId], references: [id], onDelete: Cascade)
+  type        String       // 'link'|'text'|'markdown'|'richtext'|'image'|'video'|'audio'|'pdf'|'file'|'embed'
+  title       String
+  description String?
+  url         String?      // link / external media / embed source (http(s) only)
+  fileUrl     String?      // uploaded blob url (image/video/audio/pdf/file)
+  fileName    String?      // original display filename
+  fileSize    Int?         // bytes, when known
+  fileType    String?      // MIME type, when known
+  content     String?      // text / markdown source / sanitised richtext HTML
+  thumbnail   String?      // optional poster/thumbnail (http(s) only)
+  order       Int          @default(0)
+  published   Boolean      @default(true)
+  showDate    Boolean      @default(false)
+  displayDate DateTime?
+  categoryId  String?
+  category    HubCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  tags        Tag[]        @relation("HubItemTags")
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([topicId])
+  @@index([type])
+  @@index([categoryId])
 }
 
 // A topic / playlist that groups social media items (reels and videos), shown

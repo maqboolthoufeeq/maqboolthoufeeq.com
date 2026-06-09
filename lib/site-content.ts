@@ -89,6 +89,23 @@ export interface AnalyticsContent {
 }
 
 /**
+ * Config for the Link Hub — a Linktree-style tree of topics/subtopics and rich
+ * content. `navEnabled` is the single admin switch that shows/hides the `/hub`
+ * link in the navbar; the page itself is always reachable so existing links keep
+ * working even when it's off the nav.
+ */
+export interface HubContent {
+  /** Show the hub link in the navbar (desktop + mobile). */
+  navEnabled: boolean
+  /** Label for the navbar link, e.g. "Hub", "Links", "Resources". */
+  navLabel: string
+  /** Heading shown at the top of the public hub page. */
+  title: string
+  /** One-line subtitle under the hub heading. */
+  subtitle: string
+}
+
+/**
  * Site identity used for SEO, page titles and social share cards. Every field
  * is optional in practice: leave a field blank and it falls back to a sensible
  * value derived from the Navbar/Hero content (see {@link getSeo}), so a fresh
@@ -184,6 +201,13 @@ const DEFAULTS = {
     showPageViews: false as boolean,
     showBlogStats: false as boolean,
   } satisfies AnalyticsContent,
+
+  hub: {
+    navEnabled: false as boolean,
+    navLabel: 'Hub',
+    title: 'Hub',
+    subtitle: 'Curated topics, links and resources — browse, search and download.',
+  } satisfies HubContent,
 }
 
 type ContentKey = keyof typeof DEFAULTS

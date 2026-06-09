@@ -58,6 +58,30 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // rather than failing the whole route.
   }
 
+  // Link Hub: include /hub and every published topic page. Only emitted when at
+  // least one topic is published, so an unused hub adds no thin pages.
+  const hubRoutes: MetadataRoute.Sitemap = []
+  try {
+    const topics = await prisma.hubTopic.findMany({
+      where: { published: true },
+      select: { slug: true, updatedAt: true },
+      orderBy: { order: 'asc' },
+    })
+    if (topics.length > 0) {
+      hubRoutes.push({ url: `${base}/hub`, changeFrequency: 'weekly', priority: 0.5 })
+      for (const t of topics) {
+        hubRoutes.push({
+          url: `${base}/hub/${t.slug}`,
+          lastModified: t.updatedAt ?? undefined,
+          changeFrequency: 'monthly',
+          priority: 0.4,
+        })
+      }
+    }
+  } catch {
+    // Hub is optional; skip its routes if the tables are unreachable.
+  }
+
   const mediaRoutes: MetadataRoute.Sitemap = []
   try {
     const categories = await prisma.mediaCategory.findMany({
@@ -81,5 +105,5 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     // Topic pages are optional; skip them if the media tables are unreachable.
   }
 
-  return [...staticRoutes, ...postRoutes, ...mediaRoutes]
+  return [...staticRoutes, ...postRoutes, ...hubRoutes, ...mediaRoutes]
 }

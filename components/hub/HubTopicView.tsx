@@ -10,9 +10,15 @@ import { HubTopicCard } from './HubTopicCard'
 import { HubBreadcrumb } from './HubBreadcrumb'
 import { useHubFilter, type SortKey } from './useHubFilter'
 
+/** Subtle uppercase section label. */
+function SectionLabel({ children }: { children: React.ReactNode }) {
+  return <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--muted)]">{children}</h2>
+}
+
 /**
- * Full topic detail page: breadcrumb, header, subtopics grid, and items section
- * (with its own search/sort/date filter). Mobile-first.
+ * Full topic detail page: a tight, link-first layout — compact header, subtopics
+ * row-cards, then content blocks stacked tightly. The search/sort/filter toolbar
+ * only appears for content-heavy topics so small lists stay clean. No cover art.
  */
 export default function HubTopicView({ topic }: { topic: HubTopicDetail }) {
   const [search, setSearch] = useState('')
@@ -20,213 +26,123 @@ export default function HubTopicView({ topic }: { topic: HubTopicDetail }) {
   const [dateRange, setDateRange] = useState<DateRange>(EMPTY_RANGE)
   const [sortKey, setSortKey] = useState<SortKey>('newest')
 
-  const isItemsFiltered = search || activeCategory || isRangeActive(dateRange)
-
-  // Filter and sort items (convert to HubEntry-like for the filter hook)
-  const itemsAsEntries = topic.items.map((item) => ({
-    ...item,
-    kind: 'item' as const,
-    href: '',
-    itemType: item.type,
-    path: topic.breadcrumb,
-  }))
-
+  const itemsAsEntries = topic.items.map((item) => ({ ...item, kind: 'item' as const, href: '', itemType: item.type, path: topic.breadcrumb }))
   const filteredItems = useHubFilter(itemsAsEntries, search, activeCategory, dateRange, sortKey)
+  const isFiltered = !!search || !!activeCategory || isRangeActive(dateRange)
 
-  // Distinct categories present among this topic's items — powers the chip filter.
   const itemCategories: HubCategoryRef[] = []
-  const seenCategory = new Set<string>()
+  const seen = new Set<string>()
   for (const it of topic.items) {
-    if (it.category && !seenCategory.has(it.category.slug)) {
-      seenCategory.add(it.category.slug)
-      itemCategories.push(it.category)
-    }
+    if (it.category && !seen.has(it.category.slug)) { seen.add(it.category.slug); itemCategories.push(it.category) }
   }
 
   const hasContent = topic.children.length > 0 || topic.items.length > 0
+  const showToolbar = topic.items.length > 6
 
   return (
-    <div className="space-y-10">
-      {/* Breadcrumb */}
+    <div className="space-y-7">
       <HubBreadcrumb crumbs={topic.breadcrumb} current={topic.title} />
 
-      {/* Header */}
-      <div className="space-y-4">
-        <div className="flex items-start gap-4">
-          {/* Icon */}
-          {topic.icon && (
-            <div className="flex-shrink-0 w-16 h-16 rounded-lg bg-[var(--accent)]/10 flex items-center justify-center text-3xl font-semibold">
-              {topic.icon}
-            </div>
-          )}
-
-          {/* Title + Description */}
-          <div className="flex-1 min-w-0">
-            <h1 className="text-3xl sm:text-4xl font-bold text-[var(--foreground)] mb-2">{topic.title}</h1>
-            {topic.description && (
-              <p className="text-base text-[var(--muted)] leading-relaxed mb-3">{topic.description}</p>
+      {/* Header — compact */}
+      <header className="flex items-start gap-3.5">
+        <span className="shrink-0 grid place-items-center w-12 h-12 rounded-xl bg-[var(--accent)]/10 text-[var(--accent)] text-2xl font-semibold">
+          {topic.icon || (topic.title[0]?.toUpperCase() ?? '?')}
+        </span>
+        <div className="flex-1 min-w-0 pt-0.5">
+          <h1 className="text-2xl sm:text-3xl font-bold text-[var(--foreground)] leading-tight">{topic.title}</h1>
+          {topic.description && <p className="text-[15px] text-[var(--muted)] leading-relaxed mt-1.5">{topic.description}</p>}
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2.5 text-xs text-[var(--muted)]">
+            {topic.category && (
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-2 h-2 rounded-full" style={{ background: topic.category.color || 'var(--accent)' }} />
+                {topic.category.name}
+              </span>
             )}
-
-            {/* Date + Category + Tags */}
-            <div className="flex flex-wrap items-center gap-3">
-              {topic.date && (
-                <span className="text-sm text-[var(--muted)]">
-                  Updated {new Date(topic.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                </span>
-              )}
-
-              {topic.category && (
-                <span
-                  className="inline-flex items-center h-6 px-2.5 rounded-full text-xs font-medium text-white"
-                  style={{ backgroundColor: topic.category.color || 'var(--accent)' }}
-                >
-                  {topic.category.name}
-                </span>
-              )}
-
-              {topic.tags.map((tag) => (
-                <span
-                  key={tag.slug}
-                  className="inline-flex items-center h-6 px-2.5 rounded-full text-xs font-medium border border-[var(--border)] text-[var(--muted)]"
-                >
-                  #{tag.name}
-                </span>
-              ))}
-            </div>
+            {topic.itemCount > 0 && <span>{topic.itemCount} item{topic.itemCount === 1 ? '' : 's'}</span>}
+            {topic.date && <span>Updated {new Date(topic.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>}
           </div>
         </div>
+      </header>
 
-        {/* Cover image (if present) */}
-        {topic.coverImage && (
-          <div className="w-full rounded-xl overflow-hidden border border-[var(--border)]">
-            <img src={topic.coverImage} alt={topic.title} className="w-full h-auto max-h-80 object-cover" />
-          </div>
-        )}
-      </div>
-
-      {/* Subtopics section */}
+      {/* Subtopics */}
       {topic.children.length > 0 && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-bold text-[var(--foreground)]">Subtopics</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {topic.children.map((child) => (
-              <HubTopicCard key={child.id} topic={child} />
-            ))}
+        <section className="space-y-2.5">
+          <SectionLabel>Subtopics</SectionLabel>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            {topic.children.map((child) => <HubTopicCard key={child.id} topic={child} />)}
           </div>
-        </div>
+        </section>
       )}
 
-      {/* Items section with filter/sort toolbar */}
+      {/* Contents */}
       {topic.items.length > 0 && (
-        <div className="space-y-4">
-          <h2 className="text-xl font-bold text-[var(--foreground)]">Contents</h2>
-
-          {/* Toolbar */}
-          <div className="space-y-4">
-            {/* Search + Sort */}
-            <div className="flex gap-3 items-center">
-              <div className="flex-1 relative">
-                <Search size={16} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[var(--muted)]" />
-                <input
-                  type="text"
-                  placeholder="Search contents..."
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="w-full px-3 py-2.5 pl-9 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--accent)] text-sm"
-                />
-              </div>
-
-              <select
-                value={sortKey}
-                onChange={(e) => setSortKey(e.target.value as SortKey)}
-                className="px-3 py-2.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)] text-sm font-medium"
-              >
-                <option value="newest">Newest</option>
-                <option value="oldest">Oldest</option>
-                <option value="a-z">A–Z</option>
-                <option value="z-a">Z–A</option>
+        <section className="space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <SectionLabel>{topic.children.length > 0 ? 'Contents' : ''}</SectionLabel>
+            {showToolbar && (
+              <select value={sortKey} onChange={(e) => setSortKey(e.target.value as SortKey)}
+                className="h-9 px-2.5 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)] text-xs font-medium">
+                <option value="newest">Newest</option><option value="oldest">Oldest</option><option value="a-z">A–Z</option><option value="z-a">Z–A</option>
               </select>
-            </div>
-
-            {/* Date filter */}
-            <MediaDateFilter onChange={setDateRange} />
-
-            {/* Category chips (only when items carry categories) */}
-            {itemCategories.length > 0 && (
-              <div className="overflow-x-auto no-scrollbar">
-                <div className="flex gap-2 w-max pb-0.5">
-                  <button
-                    type="button"
-                    onClick={() => setActiveCategory(null)}
-                    aria-pressed={!activeCategory}
-                    className={[
-                      'shrink-0 inline-flex items-center h-9 px-3.5 rounded-lg text-[13px] font-medium border transition-colors',
-                      !activeCategory
-                        ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
-                        : 'border-[var(--border)] bg-[var(--background)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--foreground)]',
-                    ].join(' ')}
-                  >
-                    All
-                  </button>
-                  {itemCategories.map((cat) => {
-                    const active = activeCategory === cat.slug
-                    return (
-                      <button
-                        key={cat.slug}
-                        type="button"
-                        onClick={() => setActiveCategory(active ? null : cat.slug)}
-                        aria-pressed={active}
-                        className={[
-                          'shrink-0 inline-flex items-center h-9 px-3.5 rounded-lg text-[13px] font-medium border transition-colors',
-                          active
-                            ? 'text-white'
-                            : 'border-[var(--border)] bg-[var(--background)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--foreground)]',
-                        ].join(' ')}
-                        style={active ? { backgroundColor: cat.color || 'var(--accent)', borderColor: cat.color || 'var(--accent)' } : undefined}
-                      >
-                        {cat.name}
-                      </button>
-                    )
-                  })}
-                </div>
-              </div>
             )}
           </div>
 
-          {/* Results summary */}
-          {isItemsFiltered && filteredItems.length > 0 && (
-            <p className="text-sm text-[var(--muted)]">
-              Showing <span className="font-semibold text-[var(--foreground)]">{filteredItems.length}</span> of{' '}
-              {topic.items.length} items
-            </p>
+          {showToolbar && (
+            <div className="space-y-2.5">
+              <div className="relative">
+                <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--muted)]" />
+                <input type="text" placeholder="Search contents…" value={search} onChange={(e) => setSearch(e.target.value)}
+                  className="w-full h-10 pl-9 pr-3 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] placeholder-[var(--muted)] focus:outline-none focus:border-[var(--accent)] text-sm" />
+              </div>
+              <MediaDateFilter onChange={setDateRange} />
+              {itemCategories.length > 0 && (
+                <div className="overflow-x-auto no-scrollbar">
+                  <div className="flex gap-2 w-max pb-0.5">
+                    <Chip active={!activeCategory} onClick={() => setActiveCategory(null)}>All</Chip>
+                    {itemCategories.map((cat) => (
+                      <Chip key={cat.slug} active={activeCategory === cat.slug} color={cat.color} onClick={() => setActiveCategory(activeCategory === cat.slug ? null : cat.slug)}>{cat.name}</Chip>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {isFiltered && filteredItems.length > 0 && (
+                <p className="text-xs text-[var(--muted)]">Showing <span className="font-semibold text-[var(--foreground)]">{filteredItems.length}</span> of {topic.items.length}</p>
+              )}
+            </div>
           )}
 
-          {/* Items list or empty state */}
           {filteredItems.length > 0 ? (
-            <div className="space-y-8">
-              {filteredItems.map((item) => (
-                <HubItemRenderer key={item.id} item={item} />
-              ))}
+            <div className="space-y-2.5">
+              {filteredItems.map((item) => <HubItemRenderer key={item.id} item={item} />)}
             </div>
-          ) : isItemsFiltered ? (
-            <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-[var(--border)] py-14 text-center">
-              <Search size={28} className="text-[var(--muted)]" />
-              <div>
-                <p className="text-sm font-medium text-[var(--foreground)]">No items match your filters</p>
-                <p className="text-xs text-[var(--muted)] mt-1">Try adjusting your search or filters</p>
-              </div>
-            </div>
-          ) : null}
-        </div>
+          ) : (
+            <EmptyState text="No items match your filters." />
+          )}
+        </section>
       )}
 
-      {/* Empty state */}
-      {!hasContent && (
-        <div className="flex flex-col items-center gap-3 rounded-2xl border border-dashed border-[var(--border)] py-14 text-center">
-          <Search size={28} className="text-[var(--muted)]" />
-          <p className="text-sm text-[var(--muted)]">This topic is empty. Check back soon.</p>
-        </div>
-      )}
+      {!hasContent && <EmptyState text="This topic is empty. Check back soon." />}
+    </div>
+  )
+}
+
+function Chip({ active, color, onClick, children }: { active: boolean; color?: string | null; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button type="button" onClick={onClick} aria-pressed={active}
+      className={['shrink-0 inline-flex items-center h-8 px-3 rounded-lg text-[13px] font-medium border transition-colors',
+        active && !color ? 'border-[var(--accent)] bg-[var(--accent)] text-white'
+          : active ? 'text-white' : 'border-[var(--border)] bg-[var(--surface)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--foreground)]'].join(' ')}
+      style={active && color ? { backgroundColor: color, borderColor: color } : undefined}>
+      {children}
+    </button>
+  )
+}
+
+function EmptyState({ text }: { text: string }) {
+  return (
+    <div className="flex flex-col items-center gap-2.5 rounded-2xl border border-dashed border-[var(--border)] py-12 text-center">
+      <Search size={24} className="text-[var(--muted)]" />
+      <p className="text-sm text-[var(--muted)]">{text}</p>
     </div>
   )
 }

@@ -32,7 +32,7 @@ export default function HubExplorer({ data }: { data: HubLandingData }) {
   const topicsToShow = isFiltered ? [] : data.topics
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       {/* Toolbar */}
       <div className="space-y-4">
         {/* Search + Sort */}
@@ -151,7 +151,7 @@ export default function HubExplorer({ data }: { data: HubLandingData }) {
         <>
           {/* Topic grid (default view) */}
           {topicsToShow.length > 0 ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               {topicsToShow.map((topic) => (
                 <HubTopicCard key={topic.id} topic={topic} />
               ))}

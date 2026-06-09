@@ -12,8 +12,8 @@ const ICON_CACHE_HEADERS = {
 // How tightly to crop the subject (1 = whole photo, >1 zooms in so the face /
 // subject fills more of the circle with no padding) and where to centre the
 // crop vertically (0 = top, 0.5 = middle — headshots usually sit a bit high).
-const PHOTO_ZOOM = 1.4
-const PHOTO_FOCUS_Y = 0.28
+const PHOTO_ZOOM = 1.15
+const PHOTO_FOCUS_Y = 0.05
 
 async function fetchImageBytes(src?: string): Promise<{ buf: Buffer; type: string } | null> {
   if (!src || !/^https?:\/\//i.test(src)) return null

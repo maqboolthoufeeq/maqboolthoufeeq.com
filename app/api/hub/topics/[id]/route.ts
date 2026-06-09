@@ -79,11 +79,11 @@ export async function PUT(req: NextRequest, { params }: Ctx) {
     regenerateSlug,
   } = body
 
-  if (title !== undefined && (!title.trim() || title.trim().length > HUB_LIMITS.topicTitle)) {
+  if (title !== undefined && (typeof title !== 'string' || !title.trim() || title.trim().length > HUB_LIMITS.topicTitle)) {
     return NextResponse.json({ error: 'Title must be non-empty and under 160 characters' }, { status: 400 })
   }
 
-  if (description !== undefined && description.length > HUB_LIMITS.description) {
+  if (typeof description === 'string' && description.length > HUB_LIMITS.description) {
     return NextResponse.json({ error: 'Description must be under 2000 characters' }, { status: 400 })
   }
 

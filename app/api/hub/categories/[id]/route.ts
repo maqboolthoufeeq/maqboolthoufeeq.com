@@ -15,7 +15,7 @@ export async function PUT(req: NextRequest, { params }: Ctx) {
 
   const { name, color, order } = await req.json()
 
-  if (name !== undefined && (!name.trim() || name.trim().length > HUB_LIMITS.categoryName)) {
+  if (name !== undefined && (typeof name !== 'string' || !name.trim() || name.trim().length > HUB_LIMITS.categoryName)) {
     return NextResponse.json(
       { error: 'Name must be non-empty and under 80 characters' },
       { status: 400 },

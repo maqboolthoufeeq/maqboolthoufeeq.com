@@ -34,8 +34,11 @@ export default function TagSelector({ selectedIds, onChange }: Props) {
     setCreating(false)
     if (res.ok) {
       const tag: Tag = await res.json()
-      setTags((prev) => [...prev, tag].sort((a, b) => a.name.localeCompare(b.name)))
-      onChange([...selectedIds, tag.id])
+      // The API is idempotent: typing an existing tag name returns that tag, so
+      // only add it to the list/selection when it isn't already there (avoids
+      // duplicate React keys and double-selecting).
+      setTags((prev) => (prev.some((t) => t.id === tag.id) ? prev : [...prev, tag].sort((a, b) => a.name.localeCompare(b.name))))
+      onChange(selectedIds.includes(tag.id) ? selectedIds : [...selectedIds, tag.id])
       setNewTag('')
     }
   }

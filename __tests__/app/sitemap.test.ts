@@ -100,15 +100,31 @@ describe('sitemap.xml', () => {
     expect(urls).not.toContain('https://example.com/reels/talks')
   })
 
-  it('attaches the cover image to a post entry for image indexing', async () => {
+  it('attaches a safe cover image but skips null and XML-unsafe URLs', async () => {
     findMany.mockResolvedValue([
       { slug: 'with-cover', updatedAt: new Date('2026-01-02'), publishedAt: new Date('2026-01-01'), coverImage: 'https://cdn.example.com/cover.png' },
+      // A query-string image (raw & ) must NOT be emitted — Next does not escape
+      // <image:loc>, so this would otherwise break the whole sitemap's XML.
+      { slug: 'querystring', updatedAt: null, publishedAt: new Date('2025-12-15'), coverImage: 'https://media.licdn.com/x.png?e=1781136000&v=beta&t=abc' },
       { slug: 'no-cover', updatedAt: null, publishedAt: new Date('2025-12-01'), coverImage: null },
     ])
     const entries = await sitemap()
-    const withCover = entries.find((e) => e.url.endsWith('/blog/with-cover'))
-    const noCover = entries.find((e) => e.url.endsWith('/blog/no-cover'))
-    expect(withCover?.images).toEqual(['https://cdn.example.com/cover.png'])
-    expect(noCover?.images).toBeUndefined()
+    expect(entries.find((e) => e.url.endsWith('/blog/with-cover'))?.images).toEqual(['https://cdn.example.com/cover.png'])
+    expect(entries.find((e) => e.url.endsWith('/blog/querystring'))?.images).toBeUndefined()
+    expect(entries.find((e) => e.url.endsWith('/blog/no-cover'))?.images).toBeUndefined()
+  })
+
+  it('never emits an image URL with XML-unsafe characters (sitemap stays well-formed)', async () => {
+    findMany.mockResolvedValue([
+      { slug: 'a', updatedAt: null, publishedAt: new Date('2026-01-01'), coverImage: 'https://ok.example.com/a.png' },
+      { slug: 'b', updatedAt: null, publishedAt: new Date('2026-01-01'), coverImage: 'https://x.com/i.png?e=1&v=2&t=3' },
+      { slug: 'c', updatedAt: null, publishedAt: new Date('2026-01-01'), coverImage: "https://x.com/<o'>\".png" },
+    ])
+    const entries = await sitemap()
+    for (const e of entries) {
+      for (const img of e.images ?? []) {
+        expect(img).not.toMatch(/[&<>"']/)
+      }
+    }
   })
 })

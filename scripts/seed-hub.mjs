@@ -67,7 +67,7 @@ const TOPICS = [
     items: [
       md('Architecture', '# Architecture\n\nApp Router + RSC, Prisma + Postgres, Vercel Blob.\n\n```ts\nconst data = await getHubLanding()\n```'),
       link('Next.js Docs', 'https://nextjs.org/docs', { category: 'Engineering' }),
-      embed('CodePen demo', 'https://codepen.io/team/codepen/pen/PNaGbb'),
+      embed('Vimeo showcase', 'https://vimeo.com/76979871'),
       text('Reminder', 'Set NEXT_PUBLIC_SITE_URL and run prisma generate after schema changes.'),
       link('Prisma Docs', 'https://www.prisma.io/docs'),
     ],

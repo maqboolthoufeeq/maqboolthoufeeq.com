@@ -37,7 +37,7 @@ export default async function HubTopicPage({ params }: Props) {
   return (
     <>
       <Navbar />
-      <main className="max-w-5xl mx-auto px-4 py-10 sm:py-14">
+      <main className="max-w-3xl mx-auto px-4 py-10 sm:py-14">
         <HubTopicView topic={topic} />
       </main>
     </>

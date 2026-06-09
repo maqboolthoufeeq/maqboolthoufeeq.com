@@ -287,9 +287,9 @@ export function parseHubEmbed(rawUrl: string): HubEmbed | null {
     if (id) return { provider: 'Loom', src: `https://www.loom.com/embed/${id}`, aspect: 'video', allowFullScreen: true }
   }
 
-  // CodePen — codepen.io/{user}/pen/{id} → /embed/{id}
+  // CodePen — codepen.io/{user}/pen/{id} or /team/{name}/pen/{id} → /embed/{id}
   if (host === 'codepen.io') {
-    const m = u.pathname.match(/^\/([^/]+)\/(?:pen|embed)\/([\w-]+)/)
+    const m = u.pathname.match(/^\/(.+?)\/(?:pen|embed)\/([\w-]+)/)
     if (m) return { provider: 'CodePen', src: `https://codepen.io/${m[1]}/embed/${m[2]}?default-tab=result`, aspect: 'video', allowFullScreen: true }
   }
 

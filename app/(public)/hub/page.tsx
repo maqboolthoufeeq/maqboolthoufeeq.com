@@ -35,9 +35,18 @@ export default async function HubPage() {
   return (
     <>
       <Navbar />
-      <main className="max-w-5xl mx-auto px-4 py-12 sm:py-16">
-        <div className="flex items-start justify-between gap-4 mb-2">
-          <h1 className="text-2xl sm:text-3xl font-bold text-[var(--foreground)]">{hub.title || 'Hub'}</h1>
+      <main className="max-w-3xl mx-auto px-4 py-12 sm:py-16">
+        <div className="flex items-start justify-between gap-4 mb-8">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-[0.22em] text-[var(--accent)] mb-3">The Hub</p>
+            <h1
+              className="text-4xl sm:text-5xl font-bold text-[var(--foreground)] leading-[1.05]"
+              style={{ fontFamily: 'var(--font-lora), serif' }}
+            >
+              {hub.title || 'Hub'}
+            </h1>
+            {hub.subtitle && <p className="text-[15px] text-[var(--muted)] leading-relaxed mt-3 max-w-xl">{hub.subtitle}</p>}
+          </div>
           {isAdmin && (
             <Link
               href="/admin/hub"
@@ -48,8 +57,6 @@ export default async function HubPage() {
             </Link>
           )}
         </div>
-        {hub.subtitle && <p className="text-sm text-[var(--muted)] mb-1">{hub.subtitle}</p>}
-        <div className="w-10 h-0.5 bg-[var(--accent)] mb-8" />
 
         {data.topics.length === 0 && data.entries.length === 0 ? (
           <p className="text-[var(--muted)]">Nothing here yet. Check back soon.</p>

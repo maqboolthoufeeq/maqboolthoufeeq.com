@@ -6,6 +6,18 @@ import { getSiteUrl } from '@/lib/utils'
 export const dynamic = 'force-dynamic'
 
 /**
+ * True when a URL is an absolute http(s) link containing no XML-special
+ * characters (& < > " '). Next.js 16 does NOT entity-escape the <image:loc>
+ * it emits for the sitemap `images` field, so a cover-image URL with a raw `&`
+ * (e.g. a signed/query-string image such as LinkedIn's `?e=…&v=…&t=…`) would
+ * produce malformed XML and break the ENTIRE sitemap. We therefore only attach
+ * cover images whose URL is safe to embed verbatim.
+ */
+function isXmlSafeImageUrl(url: string | null | undefined): url is string {
+  return !!url && /^https?:\/\//i.test(url) && !/[&<>"']/.test(url)
+}
+
+/**
  * XML sitemap (served at /sitemap.xml) listing the static pages, every
  * published blog post (with its cover image for Google image indexing) and the
  * reel/video topic pages that have published items. Uses the canonical site URL
@@ -37,8 +49,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       lastModified: p.updatedAt ?? p.publishedAt ?? undefined,
       changeFrequency: 'monthly',
       priority: 0.6,
-      // Image sitemap entry — only absolute http(s) URLs are valid here.
-      ...(p.coverImage && /^https?:\/\//i.test(p.coverImage) ? { images: [p.coverImage] } : {}),
+      // Image sitemap entry — only for URLs that are safe to embed raw in XML
+      // (Next does not escape <image:loc>; an unescaped & breaks the sitemap).
+      ...(isXmlSafeImageUrl(p.coverImage) ? { images: [p.coverImage] } : {}),
     }))
   } catch {
     // If the database is briefly unreachable, still serve the static sitemap

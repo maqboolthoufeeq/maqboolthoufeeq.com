@@ -1,6 +1,9 @@
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
+  // sharp is a native module used by the favicon/icon routes to crop + circle-mask
+  // the profile photo; keep it external rather than bundling the native binary.
+  serverExternalPackages: ['sharp'],
   images: {
     remotePatterns: [
       {

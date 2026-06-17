@@ -22,7 +22,7 @@ interface RawHubTopic {
   id: string; title: string; slug: string; description: string | null; icon: string | null; cover_image: string | null; rank: number
 }
 interface RawHubItem {
-  id: string; title: string; description: string | null; topic_slug: string; thumbnail: string | null; rank: number
+  id: string; title: string; description: string | null; content: string | null; topic_slug: string; thumbnail: string | null; rank: number
 }
 interface RawMediaItem {
   id: string; title: string; description: string | null; platform: string; embed_id: string; thumbnail_url: string | null; category_slug: string | null; rank: number
@@ -70,13 +70,13 @@ async function searchFTS(query: string, limit: number): Promise<SearchResult[]> 
     prisma.$queryRaw<RawHubItem[]>`
       SELECT hi.id, hi.title, hi.description, ht.slug AS topic_slug, hi.thumbnail,
         ts_rank(
-          to_tsvector('english', coalesce(hi.title,'') || ' ' || coalesce(hi.description,'')),
+          to_tsvector('english', coalesce(hi.title,'') || ' ' || coalesce(hi.description,'') || ' ' || coalesce(hi.content,'')),
           websearch_to_tsquery('english', ${query})
         ) AS rank
       FROM "HubItem" hi
       JOIN "HubTopic" ht ON ht.id = hi."topicId"
       WHERE hi.published = true AND ht.published = true
-        AND to_tsvector('english', coalesce(hi.title,'') || ' ' || coalesce(hi.description,''))
+        AND to_tsvector('english', coalesce(hi.title,'') || ' ' || coalesce(hi.description,'') || ' ' || coalesce(hi.content,''))
           @@ websearch_to_tsquery('english', ${query})
       ORDER BY rank DESC LIMIT ${cap}
     `,
@@ -115,7 +115,7 @@ async function searchFTS(query: string, limit: number): Promise<SearchResult[]> 
     })),
     ...items.map(i => ({
       id: i.id, type: 'hub_item' as const, title: i.title,
-      href: `/hub/${i.topic_slug}`, excerpt: i.description ?? undefined,
+      href: `/hub/${i.topic_slug}`, excerpt: (i.description ?? i.content ?? undefined)?.slice(0, 200),
       imageUrl: i.thumbnail ?? undefined, badge: 'Hub', rank: Number(i.rank),
     })),
     ...media.map(m => {
@@ -168,8 +168,9 @@ async function searchFallback(query: string, limit: number): Promise<SearchResul
       where: { published: true, topic: { published: true }, OR: [
         { title: { contains: q, mode: 'insensitive' } },
         { description: { contains: q, mode: 'insensitive' } },
+        { content: { contains: q, mode: 'insensitive' } },
       ] },
-      select: { id: true, title: true, description: true, thumbnail: true, topic: { select: { slug: true } } },
+      select: { id: true, title: true, description: true, content: true, thumbnail: true, topic: { select: { slug: true } } },
       take: cap,
     }),
     prisma.mediaItem.findMany({
@@ -201,7 +202,7 @@ async function searchFallback(query: string, limit: number): Promise<SearchResul
     })),
     ...items.map(i => ({
       id: i.id, type: 'hub_item' as const, title: i.title,
-      href: `/hub/${i.topic.slug}`, excerpt: i.description ?? undefined,
+      href: `/hub/${i.topic.slug}`, excerpt: (i.description ?? i.content ?? undefined)?.slice(0, 200),
       imageUrl: i.thumbnail ?? undefined, badge: 'Hub', rank: 0,
     })),
     ...media.map(m => {
@@ -225,17 +226,19 @@ export async function search(
   const q = query.trim()
   if (!q || q.length < 2) return { results: [], total: 0 }
 
-  try {
-    const results = await searchFTS(q, limit)
-    return { results: results.slice(0, limit), total: results.length }
-  } catch (err) {
-    console.error('[search] FTS error, falling back to ILIKE:', err)
-    try {
-      const results = await searchFallback(q, limit)
-      return { results: results.slice(0, limit), total: results.length }
-    } catch (err2) {
-      console.error('[search] Fallback error:', err2)
-      return { results: [], total: 0 }
-    }
-  }
+  // Run FTS and ILIKE in parallel — FTS can return empty without throwing,
+  // so always run both and merge. FTS results rank higher; ILIKE fills gaps.
+  const [ftsSettled, fallbackSettled] = await Promise.allSettled([
+    searchFTS(q, limit),
+    searchFallback(q, limit),
+  ])
+
+  const fts = ftsSettled.status === 'fulfilled' ? ftsSettled.value : []
+  const fallback = fallbackSettled.status === 'fulfilled' ? fallbackSettled.value : []
+
+  const seen = new Set(fts.map(r => r.id))
+  const merged = [...fts, ...fallback.filter(r => !seen.has(r.id))]
+  merged.sort((a, b) => b.rank - a.rank)
+
+  return { results: merged.slice(0, limit), total: merged.length }
 }

@@ -342,15 +342,15 @@ export default function HubTopicForm({
       </div>
 
       {/* Content blocks section — only for editing */}
-      {!isCreating && (
+      {!isCreating && initial && (
         <div className="space-y-3">
           <div>
             <p className="text-sm font-medium text-[var(--foreground)] mb-1">Content blocks</p>
             <p className="text-xs text-[var(--muted)]">Add images, text, videos, and more to this topic.</p>
           </div>
           <HubItemEditor
-            topicId={initial!.id}
-            initialItems={initial!.items}
+            topicId={initial.id}
+            initialItems={initial.items}
             categories={categories}
           />
         </div>

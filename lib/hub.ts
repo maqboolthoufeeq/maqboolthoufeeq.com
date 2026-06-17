@@ -249,9 +249,10 @@ export async function getHubLanding(): Promise<HubLandingData> {
     const chain: HubCrumb[] = []
     let cur: string | null | undefined = parentOf.get(id) ?? null
     const seen = new Set<string>()
-    while (cur && byId.has(cur) && !seen.has(cur)) {
+    while (cur && !seen.has(cur)) {
+      const t = byId.get(cur)
+      if (!t) break
       seen.add(cur)
-      const t = byId.get(cur)!
       chain.unshift({ title: t.title, slug: t.slug })
       cur = parentOf.get(cur) ?? null
     }
@@ -292,10 +293,11 @@ export async function getHubLanding(): Promise<HubLandingData> {
         path: pathOf(t.id),
       }
     }),
-    ...visibleItems.map((it): HubEntry => {
+    ...visibleItems.flatMap((it): HubEntry[] => {
+      const topic = byId.get(it.topicId)
+      if (!topic) return [] // unreachable: visibleItems is filtered to known topics
       const data = toItemData(it)
-      const topic = byId.get(it.topicId)!
-      return {
+      return [{
         kind: 'item',
         id: it.id,
         title: it.title,
@@ -307,7 +309,7 @@ export async function getHubLanding(): Promise<HubLandingData> {
         date: data.date,
         sortDate: data.sortDate,
         path: [...pathOf(it.topicId), { title: topic.title, slug: topic.slug }],
-      }
+      }]
     }),
   ]
 
@@ -423,9 +425,10 @@ export async function getHubAdminTree(): Promise<HubAdminTopicNode[]> {
 
   const roots: HubAdminTopicNode[] = []
   for (const t of topics) {
-    const node = nodeById.get(t.id)!
-    if (t.parentId && nodeById.has(t.parentId)) {
-      const parent = nodeById.get(t.parentId)!
+    const node = nodeById.get(t.id)
+    if (!node) continue
+    const parent = t.parentId ? nodeById.get(t.parentId) : undefined
+    if (parent) {
       node.depth = parent.depth + 1
       parent.children.push(node)
     } else {

@@ -19,7 +19,7 @@ help:
 	@echo "    make type-check   TypeScript check"
 	@echo "    make test         Run tests"
 	@echo "    make test-watch   Run tests in watch mode"
-	@echo "    make pr           Format + lint + type-check + tests (full pre-commit)"
+	@echo "    make pr           Audit-fix + format + lint + type-check + tests (full pre-commit)"
 	@echo ""
 	@echo "  Database"
 	@echo "    make db-push      Sync Prisma schema → database"
@@ -66,6 +66,8 @@ test-watch:
 	npm run test:watch
 
 pr:
+	@echo "→ security audit (auto-fixing safe, non-breaking issues)..."
+	@npm audit fix || true   # never pass --force: it would downgrade Next/postcss and break the app
 	@echo "→ format..."
 	@npx eslint . --fix || (echo "✗ format failed — unfixable lint errors" && exit 1)
 	@echo "→ lint..."
@@ -74,6 +76,8 @@ pr:
 	@npx tsc --noEmit || (echo "✗ type check failed" && exit 1)
 	@echo "→ tests..."
 	@npm run test:ci || (echo "✗ tests failed" && exit 1)
+	@echo "→ security audit (report — any remaining items need a manual, reviewed upgrade)..."
+	@npm audit || true
 	@echo "✓ all checks passed"
 
 # ── database ──────────────────────────────────────────────────────────────────

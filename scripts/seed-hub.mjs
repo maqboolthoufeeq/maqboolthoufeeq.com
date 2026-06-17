@@ -204,7 +204,7 @@ async function main() {
   const hub = { navEnabled: true, navLabel: 'Hub', title: 'Hub', subtitle: 'Curated topics, links, photos and resources — browse, search and download.' }
   await prisma.siteContent.upsert({ where: { key: 'hub' }, create: { key: 'hub', value: hub }, update: { value: hub } })
 
-  console.log(`Seeded ${topicCount} topics and ${itemCount} items across ${CATEGORIES.length} categories. Nav enabled.`)
+  console.info(`Seeded ${topicCount} topics and ${itemCount} items across ${CATEGORIES.length} categories. Nav enabled.`)
 }
 
 main().then(() => prisma.$disconnect()).catch(async (e) => { console.error(e); await prisma.$disconnect(); process.exit(1) })

@@ -49,7 +49,6 @@ function ResultCard({ result }: { result: SearchResult }) {
             src={result.imageUrl}
             alt=""
             className="w-full h-full object-cover"
-            onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
           />
         ) : (
           <span className="text-2xl leading-none select-none">

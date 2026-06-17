@@ -47,11 +47,11 @@ async function searchFTS(query: string, limit: number): Promise<SearchResult[]> 
     prisma.$queryRaw<RawProject[]>`
       SELECT id, title, description, "imageUrl" AS image_url,
         ts_rank(
-          to_tsvector('english', coalesce(title,'') || ' ' || coalesce(description,'') || ' ' || array_to_string(tech, ' ')),
+          to_tsvector('english', coalesce(title,'') || ' ' || coalesce(description,'') || ' ' || coalesce(array_to_string(tech, ' '),'')),
           websearch_to_tsquery('english', ${query})
         ) AS rank
       FROM "Project"
-      WHERE to_tsvector('english', coalesce(title,'') || ' ' || coalesce(description,'') || ' ' || array_to_string(tech, ' '))
+      WHERE to_tsvector('english', coalesce(title,'') || ' ' || coalesce(description,'') || ' ' || coalesce(array_to_string(tech, ' '),''))
           @@ websearch_to_tsquery('english', ${query})
       ORDER BY rank DESC LIMIT ${cap}
     `,
@@ -138,7 +138,7 @@ async function searchFallback(query: string, limit: number): Promise<SearchResul
   const q = query.trim()
   const cap = Math.min(limit, 20)
 
-  const [posts, projects, topics, media] = await Promise.all([
+  const [posts, projects, topics, items, media] = await Promise.all([
     prisma.post.findMany({
       where: { published: true, OR: [
         { title: { contains: q, mode: 'insensitive' } },
@@ -164,6 +164,14 @@ async function searchFallback(query: string, limit: number): Promise<SearchResul
       select: { id: true, title: true, slug: true, description: true, icon: true, coverImage: true },
       take: cap,
     }),
+    prisma.hubItem.findMany({
+      where: { published: true, topic: { published: true }, OR: [
+        { title: { contains: q, mode: 'insensitive' } },
+        { description: { contains: q, mode: 'insensitive' } },
+      ] },
+      select: { id: true, title: true, description: true, thumbnail: true, topic: { select: { slug: true } } },
+      take: cap,
+    }),
     prisma.mediaItem.findMany({
       where: { published: true, OR: [
         { title: { contains: q, mode: 'insensitive' } },
@@ -182,7 +190,7 @@ async function searchFallback(query: string, limit: number): Promise<SearchResul
     })),
     ...projects.map(p => ({
       id: p.id, type: 'project' as const, title: p.title,
-      href: '/projects', excerpt: p.description,
+      href: '/projects', excerpt: p.description ?? undefined,
       imageUrl: p.imageUrl ?? undefined, badge: 'Project', rank: 0,
     })),
     ...topics.map(t => ({
@@ -190,6 +198,11 @@ async function searchFallback(query: string, limit: number): Promise<SearchResul
       href: `/hub/${t.slug}`, excerpt: t.description ?? undefined,
       imageUrl: t.coverImage ?? undefined, icon: t.icon ?? undefined,
       badge: 'Hub', rank: 0,
+    })),
+    ...items.map(i => ({
+      id: i.id, type: 'hub_item' as const, title: i.title,
+      href: `/hub/${i.topic.slug}`, excerpt: i.description ?? undefined,
+      imageUrl: i.thumbnail ?? undefined, badge: 'Hub', rank: 0,
     })),
     ...media.map(m => {
       const isYt = m.platform === 'youtube'

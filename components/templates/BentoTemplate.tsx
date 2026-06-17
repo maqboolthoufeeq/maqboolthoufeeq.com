@@ -117,6 +117,7 @@ export default async function BentoTemplate() {
                   width={96}
                   height={96}
                   className="w-full h-full object-cover"
+                  priority
                   unoptimized
                 />
               </div>

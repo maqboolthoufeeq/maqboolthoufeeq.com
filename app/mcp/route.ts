@@ -108,17 +108,21 @@ export async function POST(req: NextRequest) {
   }
 }
 
-export async function GET(req: NextRequest) {
-  if (!(await isAuthenticated(req))) {
-    return unauthorizedResponse(req)
-  }
-  const disabled = await getDisabledTools()
-  const enabledTools = ALL_TOOLS.filter((t) => !disabled.has(t.name))
-  return NextResponse.json({
-    name: 'site-manager',
-    version: '1.0.0',
-    transport: 'streamable-http',
-    toolCount: enabledTools.length,
-    tools: enabledTools.map((t) => t.name),
+/**
+ * GET is the MCP Streamable HTTP channel a client opens to receive
+ * server-initiated (SSE) messages. This server is the stateless per-request
+ * variant and never pushes anything, so per the spec we answer 405 — the signal
+ * that tells a well-behaved client "there is no stream here, don't reconnect."
+ *
+ * Previously this returned a 200 JSON metadata blob, which is not a valid SSE
+ * stream; some clients treat that as a broken stream and reconnect in a tight
+ * loop (a likely contributor to the runaway `/mcp` Edge Request count). Returning
+ * 405 immediately — before any auth/DB work — is both spec-correct and the
+ * cheapest possible response. Nothing in-app consumes this endpoint.
+ */
+export function GET() {
+  return new NextResponse('Method Not Allowed', {
+    status: 405,
+    headers: { Allow: 'POST', 'Cache-Control': 'no-store' },
   })
 }

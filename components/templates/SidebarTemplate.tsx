@@ -58,6 +58,7 @@ export default async function SidebarTemplate() {
               width={80}
               height={80}
               className="object-cover w-full h-full"
+              priority
               unoptimized
             />
           </div>

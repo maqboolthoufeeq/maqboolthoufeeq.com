@@ -1,5 +1,5 @@
 .PHONY: help dev build start install clean \
-        lint lint-fix type-check test test-watch \
+        lint lint-fix type-check test test-watch audit \
         db-push db-studio db-generate \
         pr br
 
@@ -19,7 +19,8 @@ help:
 	@echo "    make type-check   TypeScript check"
 	@echo "    make test         Run tests"
 	@echo "    make test-watch   Run tests in watch mode"
-	@echo "    make pr           Format + lint + type-check + tests (full pre-commit)"
+	@echo "    make audit        Full npm vulnerability report"
+	@echo "    make pr           Audit-fix + format + lint + type-check + tests (quiet; details on failure)"
 	@echo ""
 	@echo "  Database"
 	@echo "    make db-push      Sync Prisma schema → database"
@@ -65,16 +66,22 @@ test:
 test-watch:
 	npm run test:watch
 
+# Quiet pipeline: one line per step. A passing step prints "ok"; a failing step
+# prints "FAILED" followed by its full output, then aborts. Run `make audit` or
+# `make lint` for full detail. (npm audit fix never uses --force: it would
+# downgrade Next/postcss/Prisma and break the app.)
 pr:
-	@echo "→ format..."
-	@npx eslint . --fix || (echo "✗ format failed — unfixable lint errors" && exit 1)
-	@echo "→ lint..."
-	@npx eslint . || (echo "✗ lint failed" && exit 1)
-	@echo "→ type check..."
-	@npx tsc --noEmit || (echo "✗ type check failed" && exit 1)
-	@echo "→ tests..."
-	@npm run test:ci || (echo "✗ tests failed" && exit 1)
-	@echo "✓ all checks passed"
+	@printf '→ %-26s ' 'security audit (auto-fix)'; npm audit fix >/dev/null 2>&1 || true; echo 'ok'
+	@printf '→ %-26s ' 'format'; if out=$$(npx eslint . --fix 2>&1); then echo 'ok'; else echo 'FAILED'; printf '\n%s\n' "$$out"; exit 1; fi
+	@printf '→ %-26s ' 'lint'; if out=$$(npx eslint . 2>&1); then echo 'ok'; else echo 'FAILED'; printf '\n%s\n' "$$out"; exit 1; fi
+	@printf '→ %-26s ' 'type check'; if out=$$(npx tsc --noEmit 2>&1); then echo 'ok'; else echo 'FAILED'; printf '\n%s\n' "$$out"; exit 1; fi
+	@printf '→ %-26s ' 'tests'; if out=$$(npm run test:ci 2>&1); then echo 'ok'; else echo 'FAILED'; printf '\n%s\n' "$$out"; exit 1; fi
+	@printf '→ %-26s ' 'security audit'; summary=$$(npm audit 2>&1 | grep -iE 'vulnerabilit' | head -1); echo "$${summary:-no known vulnerabilities}"
+	@echo '✓ all checks passed'
+
+# Full vulnerability report (the detailed output suppressed by `make pr`).
+audit:
+	@npm audit
 
 # ── database ──────────────────────────────────────────────────────────────────
 db-push:

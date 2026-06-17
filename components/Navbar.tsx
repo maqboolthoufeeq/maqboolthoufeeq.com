@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import ThemeToggle from './ThemeToggle'
 import MobileMenu from './MobileMenu'
+import SearchBar from './search/SearchBar'
 import { getSiteContent } from '@/lib/site-content'
 import { isExternal } from '@/lib/utils'
 import { auth } from '@/lib/auth'
@@ -54,6 +55,7 @@ export default async function Navbar() {
               </li>
             ))}
           </ul>
+          <SearchBar />
           <Link
             href={session ? '/admin' : '/admin/login'}
             title="Admin"

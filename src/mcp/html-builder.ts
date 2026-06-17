@@ -73,6 +73,42 @@ function escapeAttr(str: string): string {
   return str.replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 }
 
+/**
+ * Only allow URLs safe to embed/link: http(s), protocol-relative, root-relative,
+ * anchors, and (optionally) mailto. Drops javascript:, data:, vbscript:, etc. so
+ * the stored HTML can never carry a script-executing URL to public visitors.
+ */
+function safeUrl(raw: string | undefined, opts: { allowMailto?: boolean } = {}): string {
+  const s = (raw ?? '').trim()
+  if (s === '') return ''
+  if (s.startsWith('//') || s.startsWith('/') || s.startsWith('#')) return s
+  if (/^https?:\/\//i.test(s)) return s
+  if (opts.allowMailto && /^mailto:/i.test(s)) return s
+  return ''
+}
+
+/**
+ * Strip characters that could break out of a style="" attribute (", ', <, >) or
+ * inject extra declarations (;, {, }), keeping a safe subset for colours/fonts.
+ */
+function safeCssValue(raw: string | undefined): string {
+  return (raw ?? '').replace(/[^a-zA-Z0-9#,.%()\s-]/g, '').slice(0, 100)
+}
+
+/** Width must be a bare percentage or px length, else fall back to full width. */
+function safeWidth(raw: string | undefined): string {
+  const s = (raw ?? '').trim()
+  return /^\d{1,3}%$/.test(s) || /^\d{1,4}px$/.test(s) ? s : '100%'
+}
+
+/** Height must be digits with an optional px suffix, else default. */
+function safeHeight(raw: string | undefined): string {
+  const s = String(raw ?? '').trim()
+  if (/^\d{1,4}$/.test(s)) return `${s}px`
+  if (/^\d{1,4}px$/.test(s)) return s
+  return '400px'
+}
+
 // Matches the editor's mediaStyleStr — produces float or auto-margin layout
 function mediaStyle(align: string | undefined, width: string): string {
   const w = width
@@ -95,10 +131,10 @@ function renderSpan(span: TextSpan): string {
   let html = escapeHtml(span.text)
 
   const styles: string[] = []
-  if (span.color) styles.push(`color: ${span.color}`)
-  if (span.backgroundColor) styles.push(`background-color: ${span.backgroundColor}`)
-  if (span.fontFamily) styles.push(`font-family: ${span.fontFamily}`)
-  if (span.fontSize) styles.push(`font-size: ${span.fontSize}`)
+  if (span.color) styles.push(`color: ${safeCssValue(span.color)}`)
+  if (span.backgroundColor) styles.push(`background-color: ${safeCssValue(span.backgroundColor)}`)
+  if (span.fontFamily) styles.push(`font-family: ${safeCssValue(span.fontFamily)}`)
+  if (span.fontSize) styles.push(`font-size: ${safeCssValue(span.fontSize)}`)
 
   if (styles.length > 0) {
     html = `<span style="${styles.join('; ')}">${html}</span>`
@@ -108,7 +144,10 @@ function renderSpan(span: TextSpan): string {
   if (span.bold) html = `<strong>${html}</strong>`
   if (span.italic) html = `<em>${html}</em>`
   if (span.strikethrough) html = `<s>${html}</s>`
-  if (span.link) html = `<a href="${escapeAttr(span.link)}">${html}</a>`
+  if (span.link) {
+    const href = safeUrl(span.link, { allowMailto: true })
+    if (href) html = `<a href="${escapeAttr(href)}">${html}</a>`
+  }
 
   return html
 }
@@ -126,31 +165,31 @@ function renderBlock(block: Block): string {
       return `<h${block.level}>${renderSpans(block.content)}</h${block.level}>`
 
     case 'image': {
-      const w = block.width ?? '100%'
+      const w = safeWidth(block.width)
       const alt = escapeAttr(block.alt ?? '')
       const style = mediaStyle(block.align, w)
-      return `<img src="${escapeAttr(block.src)}" alt="${alt}" style="${style}">`
+      return `<img src="${escapeAttr(safeUrl(block.src))}" alt="${alt}" style="${style}">`
     }
 
     case 'video': {
-      const w = block.width ?? '100%'
+      const w = safeWidth(block.width)
       const style = mediaStyle(block.align, w)
-      const src = escapeAttr(block.src)
+      const src = escapeAttr(safeUrl(block.src))
       return `<video src="${src}" controls="" style="${style}"><source src="${src}"></video>`
     }
 
     case 'iframe': {
-      const w = block.width ?? '100%'
-      const h = block.height ? (String(block.height).endsWith('px') ? block.height : `${block.height}px`) : '400px'
+      const w = safeWidth(block.width)
+      const h = safeHeight(block.height)
       const style = mediaStyle(block.align, w)
-      let attrs = `src="${escapeAttr(block.src)}" height="${escapeAttr(h)}" style="${style}" frameborder="0"`
+      let attrs = `src="${escapeAttr(safeUrl(block.src))}" height="${escapeAttr(h)}" style="${style}" frameborder="0"`
       if (block.allow) attrs += ` allow="${escapeAttr(block.allow)}"`
       if (block.allowfullscreen) attrs += ` allowfullscreen="true"`
       return `<iframe ${attrs}></iframe>`
     }
 
     case 'youtube': {
-      const embedSrc = escapeAttr(toYoutubeEmbed(block.src))
+      const embedSrc = escapeAttr(safeUrl(toYoutubeEmbed(block.src)))
       return `<div data-youtube-video><iframe src="${embedSrc}" allowfullscreen="true" frameborder="0"></iframe></div>`
     }
 

@@ -123,6 +123,7 @@ export default async function MagazineTemplate() {
                     fill
                     className="object-cover"
                     style={{ filter: 'grayscale(20%)' }}
+                    priority
                     unoptimized
                   />
                 </div>

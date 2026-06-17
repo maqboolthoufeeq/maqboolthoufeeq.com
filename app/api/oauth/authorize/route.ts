@@ -1,7 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { auth } from '@/lib/auth'
-import { getClientByClientId, createAuthCode } from '@/lib/oauth'
+import { getClientByClientId, createAuthCode, isAllowedRedirectUri } from '@/lib/oauth'
 import { getPublicOrigin } from '@/lib/utils'
+
+/** Escape untrusted text before interpolating it into the consent HTML. */
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
 
 const CONSENT_HTML = (clientName: string, params: string) => `<!DOCTYPE html>
 <html lang="en">
@@ -63,7 +73,10 @@ export async function GET(req: NextRequest) {
   if (!clientId || !redirectUri) {
     return new NextResponse('Missing client_id or redirect_uri', { status: 400 })
   }
-  if (codeChallenge && codeChallengeMethod !== 'S256') {
+  if (!codeChallenge) {
+    return new NextResponse('code_challenge is required (PKCE is mandatory)', { status: 400 })
+  }
+  if (codeChallengeMethod !== 'S256') {
     return new NextResponse('Only code_challenge_method=S256 is supported', { status: 400 })
   }
 
@@ -71,7 +84,7 @@ export async function GET(req: NextRequest) {
   if (!client) {
     return new NextResponse('Unknown client_id', { status: 400 })
   }
-  if (client.redirectUrls.length > 0 && !client.redirectUrls.includes(redirectUri)) {
+  if (!isAllowedRedirectUri(client.redirectUrls, redirectUri)) {
     return new NextResponse('redirect_uri not registered for this client', { status: 400 })
   }
 
@@ -87,7 +100,7 @@ export async function GET(req: NextRequest) {
   const params = encodeURIComponent(
     JSON.stringify({ clientId, redirectUri, state, codeChallenge }),
   )
-  return new NextResponse(CONSENT_HTML(client.name, params), {
+  return new NextResponse(CONSENT_HTML(escapeHtml(client.name), params), {
     headers: { 'Content-Type': 'text/html' },
   })
 }
@@ -122,7 +135,7 @@ export async function POST(req: NextRequest) {
   if (!client) {
     return new NextResponse('Invalid client', { status: 400 })
   }
-  if (client.redirectUrls.length > 0 && !client.redirectUrls.includes(redirectUri)) {
+  if (!isAllowedRedirectUri(client.redirectUrls, redirectUri)) {
     return new NextResponse('redirect_uri not registered for this client', { status: 400 })
   }
 

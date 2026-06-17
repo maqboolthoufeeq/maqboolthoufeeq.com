@@ -60,6 +60,10 @@ async function sendViaMailgun(payload: EmailPayload): Promise<void> {
 }
 
 export async function sendEmail(payload: EmailPayload): Promise<void> {
+  // Defense-in-depth: collapse CR/LF in the subject so any user-supplied value
+  // that reaches it (e.g. the contact-form name) can never inject SMTP headers.
+  payload = { ...payload, subject: payload.subject.replace(/[\r\n]+/g, ' ') }
+
   const hasSMTP = smtpConfigured()
   const hasMailgun = mailgunConfigured()
 

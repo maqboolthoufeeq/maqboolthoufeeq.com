@@ -241,6 +241,18 @@ export default function SearchBar() {
             0 4px 28px color-mix(in srgb, var(--accent) 14%, transparent),
             0 2px 8px rgba(0,0,0,0.08);
         }
+        .search-mobile-panel {
+          border-bottom: 1px solid color-mix(in srgb, var(--accent) 28%, transparent);
+          box-shadow:
+            0 4px 32px color-mix(in srgb, var(--accent) 18%, transparent),
+            0 2px 12px color-mix(in srgb, var(--accent) 10%, transparent),
+            0 1px 0 0  color-mix(in srgb, var(--accent) 22%, transparent);
+        }
+        .search-mobile-input {
+          box-shadow:
+            0 0 0 1px color-mix(in srgb, var(--accent) 28%, transparent),
+            0 2px 12px color-mix(in srgb, var(--accent) 14%, transparent);
+        }
       `}</style>
 
       <div ref={containerRef} className="relative flex items-center">
@@ -340,20 +352,22 @@ export default function SearchBar() {
             role="dialog"
             aria-modal="true"
             aria-label="Site search"
-            className="sm:hidden fixed left-0 right-0 top-0 z-50 bg-[var(--background)] border-b border-[var(--border)] flex flex-col"
+            className="sm:hidden fixed left-0 right-0 top-0 z-50 bg-[var(--background)] flex flex-col search-mobile-panel"
           >
             <form
               onSubmit={onSubmit}
               className="flex items-center gap-2 h-14 px-4 shrink-0"
             >
-              <Search size={15} className="shrink-0 text-[var(--muted)]" aria-hidden />
-              <input ref={mobileInputRef} {...sharedInputProps} />
-              {loading && <Loader2 size={14} className="shrink-0 text-[var(--muted)] animate-spin" aria-label="Searching…" />}
-              {query && !loading && (
-                <button type="button" onClick={clearQuery} aria-label="Clear" className="shrink-0 p-0.5 text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">
-                  <X size={14} />
-                </button>
-              )}
+              <div className="flex flex-1 items-center gap-2 h-9 px-3 rounded-xl border border-[var(--accent)]/30 bg-[var(--surface)] search-mobile-input">
+                <Search size={15} className="shrink-0 text-[var(--muted)]" aria-hidden />
+                <input ref={mobileInputRef} {...sharedInputProps} />
+                {loading && <Loader2 size={14} className="shrink-0 text-[var(--muted)] animate-spin" aria-label="Searching…" />}
+                {query && !loading && (
+                  <button type="button" onClick={clearQuery} aria-label="Clear" className="shrink-0 p-0.5 text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
               <button type="button" onClick={close} className="shrink-0 text-xs font-medium text-[var(--muted)] hover:text-[var(--foreground)] transition-colors">
                 Cancel
               </button>
@@ -364,7 +378,7 @@ export default function SearchBar() {
                 id="search-results"
                 role="listbox"
                 aria-label="Search results"
-                className="border-t border-[var(--border)] overflow-y-auto max-h-[calc(100dvh-56px)]"
+                className="border-t border-[var(--accent)]/20 overflow-y-auto max-h-[calc(100dvh-56px)]"
               >
                 {results.length > 0 ? (
                   <>

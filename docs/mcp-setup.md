@@ -92,11 +92,11 @@ curl -X POST https://yourdomain.com/api/oauth/token \
 {
   "access_token": "fffaaa111222...",
   "token_type": "Bearer",
-  "expires_in": 31536000
+  "expires_in": 7776000
 }
 ```
 
-Save `access_token`. This is valid for **1 year**.
+Save `access_token`. This is valid for **90 days**.
 
 ---
 

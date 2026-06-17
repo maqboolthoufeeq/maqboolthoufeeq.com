@@ -28,6 +28,12 @@ const BADGE_COLORS: Record<string, string> = {
   Blog: 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800',
   Project: 'text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950 border-emerald-200 dark:border-emerald-800',
   Hub: 'text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950 border-violet-200 dark:border-violet-800',
+  Reel: 'text-rose-600 dark:text-rose-400 bg-rose-50 dark:bg-rose-950 border-rose-200 dark:border-rose-800',
+  Video: 'text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-950 border-red-200 dark:border-red-800',
+}
+
+const BADGE_ICONS: Record<string, string> = {
+  Blog: '📝', Project: '🚀', Hub: '🔗', Reel: '🎬', Video: '▶️',
 }
 
 function ResultCard({ result }: { result: SearchResult }) {
@@ -36,12 +42,29 @@ function ResultCard({ result }: { result: SearchResult }) {
       href={result.href}
       className="group flex items-start gap-4 p-4 rounded-xl border border-[var(--border)] bg-[var(--background)] hover:bg-[var(--surface)] hover:border-[var(--accent)]/30 transition-all"
     >
-      <span
-        className={`shrink-0 mt-0.5 inline-flex items-center text-[10px] font-semibold tracking-widest uppercase px-2 py-1 rounded-md border ${BADGE_COLORS[result.badge] ?? 'text-[var(--muted)] bg-[var(--surface)] border-[var(--border)]'}`}
-      >
-        {result.icon ? `${result.icon} ` : ''}{result.badge}
+      {/* Thumbnail / icon box */}
+      <span className="shrink-0 w-14 h-14 rounded-lg overflow-hidden bg-[var(--surface)] flex items-center justify-center">
+        {result.imageUrl ? (
+          <img
+            src={result.imageUrl}
+            alt=""
+            className="w-full h-full object-cover"
+            onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none' }}
+          />
+        ) : (
+          <span className="text-2xl leading-none select-none">
+            {result.icon ?? BADGE_ICONS[result.badge] ?? '📄'}
+          </span>
+        )}
       </span>
+
+      {/* Content */}
       <div className="flex-1 min-w-0">
+        <span
+          className={`inline-flex items-center mb-1 text-[10px] font-semibold tracking-widest uppercase px-2 py-0.5 rounded-md border ${BADGE_COLORS[result.badge] ?? 'text-[var(--muted)] bg-[var(--surface)] border-[var(--border)]'}`}
+        >
+          {result.badge}
+        </span>
         <p className="font-semibold text-[var(--foreground)] group-hover:text-[var(--accent)] transition-colors truncate">
           {result.title}
         </p>
@@ -80,10 +103,12 @@ export default async function SearchPage({ searchParams }: Props) {
     ? await search(query, 50)
     : { results: [], total: 0 }
 
-  const posts = results.filter(r => r.type === 'post')
-  const projects = results.filter(r => r.type === 'project')
+  const posts     = results.filter(r => r.type === 'post')
+  const projects  = results.filter(r => r.type === 'project')
   const hubTopics = results.filter(r => r.type === 'hub_topic')
-  const hubItems = results.filter(r => r.type === 'hub_item')
+  const hubItems  = results.filter(r => r.type === 'hub_item')
+  const reels     = results.filter(r => r.type === 'reel')
+  const videos    = results.filter(r => r.type === 'video')
 
   return (
     <>
@@ -92,7 +117,7 @@ export default async function SearchPage({ searchParams }: Props) {
         {/* Header */}
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-[var(--foreground)] mb-1">
-            {query ? `Results for “${query}”` : 'Search'}
+            {query ? `Results for "${query}"` : 'Search'}
           </h1>
           {query && (
             <p className="text-sm text-[var(--muted)]">
@@ -112,7 +137,7 @@ export default async function SearchPage({ searchParams }: Props) {
               type="text"
               defaultValue={query}
               autoFocus={!query}
-              placeholder="Search posts, projects, hub…"
+              placeholder="Search posts, projects, reels, videos, hub…"
               autoComplete="off"
               className="flex-1 bg-transparent text-sm text-[var(--foreground)] placeholder:text-[var(--muted)] outline-none"
             />
@@ -132,7 +157,7 @@ export default async function SearchPage({ searchParams }: Props) {
         {!query ? (
           <div className="flex flex-col items-center gap-3 py-16 text-[var(--muted)]">
             <Search size={36} className="opacity-30" aria-hidden />
-            <p className="text-sm">Type to search posts, projects, and hub content</p>
+            <p className="text-sm">Search posts, projects, reels, videos, and hub content</p>
           </div>
         ) : total === 0 ? (
           <div className="flex flex-col items-center gap-3 py-16 text-[var(--muted)]">
@@ -144,10 +169,9 @@ export default async function SearchPage({ searchParams }: Props) {
           <div className="flex flex-col gap-8">
             <ResultGroup title="Blog Posts" results={posts} />
             <ResultGroup title="Projects" results={projects} />
-            <ResultGroup
-              title="Hub"
-              results={[...hubTopics, ...hubItems]}
-            />
+            <ResultGroup title="Hub" results={[...hubTopics, ...hubItems]} />
+            <ResultGroup title="Reels" results={reels} />
+            <ResultGroup title="Videos" results={videos} />
           </div>
         )}
       </main>

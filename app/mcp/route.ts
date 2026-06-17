@@ -30,8 +30,13 @@ function rpcOk(id: string | number | null | undefined, result: unknown) {
   return NextResponse.json({ jsonrpc: '2.0', id, result })
 }
 
-function rpcErr(id: string | number | null | undefined, code: number, message: string) {
-  return NextResponse.json({ jsonrpc: '2.0', id, error: { code, message } })
+function rpcErr(
+  id: string | number | null | undefined,
+  code: number,
+  message: string,
+  status = 200,
+) {
+  return NextResponse.json({ jsonrpc: '2.0', id, error: { code, message } }, { status })
 }
 
 async function getDisabledTools(): Promise<Set<string>> {
@@ -58,11 +63,17 @@ export async function POST(req: NextRequest) {
     return unauthorizedResponse(req)
   }
 
+  // MCP Streamable HTTP requires JSON request bodies; reject anything else up front.
+  const contentType = req.headers.get('content-type') ?? ''
+  if (!contentType.includes('application/json')) {
+    return rpcErr(null, -32600, 'Unsupported Media Type: expected application/json', 415)
+  }
+
   let body: JsonRpcRequest
   try {
     body = await req.json()
   } catch {
-    return rpcErr(null, -32700, 'Parse error')
+    return rpcErr(null, -32700, 'Parse error', 400)
   }
 
   const { id, method, params = {} } = body
@@ -103,8 +114,12 @@ export async function POST(req: NextRequest) {
         return rpcErr(id, -32601, `Method not found: ${method}`)
     }
   } catch (err) {
-    const message = err instanceof Error ? err.message : String(err)
-    return rpcErr(id, -32000, message)
+    // Log the full error server-side (incl. stack) for debugging. The endpoint is
+    // authenticated, so returning the message to the admin caller is useful and not
+    // a meaningful disclosure; we still send only `.message`, never the stack.
+    console.error('[mcp] tool execution error:', { method, err })
+    const message = err instanceof Error ? err.message : 'Internal server error'
+    return rpcErr(id, -32000, message, 500)
   }
 }
 

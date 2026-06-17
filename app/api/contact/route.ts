@@ -36,7 +36,9 @@ export async function POST(req: NextRequest) {
   const formData = await req.formData().catch(() => null)
   if (!formData) return NextResponse.json({ error: 'Invalid request' }, { status: 400 })
 
-  const name = String(formData.get('name') ?? '').trim()
+  // Collapse CR/LF in the name — it lands in the email subject header, so newlines
+  // could otherwise be used to attempt SMTP header injection.
+  const name = String(formData.get('name') ?? '').replace(/[\r\n]+/g, ' ').trim()
   const email = String(formData.get('email') ?? '').trim()
   const message = String(formData.get('message') ?? '').trim()
   const file = formData.get('attachment')

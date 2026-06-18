@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import { FileText, Folder, Tags, Inbox, Layout, Palette, Cpu, BarChart3, Users, Eye, ChevronRight, LogOut, Clapperboard, Link2 } from 'lucide-react'
+import { FileText, Folder, Tags, Inbox, Layout, Palette, Cpu, BarChart3, Users, Eye, ChevronRight, LogOut, Clapperboard, Link2, Megaphone } from 'lucide-react'
 import { signOutAction } from '@/lib/admin-actions'
 import { prisma } from '@/lib/prisma'
 import { getSiteStats } from '@/lib/analytics'
@@ -108,7 +108,13 @@ export default async function AdminDashboard() {
               href="/admin/site-content"
               icon={Layout}
               title="Landing page"
-              description="Hero, about, contact, and footer"
+              description="Hero, about, contact, footer, and legal pages"
+            />
+            <AdminLinkRow
+              href="/admin/banners"
+              icon={Megaphone}
+              title="Announcements"
+              description="Banner notices on top of the landing page, with history"
             />
             <AdminLinkRow
               href="/admin/analytics"

@@ -7,6 +7,7 @@ import {
   AboutForm,
   ContactForm,
   FooterForm,
+  LegalForm,
   SeoForm,
   SectionToggle,
   CollapsibleSection,
@@ -14,7 +15,7 @@ import {
 import AdminShell from '@/components/admin/AdminShell'
 
 export default async function SiteContentPage() {
-  const [navbar, hub, hero, about, contact, footer, sections, seo] = await Promise.all([
+  const [navbar, hub, hero, about, contact, footer, sections, seo, legal] = await Promise.all([
     getSiteContent('navbar'),
     getSiteContent('hub'),
     getSiteContent('hero'),
@@ -23,6 +24,7 @@ export default async function SiteContentPage() {
     getSiteContent('footer'),
     getSiteContent('sections'),
     getSiteContent('seo'),
+    getSiteContent('legal'),
   ])
 
   return (
@@ -127,8 +129,33 @@ export default async function SiteContentPage() {
           </p>
         </CollapsibleSection>
 
-        <CollapsibleSection title="Footer" description="Copyright name in the site footer.">
+        <CollapsibleSection
+          title="Announcements"
+          description="A notice bar shown on top of the landing page, with public history."
+        >
+          <p className="text-sm text-[var(--muted)]">
+            Add and manage banner notices in{' '}
+            <Link href="/admin/banners" className="text-[var(--accent)] hover:underline">
+              Admin → Announcements
+            </Link>
+            . The newest active one shows at the top of the site; all of them appear on the public{' '}
+            <Link href="/announcements" className="text-[var(--accent)] hover:underline">
+              announcements
+            </Link>{' '}
+            page.
+          </p>
+        </CollapsibleSection>
+
+        <CollapsibleSection title="Footer" description="Copyright name and tagline shown in the site footer.">
           <FooterForm initial={footer} />
+        </CollapsibleSection>
+
+        <CollapsibleSection
+          title="Legal pages"
+          description="Privacy Policy and Terms & Conditions, linked from the footer."
+          defaultOpen={false}
+        >
+          <LegalForm initial={legal} />
         </CollapsibleSection>
 
         <CollapsibleSection

@@ -4,7 +4,8 @@ import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { ChevronRight } from 'lucide-react'
-import type { HeroContent, AboutContent, ContactContent, FooterContent, ContactLink, ContactExtra, NavbarContent, NavLink, ImageShape, ImageSize, SectionVisibility, SocialLink, SeoContent, HubContent } from '@/lib/site-content'
+import Editor from '@/components/admin/Editor'
+import type { HeroContent, AboutContent, ContactContent, FooterContent, ContactLink, ContactExtra, NavbarContent, NavLink, ImageShape, ImageSize, SectionVisibility, SocialLink, SeoContent, HubContent, LegalContent } from '@/lib/site-content'
 
 const SOCIAL_PLATFORMS = [
   { value: 'github', label: 'GitHub' },
@@ -851,13 +852,92 @@ export function FooterForm({ initial }: { initial: FooterContent }) {
       <Field label="Copyright name">
         <input
           value={form.copyrightName}
-          onChange={(e) => { setForm({ copyrightName: e.target.value }); setSaved(false) }}
+          onChange={(e) => { setForm((f) => ({ ...f, copyrightName: e.target.value })); setSaved(false) }}
           className={inputCls}
         />
       </Field>
+      <Field label="Tagline (short blurb under your name in the footer)">
+        <textarea
+          value={form.tagline ?? ''}
+          onChange={(e) => { setForm((f) => ({ ...f, tagline: e.target.value })); setSaved(false) }}
+          rows={2}
+          placeholder="e.g. Building thoughtful software and sharing what I learn."
+          className={textareaCls}
+        />
+      </Field>
       <p className="text-xs text-[var(--muted)]">
-        Preview: {new Date().getFullYear()} {form.copyrightName}
+        Preview: © {new Date().getFullYear()} {form.copyrightName}
       </p>
+      <SaveButton saving={saving} saved={saved} />
+    </form>
+  )
+}
+
+// ─── Legal pages (Privacy & Terms) ─────────────────────────────────────────────
+
+export function LegalForm({ initial }: { initial: LegalContent }) {
+  const [form, setForm] = useState(initial)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [error, setError] = useState('')
+
+  function set<K extends keyof LegalContent>(key: K, value: LegalContent[K]) {
+    setForm((f) => ({ ...f, [key]: value }))
+    setSaved(false)
+  }
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setSaving(true)
+    setError('')
+    try {
+      await save('legal', form)
+      setSaved(true)
+    } catch {
+      setError('Failed to save')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-5">
+      {error && <p className="text-red-400 text-sm">{error}</p>}
+      <p className="text-xs text-[var(--muted)]">
+        These pages are linked from the footer at{' '}
+        <Link href="/privacy" className="text-[var(--accent)] hover:underline">/privacy</Link> and{' '}
+        <Link href="/terms" className="text-[var(--accent)] hover:underline">/terms</Link>.
+      </p>
+
+      <Field label="“Last updated” label (optional, shown on both pages)">
+        <input
+          value={form.updated ?? ''}
+          onChange={(e) => set('updated', e.target.value)}
+          placeholder="e.g. June 2026"
+          className={inputCls}
+        />
+      </Field>
+
+      <div className="pt-2 border-t border-[var(--border)] space-y-3">
+        <p className="text-sm font-medium text-[var(--foreground)]">Privacy Policy</p>
+        <Field label="Page title">
+          <input value={form.privacyTitle} onChange={(e) => set('privacyTitle', e.target.value)} className={inputCls} />
+        </Field>
+        <Field label="Content">
+          <Editor content={form.privacyBody} onChange={(html) => set('privacyBody', html)} />
+        </Field>
+      </div>
+
+      <div className="pt-2 border-t border-[var(--border)] space-y-3">
+        <p className="text-sm font-medium text-[var(--foreground)]">Terms &amp; Conditions</p>
+        <Field label="Page title">
+          <input value={form.termsTitle} onChange={(e) => set('termsTitle', e.target.value)} className={inputCls} />
+        </Field>
+        <Field label="Content">
+          <Editor content={form.termsBody} onChange={(html) => set('termsBody', html)} />
+        </Field>
+      </div>
+
       <SaveButton saving={saving} saved={saved} />
     </form>
   )

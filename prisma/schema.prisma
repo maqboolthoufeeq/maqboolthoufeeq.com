@@ -172,6 +172,23 @@ model SiteContent {
   updatedAt DateTime @updatedAt
 }
 
+// A site-wide announcement / "latest" notice. The newest row with `active=true`
+// is shown as a dismissible bar on top of the landing page; every row (active or
+// not) is kept as a public + admin-visible history of past announcements.
+model Banner {
+  id        String   @id @default(cuid())
+  message   String // the notice text shown in the bar + history
+  linkLabel String? // optional call-to-action label
+  linkUrl   String? // optional call-to-action url (http(s), mailto, tel or /path)
+  variant   String   @default("info") // info | success | warning | announcement
+  active    Boolean  @default(true) // currently displayed at the top of the site
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([active])
+  @@index([createdAt])
+}
+
 // Single-row site-wide visitor analytics counters.
 model SiteStats {
   id        String   @id @default("singleton")

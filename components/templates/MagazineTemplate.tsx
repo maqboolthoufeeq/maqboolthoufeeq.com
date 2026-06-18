@@ -3,7 +3,7 @@ import Image from 'next/image'
 import { getSiteContent } from '@/lib/site-content'
 import { prisma } from '@/lib/prisma'
 import { readingTime } from '@/lib/utils'
-import VisitorCount from '@/components/VisitorCount'
+import SiteFooter from '@/components/SiteFooter'
 
 const INK = '#1a1814'
 const FADED = '#6b6560'
@@ -262,13 +262,7 @@ export default async function MagazineTemplate() {
         )}
       </main>
 
-      <footer
-        className="text-center py-8 text-xs"
-        style={{ color: FADED, fontFamily: SANS, borderTop: `1px solid ${RULE}`, marginTop: '2rem' }}
-      >
-        © {new Date().getFullYear()} {footer.copyrightName}
-        <VisitorCount />
-      </footer>
+      <SiteFooter />
     </div>
   )
 }

@@ -3,7 +3,7 @@ import Image from 'next/image'
 import { getSiteContent } from '@/lib/site-content'
 import { prisma } from '@/lib/prisma'
 import { readingTime } from '@/lib/utils'
-import VisitorCount from '@/components/VisitorCount'
+import SiteFooter from '@/components/SiteFooter'
 
 const SOCIAL_SVG: Record<string, string> = {
   github:
@@ -222,13 +222,7 @@ export default async function CenteredTemplate() {
         </section>
       )}
 
-      <footer
-        className="text-center py-10 text-xs"
-        style={{ color: '#475569', borderTop: '1px solid rgba(255,255,255,0.06)' }}
-      >
-        © {new Date().getFullYear()} {footer.copyrightName}
-        <VisitorCount />
-      </footer>
+      <SiteFooter />
     </div>
   )
 }

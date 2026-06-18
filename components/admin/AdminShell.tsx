@@ -15,6 +15,7 @@ import {
   Palette,
   Clapperboard,
   Link2,
+  Megaphone,
   LogOut,
   X,
   ExternalLink,
@@ -270,8 +271,14 @@ function MoreSheet({ onClose }: { onClose: () => void }) {
           <SheetItem
             icon={Layout}
             label="Edit landing page"
-            description="Hero, about, contact, footer"
+            description="Hero, about, contact, footer, legal"
             onClick={() => go('/admin/site-content')}
+          />
+          <SheetItem
+            icon={Megaphone}
+            label="Announcements"
+            description="Top banner notices & history"
+            onClick={() => go('/admin/banners')}
           />
           <SheetItem
             icon={Tags}

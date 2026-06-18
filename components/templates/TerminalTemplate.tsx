@@ -2,7 +2,7 @@ import Link from 'next/link'
 import { getSiteContent } from '@/lib/site-content'
 import { prisma } from '@/lib/prisma'
 import { readingTime } from '@/lib/utils'
-import VisitorCount from '@/components/VisitorCount'
+import SiteFooter from '@/components/SiteFooter'
 
 const GREEN = '#00ff41'
 const DIM = '#4ade80'
@@ -11,10 +11,9 @@ const BG = '#0a0a0a'
 const SURFACE = '#111111'
 
 export default async function TerminalTemplate() {
-  const [hero, about, footer, sections] = await Promise.all([
+  const [hero, about, sections] = await Promise.all([
     getSiteContent('hero'),
     getSiteContent('about'),
-    getSiteContent('footer'),
     getSiteContent('sections'),
   ])
 
@@ -200,13 +199,7 @@ export default async function TerminalTemplate() {
         </div>
       </main>
 
-      <footer
-        className="text-center py-6 text-xs"
-        style={{ color: DIMMER, borderTop: `1px solid ${DIMMER}` }}
-      >
-        {footer.copyrightName}
-        <VisitorCount />
-      </footer>
+      <SiteFooter />
     </div>
   )
 }

@@ -3,6 +3,7 @@ import Image from 'next/image'
 import { getSiteContent } from '@/lib/site-content'
 import { prisma } from '@/lib/prisma'
 import VisitorCount from '@/components/VisitorCount'
+import SiteFooter from '@/components/SiteFooter'
 import SocialMedia from '@/components/sections/SocialMedia'
 
 export default async function SidebarTemplate() {
@@ -40,7 +41,8 @@ export default async function SidebarTemplate() {
   ]
 
   return (
-    <div className="min-h-screen flex" style={{ background: 'var(--background)' }}>
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--background)' }}>
+      <div className="flex flex-1 w-full">
       {/* Sidebar */}
       <aside
         className="w-64 shrink-0 hidden lg:flex flex-col sticky top-0 h-screen overflow-y-auto border-r py-8 px-6"
@@ -270,6 +272,8 @@ export default async function SidebarTemplate() {
           )}
         </div>
       </main>
+      </div>
+      <SiteFooter />
     </div>
   )
 }

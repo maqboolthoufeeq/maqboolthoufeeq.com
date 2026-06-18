@@ -75,7 +75,7 @@ export default function AnnouncementBar({
     <div
       role="region"
       aria-label="Site announcement"
-      className={`relative z-[60] border-b ${style.ring} ${style.bar}`}
+      className={`relative z-40 border-b ${style.ring} ${style.bar}`}
     >
       <div className="max-w-5xl mx-auto px-4 py-2.5 flex items-center gap-3">
         <Icon size={18} className={`shrink-0 ${style.iconCls}`} aria-hidden />

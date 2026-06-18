@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
-import { Plus, X, FileText, FolderPlus, Palette, LayoutDashboard } from 'lucide-react'
+import { Plus, X, FileText, FolderPlus, Palette, LayoutDashboard, Link2, Megaphone } from 'lucide-react'
 
 type Item = {
   href: string
@@ -12,6 +12,8 @@ type Item = {
 
 const ITEMS: Item[] = [
   { href: '/admin', label: 'Admin Page', icon: LayoutDashboard },
+  { href: '/admin/hub', label: 'Hub', icon: Link2 },
+  { href: '/admin/banners', label: 'Announcements', icon: Megaphone },
   { href: '/admin/theme', label: 'Change Theme', icon: Palette },
   { href: '/admin/projects/new', label: 'Add Project', icon: FolderPlus },
   { href: '/admin/posts/new', label: 'Create Post', icon: FileText },
@@ -20,7 +22,8 @@ const ITEMS: Item[] = [
 /**
  * Admin-only floating action button on the public landing page. The "+" expands
  * into a speed-dial of quick actions (create post, add project, change theme,
- * open admin). Only rendered when an admin session is detected by the server.
+ * link hub, announcements, open admin). Only rendered when an admin session is
+ * detected by the server.
  */
 export default function AdminFab() {
   const [open, setOpen] = useState(false)

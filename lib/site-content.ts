@@ -63,6 +63,21 @@ export interface ContactContent {
 
 export interface FooterContent {
   copyrightName: string
+  /** Short blurb shown under the brand name in the expanded footer. */
+  tagline: string
+}
+
+/**
+ * Editable Privacy Policy and Terms & Conditions pages, linked from the footer.
+ * The body fields hold sanitised rich-text HTML (same pipeline as blog posts).
+ */
+export interface LegalContent {
+  privacyTitle: string
+  privacyBody: string
+  termsTitle: string
+  termsBody: string
+  /** Free-text "last updated" label shown at the top of each legal page. */
+  updated: string
 }
 
 export interface SectionVisibility {
@@ -175,7 +190,36 @@ const DEFAULTS = {
 
   footer: {
     copyrightName: 'Your Name',
+    tagline: 'Building thoughtful software and sharing what I learn along the way.',
   } satisfies FooterContent,
+
+  legal: {
+    privacyTitle: 'Privacy Policy',
+    privacyBody: [
+      '<p>Your privacy matters. This page explains what information this website collects, how it is used, and the choices you have. Edit this text in Admin → Landing page → Legal pages.</p>',
+      '<h2>Information we collect</h2>',
+      '<p>When you visit this site we may collect anonymous analytics such as page views and aggregate visitor counts. If you submit the contact form, we receive the name, email address, message and any attachment you provide so we can reply to you.</p>',
+      '<h2>How we use information</h2>',
+      '<p>We use the information solely to operate and improve the site and to respond to enquiries. We do not sell your personal information to third parties.</p>',
+      '<h2>Cookies</h2>',
+      '<p>We use a minimal cookie to remember theme preferences and to de-duplicate visitor counts. You can clear these at any time through your browser settings.</p>',
+      '<h2>Contact</h2>',
+      '<p>If you have any questions about this policy or your data, please reach out through the contact section of the site.</p>',
+    ].join('\n'),
+    termsTitle: 'Terms & Conditions',
+    termsBody: [
+      '<p>By accessing and using this website you agree to the following terms. Edit this text in Admin → Landing page → Legal pages.</p>',
+      '<h2>Use of the site</h2>',
+      '<p>You may browse and share the content here for personal, non-commercial purposes. You agree not to misuse the site, attempt to disrupt it, or access it in any unlawful way.</p>',
+      '<h2>Intellectual property</h2>',
+      '<p>Unless stated otherwise, all content — text, images, projects and posts — is owned by the site author and may not be reproduced without permission.</p>',
+      '<h2>Disclaimer</h2>',
+      '<p>The content is provided “as is” without warranties of any kind. The site author is not liable for any loss arising from its use.</p>',
+      '<h2>Changes</h2>',
+      '<p>These terms may be updated from time to time. Continued use of the site after changes constitutes acceptance of the revised terms.</p>',
+    ].join('\n'),
+    updated: '',
+  } satisfies LegalContent,
 
   seo: {
     siteName: '',

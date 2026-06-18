@@ -10,6 +10,7 @@ import { profilePageNode } from '@/lib/structured-data'
 import { JsonLd } from '@/components/JsonLd'
 import { auth } from '@/lib/auth'
 import AdminFab from '@/components/admin/AdminFab'
+import AnnouncementBanner from '@/components/AnnouncementBanner'
 import ClassicTemplate from '@/components/templates/ClassicTemplate'
 import CenteredTemplate from '@/components/templates/CenteredTemplate'
 import SidebarTemplate from '@/components/templates/SidebarTemplate'
@@ -65,6 +66,7 @@ export default async function Home() {
   return (
     <>
       <JsonLd data={profile} />
+      <AnnouncementBanner />
       <Template templateId={templateId} />
       {isAdmin && <AdminFab />}
     </>

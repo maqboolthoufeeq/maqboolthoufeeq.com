@@ -1,4 +1,5 @@
 import Navbar from '@/components/Navbar'
+import AnnouncementBanner from '@/components/AnnouncementBanner'
 import Hero from '@/components/sections/Hero'
 import About from '@/components/sections/About'
 import Projects from '@/components/sections/Projects'
@@ -14,6 +15,7 @@ export default async function ClassicTemplate() {
   return (
     <>
       <Navbar />
+      <AnnouncementBanner />
       <main>
         {sections.hero && <Hero />}
         {sections.about && <About />}

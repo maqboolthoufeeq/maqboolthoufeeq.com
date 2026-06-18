@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import {
   Plus, Pencil, Trash2, Megaphone, Info, CheckCircle2, AlertTriangle, X, Eye, EyeOff,
 } from 'lucide-react'
@@ -42,6 +42,7 @@ export default function BannerManager() {
   const [error, setError] = useState('')
   const [pendingDelete, setPendingDelete] = useState<Banner | null>(null)
   const [deleting, setDeleting] = useState(false)
+  const [formOpen, setFormOpen] = useState(false)
 
   async function load() {
     const res = await fetch('/api/banners')
@@ -54,6 +55,20 @@ export default function BannerManager() {
     setDraft((d) => ({ ...d, [key]: value }))
   }
 
+  const closeForm = useCallback(() => {
+    setFormOpen(false)
+    setEditId(null)
+    setDraft(EMPTY)
+    setError('')
+  }, [])
+
+  function startCreate() {
+    setEditId(null)
+    setDraft(EMPTY)
+    setError('')
+    setFormOpen(true)
+  }
+
   function startEdit(b: Banner) {
     setEditId(b.id)
     setDraft({
@@ -64,14 +79,22 @@ export default function BannerManager() {
       active: b.active,
     })
     setError('')
-    if (typeof window !== 'undefined') window.scrollTo({ top: 0, behavior: 'smooth' })
+    setFormOpen(true)
   }
 
-  function cancelEdit() {
-    setEditId(null)
-    setDraft(EMPTY)
-    setError('')
-  }
+  // Lock background scroll + close on Escape while the add/edit modal is open
+  // (mirrors ConfirmDialog so the two admin modals behave identically).
+  useEffect(() => {
+    if (!formOpen) return
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape' && !saving) closeForm() }
+    window.addEventListener('keydown', onKey)
+    const orig = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = orig
+    }
+  }, [formOpen, saving, closeForm])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -93,7 +116,7 @@ export default function BannerManager() {
     })
     setSaving(false)
     if (res.ok) {
-      cancelEdit()
+      closeForm()
       load()
     } else {
       const d = await res.json().catch(() => ({}))
@@ -118,7 +141,7 @@ export default function BannerManager() {
     try {
       const res = await fetch(`/api/banners/${pendingDelete.id}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('delete-failed')
-      if (editId === pendingDelete.id) cancelEdit()
+      if (editId === pendingDelete.id) closeForm()
     } catch {
       alert('Could not delete that announcement. Please try again.')
     } finally {
@@ -146,86 +169,14 @@ export default function BannerManager() {
         )}
       </div>
 
-      {/* Create / edit form */}
-      <form onSubmit={handleSubmit} className="rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-4 space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="font-semibold text-[var(--foreground)]">
-            {editId ? 'Edit announcement' : 'New announcement'}
-          </h2>
-          {editId && (
-            <button type="button" onClick={cancelEdit} className="text-xs text-[var(--muted)] hover:text-[var(--foreground)] inline-flex items-center gap-1">
-              <X size={14} /> Cancel
-            </button>
-          )}
-        </div>
-
-        {error && <p className="text-red-500 text-sm">{error}</p>}
-
-        <div>
-          <label className="block text-sm text-[var(--muted)] mb-1">Message</label>
-          <textarea
-            value={draft.message}
-            onChange={(e) => set('message', e.target.value)}
-            rows={2}
-            maxLength={280}
-            placeholder="e.g. New blog post is live — read about my latest project!"
-            className={`${inputCls} resize-y`}
-          />
-          <p className="text-xs text-[var(--muted)] mt-1">{draft.message.length}/280</p>
-        </div>
-
-        <div className="grid sm:grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm text-[var(--muted)] mb-1">Style</label>
-            <select value={draft.variant} onChange={(e) => set('variant', e.target.value as BannerVariant)} className={inputCls}>
-              {BANNER_VARIANTS.map((v) => (
-                <option key={v} value={v}>{VARIANT_META[v].label}</option>
-              ))}
-            </select>
-          </div>
-          <div className="flex items-end">
-            <button
-              type="button"
-              onClick={() => set('active', !draft.active)}
-              aria-pressed={draft.active}
-              className={[
-                'w-full inline-flex items-center justify-center gap-1.5 text-sm px-3 py-2 rounded-lg border transition-all',
-                draft.active
-                  ? 'border-green-500/40 text-green-500 bg-green-500/10'
-                  : 'border-[var(--border)] text-[var(--muted)]',
-              ].join(' ')}
-            >
-              {draft.active ? <Eye size={15} /> : <EyeOff size={15} />}
-              {draft.active ? 'Shown at top' : 'Hidden'}
-            </button>
-          </div>
-        </div>
-
-        <div className="grid sm:grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm text-[var(--muted)] mb-1">Button label (optional)</label>
-            <input value={draft.linkLabel} onChange={(e) => set('linkLabel', e.target.value)} placeholder="Read more" className={inputCls} />
-          </div>
-          <div>
-            <label className="block text-sm text-[var(--muted)] mb-1">Button link (optional)</label>
-            <input value={draft.linkUrl} onChange={(e) => set('linkUrl', e.target.value)} placeholder="/blog or https://…" className={inputCls} />
-          </div>
-        </div>
-
-        <button
-          type="submit"
-          disabled={saving || !draft.message.trim()}
-          className="tap-scale inline-flex items-center gap-1.5 h-10 px-4 rounded-lg bg-[var(--accent)] text-white text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
-        >
-          <Plus size={16} strokeWidth={2.4} />
-          {saving ? 'Saving…' : editId ? 'Save changes' : 'Publish announcement'}
-        </button>
-        {draft.active && !editId && (
-          <p className="text-xs text-[var(--muted)]">
-            Publishing an active announcement replaces the one currently shown at the top of the site.
-          </p>
-        )}
-      </form>
+      {/* Add announcement — opens the create modal */}
+      <button
+        type="button"
+        onClick={startCreate}
+        className="tap-scale w-full inline-flex items-center justify-center gap-1.5 h-11 rounded-xl bg-[var(--accent)] text-white text-sm font-medium hover:opacity-90 transition-opacity"
+      >
+        <Plus size={16} strokeWidth={2.4} /> Add announcement
+      </button>
 
       {/* History */}
       <div>
@@ -240,7 +191,7 @@ export default function BannerManager() {
               <Megaphone size={26} />
             </div>
             <p className="text-[var(--foreground)] font-medium">No announcements yet</p>
-            <p className="text-sm text-[var(--muted)] mt-1">Create one above to show a notice on top of your landing page.</p>
+            <p className="text-sm text-[var(--muted)] mt-1">Add one to show a notice on top of your landing page.</p>
           </div>
         ) : (
           <ul className="space-y-2">
@@ -284,6 +235,113 @@ export default function BannerManager() {
           </ul>
         )}
       </div>
+
+      {/* Create / edit modal */}
+      {formOpen && (
+        <div
+          className="fixed inset-0 z-[90] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4"
+          onClick={() => { if (!saving) closeForm() }}
+          role="dialog"
+          aria-modal="true"
+          aria-label={editId ? 'Edit announcement' : 'New announcement'}
+        >
+          <form
+            onSubmit={handleSubmit}
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-lg max-h-[90vh] overflow-y-auto rounded-2xl border border-[var(--border)] bg-[var(--surface)] p-5 space-y-4 shadow-2xl"
+          >
+            <div className="flex items-center justify-between">
+              <h2 className="font-semibold text-[var(--foreground)]">
+                {editId ? 'Edit announcement' : 'New announcement'}
+              </h2>
+              <button
+                type="button"
+                onClick={closeForm}
+                aria-label="Close"
+                className="tap-scale -mr-1 w-8 h-8 flex items-center justify-center rounded-lg text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--background)]"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            {error && <p className="text-red-500 text-sm">{error}</p>}
+
+            <div>
+              <label className="block text-sm text-[var(--muted)] mb-1">Message</label>
+              <textarea
+                value={draft.message}
+                onChange={(e) => set('message', e.target.value)}
+                rows={2}
+                maxLength={280}
+                placeholder="e.g. New blog post is live — read about my latest project!"
+                className={`${inputCls} resize-y`}
+              />
+              <p className="text-xs text-[var(--muted)] mt-1">{draft.message.length}/280</p>
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm text-[var(--muted)] mb-1">Style</label>
+                <select value={draft.variant} onChange={(e) => set('variant', e.target.value as BannerVariant)} className={inputCls}>
+                  {BANNER_VARIANTS.map((v) => (
+                    <option key={v} value={v}>{VARIANT_META[v].label}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex items-end">
+                <button
+                  type="button"
+                  onClick={() => set('active', !draft.active)}
+                  aria-pressed={draft.active}
+                  className={[
+                    'w-full inline-flex items-center justify-center gap-1.5 text-sm px-3 py-2 rounded-lg border transition-all',
+                    draft.active
+                      ? 'border-green-500/40 text-green-500 bg-green-500/10'
+                      : 'border-[var(--border)] text-[var(--muted)]',
+                  ].join(' ')}
+                >
+                  {draft.active ? <Eye size={15} /> : <EyeOff size={15} />}
+                  {draft.active ? 'Shown at top' : 'Hidden'}
+                </button>
+              </div>
+            </div>
+
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div>
+                <label className="block text-sm text-[var(--muted)] mb-1">Button label (optional)</label>
+                <input value={draft.linkLabel} onChange={(e) => set('linkLabel', e.target.value)} placeholder="Read more" className={inputCls} />
+              </div>
+              <div>
+                <label className="block text-sm text-[var(--muted)] mb-1">Button link (optional)</label>
+                <input value={draft.linkUrl} onChange={(e) => set('linkUrl', e.target.value)} placeholder="/blog or https://…" className={inputCls} />
+              </div>
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={closeForm}
+                className="tap-scale flex-1 h-11 rounded-xl border border-[var(--border)] text-[var(--foreground)] font-medium hover:bg-[var(--background)]"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={saving || !draft.message.trim()}
+                className="tap-scale flex-1 inline-flex items-center justify-center gap-1.5 h-11 rounded-xl bg-[var(--accent)] text-white text-sm font-medium hover:opacity-90 disabled:opacity-50 transition-opacity"
+              >
+                <Plus size={16} strokeWidth={2.4} />
+                {saving ? 'Saving…' : editId ? 'Save changes' : 'Publish'}
+              </button>
+            </div>
+            {draft.active && !editId && (
+              <p className="text-xs text-[var(--muted)]">
+                Publishing an active announcement replaces the one currently shown at the top of the site.
+              </p>
+            )}
+          </form>
+        </div>
+      )}
 
       <ConfirmDialog
         open={pendingDelete !== null}

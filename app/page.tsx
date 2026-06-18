@@ -47,6 +47,12 @@ function Template({ templateId }: { templateId: string }) {
   }
 }
 
+// Templates that keep the announcement banner at the very top of the page.
+// Classic instead renders it *inside* the template, directly beneath its sticky
+// navbar, so it's excluded here — as is any unknown id, which falls back to
+// Classic in <Template> above.
+const TOP_BANNER_TEMPLATES = new Set(['centered', 'sidebar', 'bento', 'terminal', 'magazine'])
+
 export default async function Home() {
   const [templateId, session, origin, seo, hero] = await Promise.all([
     getActiveTemplateId(),
@@ -66,7 +72,7 @@ export default async function Home() {
   return (
     <>
       <JsonLd data={profile} />
-      <AnnouncementBanner />
+      {TOP_BANNER_TEMPLATES.has(templateId) && <AnnouncementBanner />}
       <Template templateId={templateId} />
       {isAdmin && <AdminFab />}
     </>

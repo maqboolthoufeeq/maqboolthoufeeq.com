@@ -2,12 +2,12 @@
 
 import { type ComponentType, useState } from 'react'
 import {
-  AlertCircle, CheckCircle2, ChevronUp, ChevronDown, ChevronDown as ChevronDownIcon, Loader2, Trash2, Upload,
+  AlertCircle, CheckCircle2, ChevronUp, ChevronDown, ChevronDown as ChevronDownIcon, Loader2, Trash2, Upload, X,
   Link as LinkIcon, Type as TypeIcon, Hash as HashIcon, FileText as FileTextIcon,
   Image as ImageIcon, Video as VideoIcon, Music as MusicIcon, Download as DownloadIcon,
   Code as CodeIcon, FileType as FileTypeIcon,
 } from 'lucide-react'
-import { HUB_ITEM_META, HUB_LIMITS, parseHubEmbed } from '@/lib/hub-content'
+import { HUB_ITEM_META, HUB_LIMITS, parseHubEmbed, type HubGalleryImage } from '@/lib/hub-content'
 import type { HubItemData, HubCategoryRef } from '@/lib/hub'
 import Switch from '@/components/admin/Switch'
 import TagSelector from '@/components/admin/TagSelector'
@@ -264,8 +264,8 @@ function ItemTypeFields({
     e.target.value = ''
   }
 
-  const supportsFile = ['image', 'video', 'audio', 'pdf', 'file'].includes(item.type)
-  const supportsUrl = ['link', 'embed', 'image', 'video', 'audio', 'pdf'].includes(item.type)
+  const supportsFile = ['video', 'audio', 'pdf', 'file'].includes(item.type)
+  const supportsUrl = ['link', 'embed', 'video', 'audio', 'pdf'].includes(item.type)
 
   return (
     <>
@@ -320,6 +320,10 @@ function ItemTypeFields({
         </div>
       )}
 
+      {item.type === 'image' && (
+        <ImageGalleryField item={item} onUpdate={onUpdate} onUploadFile={onUploadFile} />
+      )}
+
       {supportsFile && (
         <div>
           <label className="block text-xs text-[var(--muted)] mb-1.5">
@@ -338,11 +342,10 @@ function ItemTypeFields({
               <input
                 type="file"
                 accept={
-                  item.type === 'image' ? 'image/*'
-                    : item.type === 'video' ? 'video/*'
-                      : item.type === 'audio' ? 'audio/*'
-                        : item.type === 'pdf' ? 'application/pdf'
-                          : '*'
+                  item.type === 'video' ? 'video/*'
+                    : item.type === 'audio' ? 'audio/*'
+                      : item.type === 'pdf' ? 'application/pdf'
+                        : '*'
                 }
                 className="hidden"
                 onChange={(e) => handleFileChange(e, 'fileUrl')}
@@ -361,16 +364,15 @@ function ItemTypeFields({
       {supportsUrl && !['pdf', 'file'].includes(item.type) && (
         <div>
           <label className="block text-xs text-[var(--muted)] mb-1.5">
-            {item.type === 'image' || item.type === 'video' ? 'External URL' : 'URL'}
+            {item.type === 'video' ? 'External URL' : 'URL'}
           </label>
           <input
             value={item.url || ''}
             onChange={(e) => onUpdate({ url: e.target.value })}
             placeholder={
               item.type === 'embed' ? 'YouTube, Vimeo, Spotify, Figma…'
-                : item.type === 'image' ? 'https://… (optional if uploaded)'
-                  : item.type === 'video' ? 'https://… or YouTube/Vimeo URL'
-                    : 'https://…'
+                : item.type === 'video' ? 'https://… or YouTube/Vimeo URL'
+                  : 'https://…'
             }
             maxLength={HUB_LIMITS.url}
             className={inputCls}
@@ -407,6 +409,111 @@ function ItemTypeFields({
         </div>
       )}
     </>
+  )
+}
+
+/** Multi-photo upload — a thumbnail grid (reorder / remove) plus an
+ * "Add photos" picker, so one `image` block can hold an Instagram-style
+ * swipeable gallery instead of a single file. */
+function ImageGalleryField({
+  item,
+  onUpdate,
+  onUploadFile,
+}: {
+  item: FormItem
+  onUpdate: (updates: Partial<FormItem>) => void
+  onUploadFile: (file: File, itemId: string) => Promise<{ url: string; name: string; size: number; type: string } | null>
+}) {
+  const [uploading, setUploading] = useState(false)
+  const [urlInput, setUrlInput] = useState('')
+  const images = item.images ?? []
+
+  async function handleFilesChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []).slice(0, HUB_LIMITS.images - images.length)
+    if (files.length === 0) return
+    setUploading(true)
+    const uploaded: HubGalleryImage[] = []
+    for (const file of files) {
+      const result = await onUploadFile(file, item.id)
+      if (result) uploaded.push({ url: result.url, fileName: result.name, fileSize: result.size, fileType: result.type })
+    }
+    if (uploaded.length > 0) onUpdate({ images: [...images, ...uploaded] })
+    setUploading(false)
+    e.target.value = ''
+  }
+
+  function addUrl() {
+    const trimmed = urlInput.trim()
+    if (!trimmed || images.length >= HUB_LIMITS.images) return
+    onUpdate({ images: [...images, { url: trimmed, fileName: null, fileSize: null, fileType: null }] })
+    setUrlInput('')
+  }
+
+  function removeImage(idx: number) {
+    onUpdate({ images: images.filter((_, i) => i !== idx) })
+  }
+
+  function moveImage(idx: number, dir: -1 | 1) {
+    const target = idx + dir
+    if (target < 0 || target >= images.length) return
+    const next = [...images]
+    ;[next[idx], next[target]] = [next[target], next[idx]]
+    onUpdate({ images: next })
+  }
+
+  return (
+    <div>
+      <label className="block text-xs text-[var(--muted)] mb-1.5">
+        Photos * <span className="text-[var(--muted)]/70">({images.length}/{HUB_LIMITS.images})</span>
+      </label>
+
+      {images.length > 0 && (
+        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2 mb-2">
+          {images.map((img, idx) => (
+            <div key={`${img.url}-${idx}`} className="group relative aspect-square rounded-lg overflow-hidden border border-[var(--border)]">
+              <img src={img.url} alt="" className="w-full h-full object-cover" />
+              <div className="absolute inset-0 flex items-center justify-center gap-1 bg-black/0 opacity-0 transition-colors group-hover:bg-black/40 group-hover:opacity-100">
+                <button type="button" aria-label="Move earlier" onClick={() => moveImage(idx, -1)} disabled={idx === 0} className="w-6 h-6 rounded-full bg-white/90 text-black flex items-center justify-center disabled:opacity-30">
+                  <ChevronUp size={12} />
+                </button>
+                <button type="button" aria-label="Move later" onClick={() => moveImage(idx, 1)} disabled={idx === images.length - 1} className="w-6 h-6 rounded-full bg-white/90 text-black flex items-center justify-center disabled:opacity-30">
+                  <ChevronDown size={12} />
+                </button>
+                <button type="button" aria-label="Remove photo" onClick={() => removeImage(idx)} className="w-6 h-6 rounded-full bg-white/90 text-red-600 flex items-center justify-center">
+                  <X size={12} />
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {images.length < HUB_LIMITS.images && (
+        <label className="tap-scale cursor-pointer w-full h-11 px-3 border border-dashed border-[var(--border)] rounded-lg text-[var(--muted)] flex items-center justify-center gap-1.5 hover:border-[var(--accent)] hover:text-[var(--foreground)] transition-colors text-sm">
+          <Upload size={15} />
+          {uploading ? 'Uploading…' : 'Add photos'}
+          <input type="file" accept="image/*" multiple className="hidden" onChange={handleFilesChange} />
+        </label>
+      )}
+
+      <div className="flex gap-2 mt-2">
+        <input
+          value={urlInput}
+          onChange={(e) => setUrlInput(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addUrl() } }}
+          placeholder="Or paste an image URL"
+          maxLength={HUB_LIMITS.url}
+          className={`${inputCls} flex-1`}
+        />
+        <button type="button" onClick={addUrl} className="tap-scale px-3 h-11 text-sm border border-[var(--border)] rounded-lg text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--foreground)] transition-colors whitespace-nowrap">
+          Add
+        </button>
+      </div>
+
+      {images.length > 1 && (
+        <p className="text-xs text-[var(--muted)] mt-1">Visitors can swipe through these photos like a gallery.</p>
+      )}
+    </div>
   )
 }
 

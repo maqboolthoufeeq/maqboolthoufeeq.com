@@ -112,6 +112,7 @@ model HubItem {
   fileType    String?      // MIME type, when known
   content     String?      // text / markdown source / sanitised richtext HTML
   thumbnail   String?      // optional poster/thumbnail (http(s) only)
+  images      Json?        // gallery: ordered [{url,fileName,fileSize,fileType}] for multi-photo `image` blocks
   order       Int          @default(0)
   published   Boolean      @default(true)
   showDate    Boolean      @default(false)

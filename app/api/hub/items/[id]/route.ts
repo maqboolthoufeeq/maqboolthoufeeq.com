@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import type { Prisma } from '@prisma/client'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { sanitizePostHtml } from '@/lib/sanitize'
@@ -36,6 +37,7 @@ export async function PUT(req: NextRequest, { params }: Ctx) {
     fileType,
     content,
     thumbnail,
+    images,
     categoryId,
     published,
     showDate,
@@ -58,6 +60,7 @@ export async function PUT(req: NextRequest, { params }: Ctx) {
         fileType: fileType !== undefined ? fileType : existing.fileType,
         content: content !== undefined ? content : existing.content,
         thumbnail: thumbnail !== undefined ? thumbnail : existing.thumbnail,
+        images: images !== undefined ? images : existing.images,
       },
       sanitizePostHtml,
     )
@@ -80,6 +83,7 @@ export async function PUT(req: NextRequest, { params }: Ctx) {
         fileType: sanitized.value.fileType,
         content: sanitized.value.content,
         thumbnail: sanitized.value.thumbnail,
+        images: sanitized.value.images as unknown as Prisma.InputJsonValue,
         ...(categoryId !== undefined && { categoryId: categoryId || null }),
         ...(published !== undefined && { published: Boolean(published) }),
         ...(showDate !== undefined && { showDate: Boolean(showDate) }),

@@ -59,6 +59,8 @@ export const HUB_LIMITS = {
   topicTitle: 160,
   categoryName: 80,
   icon: 64,
+  /** Max photos in one `image` block's gallery. */
+  images: 20,
 } as const
 
 /* ─── Item input → sanitised, storable shape ─────────────────────────────── */
@@ -74,6 +76,15 @@ export interface HubItemInput {
   fileType?: unknown
   content?: unknown
   thumbnail?: unknown
+  images?: unknown
+}
+
+/** One photo in an `image` block's gallery (uploaded blob or external http(s) link). */
+export interface HubGalleryImage {
+  url: string
+  fileName: string | null
+  fileSize: number | null
+  fileType: string | null
 }
 
 /** The clean, JSON-serialisable payload persisted for a content block. */
@@ -88,6 +99,8 @@ export interface SanitizedHubItem {
   fileType: string | null
   content: string | null
   thumbnail: string | null
+  /** Always `[]` outside `image` blocks; 1+ entries for an `image` block's photos. */
+  images: HubGalleryImage[]
 }
 
 export type SanitizeResult =
@@ -142,7 +155,7 @@ export function sanitizeHubItem(
   const base: SanitizedHubItem = {
     type, title, description,
     url: null, fileUrl: null, fileName: null, fileSize: null, fileType: null,
-    content: null, thumbnail,
+    content: null, thumbnail, images: [],
   }
 
   switch (type) {
@@ -171,7 +184,35 @@ export function sanitizeHubItem(
       return { ok: true, value: { ...base, content } }
     }
 
-    case 'image':
+    case 'image': {
+      // A gallery of 1+ photos (uploaded blobs and/or external http(s) links).
+      // Legacy single fileUrl/url inputs (no `images` array) become a 1-photo gallery.
+      const fileName = cap(str(input.fileName).trim(), HUB_LIMITS.fileName) || null
+      const fileSize = toSize(input.fileSize)
+      const fileType = toMime(input.fileType)
+      const gallery = sanitizeGalleryImages(input.images)
+      if (gallery.length === 0) {
+        const fileUrl = input.fileUrl ? cleanHttpUrl(str(input.fileUrl)) : null
+        const url = input.url ? normalizeHubUrl(str(input.url)) : null
+        if (fileUrl || url) gallery.push({ url: (fileUrl ?? url) as string, fileName, fileSize, fileType })
+      }
+      if (gallery.length === 0) {
+        return { ok: false, error: 'Upload a file or paste a link for this image' }
+      }
+      const primary = gallery[0]
+      return {
+        ok: true,
+        value: {
+          ...base,
+          fileUrl: primary.url,
+          fileName: primary.fileName,
+          fileSize: primary.fileSize,
+          fileType: primary.fileType,
+          images: gallery,
+        },
+      }
+    }
+
     case 'video':
     case 'audio':
     case 'pdf': {
@@ -213,6 +254,26 @@ function toSize(v: unknown): number | null {
 
 function toMime(v: unknown): string | null {
   return typeof v === 'string' && v.length <= 100 ? v : null
+}
+
+/** Validate + sanitise an `image` block's gallery array, capped at HUB_LIMITS.images. */
+function sanitizeGalleryImages(raw: unknown): HubGalleryImage[] {
+  if (!Array.isArray(raw)) return []
+  const out: HubGalleryImage[] = []
+  for (const entry of raw) {
+    if (out.length >= HUB_LIMITS.images) break
+    if (!entry || typeof entry !== 'object') continue
+    const e = entry as Record<string, unknown>
+    const url = cleanHttpUrl(str(e.url)) ?? normalizeHubUrl(str(e.url))
+    if (!url) continue
+    out.push({
+      url,
+      fileName: cap(str(e.fileName).trim(), HUB_LIMITS.fileName) || null,
+      fileSize: toSize(e.fileSize),
+      fileType: toMime(e.fileType),
+    })
+  }
+  return out
 }
 
 /* ─── Allow-listed embed parser ──────────────────────────────────────────── */

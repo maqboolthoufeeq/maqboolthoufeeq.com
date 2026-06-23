@@ -2,7 +2,7 @@ import { useMemo } from 'react'
 import { type DateRange, isWithinRange } from '@/lib/media-filter'
 import type { HubEntry, HubItemData } from '@/lib/hub'
 
-export type SortKey = 'newest' | 'oldest' | 'a-z' | 'z-a'
+export type SortKey = 'manual' | 'newest' | 'oldest' | 'a-z' | 'z-a'
 
 /**
  * Filter and sort hook for hub entries or items. Applies search (title/description/
@@ -46,7 +46,10 @@ export function useHubFilter<T extends HubEntry | HubItemData>(
       filtered = filtered.filter((item) => isWithinRange(item.sortDate, dateRange))
     }
 
-    // Sort
+    // Sort. 'manual' keeps the incoming order (the admin-defined `order` from
+    // the DB), so reordering content blocks is reflected on the page.
+    if (sortKey === 'manual') return [...filtered]
+
     const sortFn = (a: T, b: T): number => {
       switch (sortKey) {
         case 'newest':

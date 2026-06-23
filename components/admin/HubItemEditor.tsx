@@ -131,11 +131,13 @@ export default function HubItemEditor({
     }
   }
 
-  async function reorderItems() {
+  async function reorderItems(ordered: FormItem[]) {
+    const ids = ordered.map((it) => it.id).filter((id) => !id.startsWith('local-'))
+    if (ids.length === 0) return
     const res = await fetch('/api/hub/items/reorder', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ids: items.map((it) => it.id).filter((id) => !id.startsWith('local-')) }),
+      body: JSON.stringify({ ids }),
     })
     if (res.ok) router.refresh()
   }
@@ -218,16 +220,18 @@ export default function HubItemEditor({
                 onSave={() => saveItem(item)}
                 onDelete={() => setPendingDelete(item.id)}
                 onMoveUp={() => {
-                  const prev = [...items]
-                  ;[prev[idx], prev[idx - 1]] = [prev[idx - 1], prev[idx]]
-                  setItems(prev)
-                  reorderItems()
+                  if (idx === 0) return
+                  const next = [...items]
+                  ;[next[idx], next[idx - 1]] = [next[idx - 1], next[idx]]
+                  setItems(next)
+                  reorderItems(next)
                 }}
                 onMoveDown={() => {
-                  const prev = [...items]
-                  ;[prev[idx], prev[idx + 1]] = [prev[idx + 1], prev[idx]]
-                  setItems(prev)
-                  reorderItems()
+                  if (idx === items.length - 1) return
+                  const next = [...items]
+                  ;[next[idx], next[idx + 1]] = [next[idx + 1], next[idx]]
+                  setItems(next)
+                  reorderItems(next)
                 }}
                 isSaving={saving === item.id}
                 categories={categories}

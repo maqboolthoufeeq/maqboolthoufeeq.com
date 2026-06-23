@@ -33,7 +33,7 @@ export default function HubTopicView({ topic }: { topic: HubTopicDetail }) {
   const [search, setSearch] = useState('')
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const [dateRange, setDateRange] = useState<DateRange>(EMPTY_RANGE)
-  const [sortKey, setSortKey] = useState<SortKey>('newest')
+  const [sortKey, setSortKey] = useState<SortKey>('manual')
 
   const admin = useHubAdmin()
 
@@ -95,7 +95,7 @@ export default function HubTopicView({ topic }: { topic: HubTopicDetail }) {
             {showToolbar && (
               <select value={sortKey} onChange={(e) => setSortKey(e.target.value as SortKey)}
                 className="h-8 px-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)] text-xs font-medium">
-                <option value="newest">Newest</option><option value="oldest">Oldest</option><option value="a-z">A–Z</option><option value="z-a">Z–A</option>
+                <option value="manual">Default order</option><option value="newest">Newest</option><option value="oldest">Oldest</option><option value="a-z">A–Z</option><option value="z-a">Z–A</option>
               </select>
             )}
           </SectionLabel>

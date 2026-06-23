@@ -28,7 +28,7 @@ export const reddit: IntegrationProvider = {
   name: 'Reddit',
   category: 'community',
   capability: 'announce',
-  icon: 'MessageSquare',
+  icon: 'Ghost',
   brandColor: '#ff4500',
   fields: [
     { key: 'clientId', label: 'Client ID', type: 'password', required: true, help: 'reddit.com/prefs/apps → create a "script" app → the id under the app name.' },

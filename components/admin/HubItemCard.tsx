@@ -13,6 +13,7 @@ import Switch from '@/components/admin/Switch'
 import TagSelector from '@/components/admin/TagSelector'
 import CategorySelector from '@/components/admin/CategorySelector'
 import Editor from '@/components/admin/Editor'
+import PublishEverywhereButton from '@/components/admin/PublishEverywhereButton'
 
 const inputCls =
   'w-full h-11 px-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)] text-sm'
@@ -219,6 +220,13 @@ export default function ItemCard({
               <Trash2 size={16} />
             </button>
           </div>
+
+          {/* Cross-publish — only for a saved block (a local- id has no server record yet). */}
+          {!item.id.startsWith('local-') && (
+            <div className="flex justify-center pt-1">
+              <PublishEverywhereButton contentType="hubItem" contentId={item.id} title={item.title} variant="compact" />
+            </div>
+          )}
         </div>
       )}
     </div>

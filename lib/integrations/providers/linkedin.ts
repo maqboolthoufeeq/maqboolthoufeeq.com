@@ -20,7 +20,7 @@ export const linkedin: IntegrationProvider = {
   name: 'LinkedIn',
   category: 'social',
   capability: 'announce',
-  icon: 'Linkedin',
+  icon: 'Briefcase',
   brandColor: '#0a66c2',
   fields: [
     { key: 'accessToken', label: 'Access token', type: 'password', required: true, help: 'OAuth 2.0 access token with the w_member_social scope (lasts ~60 days).' },

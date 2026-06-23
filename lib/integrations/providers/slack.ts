@@ -13,7 +13,7 @@ export const slack: IntegrationProvider = {
   name: 'Slack',
   category: 'community',
   capability: 'announce',
-  icon: 'Slack',
+  icon: 'MessageSquare',
   brandColor: '#4a154b',
   fields: [
     {

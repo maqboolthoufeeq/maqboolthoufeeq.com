@@ -74,9 +74,10 @@ export async function crossPost(input: PublishInput, providerIds?: string[]): Pr
 
   const settled = await Promise.allSettled(
     targets.map(async ({ provider, connection }): Promise<TargetResult> => {
+      const publish = provider.publish
       let result: PublishResult
       try {
-        result = await provider.publish!(input, connection)
+        result = publish ? await publish(input, connection) : { ok: false, error: 'Provider cannot publish' }
       } catch {
         result = { ok: false, error: 'Provider threw unexpectedly' }
       }

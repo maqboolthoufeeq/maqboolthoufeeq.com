@@ -31,7 +31,7 @@ export const x: IntegrationProvider = {
   name: 'X (Twitter)',
   category: 'social',
   capability: 'announce',
-  icon: 'Twitter',
+  icon: 'Bird',
   brandColor: '#000000',
   fields: [
     { key: 'clientId', label: 'OAuth 2.0 Client ID', type: 'password', required: true, help: 'X developer portal → your app → Keys and tokens → OAuth 2.0 Client ID.' },

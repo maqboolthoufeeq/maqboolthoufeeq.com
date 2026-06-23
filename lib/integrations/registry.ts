@@ -54,3 +54,30 @@ export function providersByCategory(): Record<string, IntegrationProvider[]> {
   }
   return groups
 }
+
+/** Plain, serializable provider definition (fields + docs) safe to send to the client. */
+export interface ProviderMeta {
+  id: string
+  name: string
+  category: IntegrationProvider['category']
+  capability: IntegrationProvider['capability']
+  icon: string
+  brandColor: string
+  fields: IntegrationProvider['fields']
+  docs: IntegrationProvider['docs']
+  hasTest: boolean
+}
+
+export function listProviderMeta(): ProviderMeta[] {
+  return PROVIDERS.map((p) => ({
+    id: p.id,
+    name: p.name,
+    category: p.category,
+    capability: p.capability,
+    icon: p.icon,
+    brandColor: p.brandColor,
+    fields: p.fields,
+    docs: p.docs,
+    hasTest: typeof p.test === 'function',
+  }))
+}

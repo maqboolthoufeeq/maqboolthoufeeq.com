@@ -17,7 +17,7 @@ export const facebook: IntegrationProvider = {
   name: 'Facebook Page',
   category: 'social',
   capability: 'announce',
-  icon: 'Facebook',
+  icon: 'Users',
   brandColor: '#1877f2',
   fields: [
     { key: 'pageId', label: 'Page ID', type: 'text', required: true, secret: false, help: 'Your Facebook Page → About → Page transparency, or via the Graph API Explorer.' },

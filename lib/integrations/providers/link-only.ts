@@ -50,7 +50,7 @@ function makeLinkOnly(spec: LinkOnlySpec): IntegrationProvider {
 
 export const linkOnlyProviders: IntegrationProvider[] = [
   makeLinkOnly({
-    id: 'instagram', name: 'Instagram', category: 'social', icon: 'Instagram', brandColor: '#e4405f',
+    id: 'instagram', name: 'Instagram', category: 'social', icon: 'Camera', brandColor: '#e4405f',
     profileHint: 'e.g. https://instagram.com/yourname',
     reason: 'Instagram has NO official API for posting normal feed content from a personal account — the Graph API only covers Business/Creator accounts for media with a hosted URL, and unofficial automation gets accounts permanently banned by Meta. So this is link-only and never auto-posts.',
   }),
@@ -60,22 +60,22 @@ export const linkOnlyProviders: IntegrationProvider[] = [
     reason: 'The Reels publishing API is restricted to approved partners/Business accounts; automating uploads from a personal account violates Meta\'s terms and risks a ban. Link-only by design.',
   }),
   makeLinkOnly({
-    id: 'tiktok', name: 'TikTok', category: 'video', icon: 'Music', brandColor: '#000000',
+    id: 'tiktok', name: 'TikTok', category: 'video', icon: 'Music2', brandColor: '#000000',
     profileHint: 'e.g. https://tiktok.com/@yourname',
     reason: 'TikTok has no official personal-account posting API; unofficial automation is strictly prohibited and enforcement (account + IP bans) is swift. Link-only — never automated.',
   }),
   makeLinkOnly({
-    id: 'youtube', name: 'YouTube', category: 'video', icon: 'Youtube', brandColor: '#ff0000',
+    id: 'youtube', name: 'YouTube', category: 'video', icon: 'Play', brandColor: '#ff0000',
     profileHint: 'e.g. https://youtube.com/@yourchannel',
     reason: 'The YouTube Data API can upload videos, but auto-publishing without manual review risks channel strikes, and a blog post isn\'t a video anyway. Stored as a link only (use the Social media section for curated videos).',
   }),
   makeLinkOnly({
-    id: 'youtube_shorts', name: 'YouTube Shorts', category: 'video', icon: 'Youtube', brandColor: '#ff0000',
+    id: 'youtube_shorts', name: 'YouTube Shorts', category: 'video', icon: 'Film', brandColor: '#ff0000',
     profileHint: 'e.g. https://youtube.com/@yourchannel/shorts',
     reason: 'Shorts uploads need manual review; third-party auto-upload tools risk strikes. Link-only.',
   }),
   makeLinkOnly({
-    id: 'twitch', name: 'Twitch', category: 'video', icon: 'Twitch', brandColor: '#9146ff',
+    id: 'twitch', name: 'Twitch', category: 'video', icon: 'Gamepad2', brandColor: '#9146ff',
     profileHint: 'e.g. https://twitch.tv/yourname',
     reason: 'Twitch\'s API is for stream notifications, not posting articles. Auto-streaming bots get suspended. Link-only.',
   }),
@@ -100,7 +100,7 @@ export const linkOnlyProviders: IntegrationProvider[] = [
     reason: 'Quora has no official posting API and actively bans bot accounts that scrape or auto-post. Link-only.',
   }),
   makeLinkOnly({
-    id: 'answer_overflow', name: 'Answer Overflow', category: 'qa', icon: 'HelpCircle', brandColor: '#38bdf8',
+    id: 'answer_overflow', name: 'Answer Overflow', category: 'qa', icon: 'Quote', brandColor: '#38bdf8',
     profileHint: 'e.g. https://answeroverflow.com/...',
     reason: 'Answer Overflow indexes Discord help content; it has no publish API. Link-only.',
   }),
@@ -110,7 +110,7 @@ export const linkOnlyProviders: IntegrationProvider[] = [
     reason: 'G2 is a reviews platform with no content-posting API; automating reviews is prohibited. Link-only.',
   }),
   makeLinkOnly({
-    id: 'github', name: 'GitHub', category: 'code', icon: 'Github', brandColor: '#181717',
+    id: 'github', name: 'GitHub', category: 'code', icon: 'Code2', brandColor: '#181717',
     profileHint: 'e.g. https://github.com/yourname',
     reason: 'GitHub is for code, not blog posts — auto-publishing articles there isn\'t meaningful. Stored as a "proof of work" profile link.',
   }),

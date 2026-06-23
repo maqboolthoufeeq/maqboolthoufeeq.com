@@ -9,6 +9,7 @@ import {
   Eye, Zap,
 } from 'lucide-react'
 import DateRangePicker from '@/components/ui/DateRangePicker'
+import PublishEverywhereButton from '@/components/admin/PublishEverywhereButton'
 
 type Post = {
   id: string
@@ -306,6 +307,7 @@ export default function PostTable({ posts }: { posts: Post[] }) {
                               <><Globe size={12} />Publish</>
                             )}
                           </button>
+                          <PublishEverywhereButton contentType="post" contentId={post.id} title={post.title} variant="compact" />
                           <Link
                             href={`/admin/posts/${post.id}/edit`}
                             className="h-8 px-2.5 flex items-center gap-1.5 rounded-lg text-[12px] font-semibold text-[var(--accent)] hover:bg-[var(--accent)]/10 transition-all"

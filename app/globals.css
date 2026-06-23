@@ -327,3 +327,81 @@ html[data-design="retro"] {
 .prose table tr:nth-child(even) td {
   background: color-mix(in srgb, var(--surface) 50%, transparent);
 }
+
+/* Code block copy button */
+.code-block-wrapper {
+  position: relative;
+  margin: 1.5em 0;
+}
+.code-block-wrapper > pre {
+  margin: 0;
+}
+.code-copy-btn {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  z-index: 1;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  border-radius: 0.5rem;
+  /* Code blocks are always dark, so the button is styled light-on-dark
+     regardless of the site theme. */
+  background: rgba(255, 255, 255, 0.08);
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition: color 0.15s ease, background-color 0.15s ease,
+    border-color 0.15s ease;
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+.code-copy-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.28);
+}
+.code-copy-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.code-copy-icon {
+  position: absolute;
+  inset: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.18s ease, transform 0.18s ease;
+}
+.code-copy-icon--check {
+  opacity: 0;
+  transform: scale(0.4);
+  color: #4ade80;
+}
+.code-copy-btn.copied {
+  color: #4ade80;
+  background: rgba(74, 222, 128, 0.16);
+  border-color: rgba(74, 222, 128, 0.45);
+}
+.code-copy-btn.copied .code-copy-icon--copy {
+  opacity: 0;
+  transform: scale(0.4);
+}
+.code-copy-btn.copied .code-copy-icon--check {
+  opacity: 1;
+  transform: scale(1);
+  animation: code-copied-pop 0.32s ease;
+}
+@keyframes code-copied-pop {
+  0%   { transform: scale(0.4); }
+  55%  { transform: scale(1.25); }
+  100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .code-copy-btn,
+  .code-copy-icon { transition: none; }
+  .code-copy-btn.copied .code-copy-icon--check { animation: none; }
+}

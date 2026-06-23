@@ -2,10 +2,12 @@ import type { Metadata } from 'next'
 import { notFound } from 'next/navigation'
 import Navbar from '@/components/Navbar'
 import HubTopicView from '@/components/hub/HubTopicView'
-import { getHubTopicDetail } from '@/lib/hub'
+import HubAdminProvider from '@/components/hub/hub-admin'
+import { getHubTopicDetail, getHubCategories, getHubTopicOptions } from '@/lib/hub'
 import { getRequestOrigin } from '@/lib/request-origin'
 import { getSeo } from '@/lib/site-content'
 import { buildPageMetadata } from '@/lib/seo'
+import { auth } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,14 +33,22 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function HubTopicPage({ params }: Props) {
   const { slug } = await params
-  const topic = await getHubTopicDetail(slug)
+  const [topic, session, categories, topicOptions] = await Promise.all([
+    getHubTopicDetail(slug),
+    auth(),
+    getHubCategories(),
+    getHubTopicOptions(),
+  ])
   if (!topic) notFound()
+  const isAdmin = !!session
 
   return (
     <>
       <Navbar />
       <main className="max-w-3xl mx-auto px-4 py-10 sm:py-14">
-        <HubTopicView topic={topic} />
+        <HubAdminProvider isAdmin={isAdmin} categories={categories} topicOptions={topicOptions}>
+          <HubTopicView topic={topic} />
+        </HubAdminProvider>
       </main>
     </>
   )

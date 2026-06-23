@@ -3,7 +3,8 @@ import Link from 'next/link'
 import { Plus } from 'lucide-react'
 import Navbar from '@/components/Navbar'
 import HubExplorer from '@/components/hub/HubExplorer'
-import { getHubLanding } from '@/lib/hub'
+import HubAdminProvider from '@/components/hub/hub-admin'
+import { getHubLanding, getHubCategories, getHubTopicOptions } from '@/lib/hub'
 import { getRequestOrigin } from '@/lib/request-origin'
 import { getSeo, getSiteContent } from '@/lib/site-content'
 import { buildPageMetadata } from '@/lib/seo'
@@ -25,10 +26,12 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 export default async function HubPage() {
-  const [data, hub, session] = await Promise.all([
+  const [data, hub, session, categories, topicOptions] = await Promise.all([
     getHubLanding(),
     getSiteContent('hub'),
     auth(),
+    getHubCategories(),
+    getHubTopicOptions(),
   ])
   const isAdmin = !!session
 
@@ -58,11 +61,13 @@ export default async function HubPage() {
           )}
         </div>
 
-        {data.topics.length === 0 && data.entries.length === 0 ? (
-          <p className="text-[var(--muted)]">Nothing here yet. Check back soon.</p>
-        ) : (
-          <HubExplorer data={data} />
-        )}
+        <HubAdminProvider isAdmin={isAdmin} categories={categories} topicOptions={topicOptions}>
+          {data.topics.length === 0 && data.entries.length === 0 && !isAdmin ? (
+            <p className="text-[var(--muted)]">Nothing here yet. Check back soon.</p>
+          ) : (
+            <HubExplorer data={data} />
+          )}
+        </HubAdminProvider>
       </main>
     </>
   )

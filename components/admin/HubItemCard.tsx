@@ -11,6 +11,7 @@ import { HUB_ITEM_META, HUB_LIMITS, parseHubEmbed, type HubGalleryImage } from '
 import type { HubItemData, HubCategoryRef } from '@/lib/hub'
 import Switch from '@/components/admin/Switch'
 import TagSelector from '@/components/admin/TagSelector'
+import CategorySelector from '@/components/admin/CategorySelector'
 import Editor from '@/components/admin/Editor'
 
 const inputCls =
@@ -121,19 +122,11 @@ export default function ItemCard({
           {/* Category */}
           <div>
             <label className="block text-xs text-[var(--muted)] mb-1.5">Category</label>
-            <select
+            <CategorySelector
               value={item.category?.id || ''}
-              onChange={(e) => {
-                const cat = categories.find((c) => c.id === e.target.value)
-                onUpdate({ category: cat || null })
-              }}
-              className={inputCls}
-            >
-              <option value="">No category</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
+              initialCategories={categories}
+              onChange={(cat) => onUpdate({ category: cat })}
+            />
           </div>
 
           {/* Tags */}

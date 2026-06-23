@@ -2,11 +2,12 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Search, ArrowUpRight, ArrowRight } from 'lucide-react'
+import { Search, ArrowUpRight, ArrowRight, Plus } from 'lucide-react'
 import type { HubLandingData, HubEntry } from '@/lib/hub'
 import { type DateRange, EMPTY_RANGE, isRangeActive } from '@/lib/media-filter'
 import MediaDateFilter from '@/components/social/MediaDateFilter'
 import { HubTopicCard } from './HubTopicCard'
+import { useHubAdmin } from './hub-admin'
 import { useHubFilter, type SortKey } from './useHubFilter'
 
 /**
@@ -20,11 +21,22 @@ export default function HubExplorer({ data }: { data: HubLandingData }) {
   const [dateRange, setDateRange] = useState<DateRange>(EMPTY_RANGE)
   const [sortKey, setSortKey] = useState<SortKey>('newest')
 
+  const admin = useHubAdmin()
   const isFiltered = !!search || !!activeCategory || isRangeActive(dateRange)
   const filteredEntries = useHubFilter(data.entries, search, activeCategory, dateRange, sortKey)
 
   return (
     <div className="space-y-6">
+      {admin?.isAdmin && admin.editMode && (
+        <button
+          type="button"
+          onClick={() => admin.createTopic(null)}
+          className="tap-scale w-full h-11 rounded-xl border border-dashed border-[var(--accent)]/50 text-[var(--accent)] hover:bg-[var(--accent)]/5 inline-flex items-center justify-center gap-1.5 font-medium transition-colors"
+        >
+          <Plus size={17} strokeWidth={2.4} /> Add topic
+        </button>
+      )}
+
       {/* Toolbar */}
       <div className="space-y-3">
         <div className="flex gap-2.5 items-center">

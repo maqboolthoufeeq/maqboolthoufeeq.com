@@ -1,13 +1,14 @@
 'use client'
 
 import { useState } from 'react'
-import { Search } from 'lucide-react'
+import { Search, Pencil, Plus, Trash2, ListPlus } from 'lucide-react'
 import type { HubTopicDetail, HubCategoryRef } from '@/lib/hub'
 import { type DateRange, EMPTY_RANGE, isRangeActive } from '@/lib/media-filter'
 import MediaDateFilter from '@/components/social/MediaDateFilter'
 import HubItemRenderer from './HubItemRenderer'
 import { HubTopicCard } from './HubTopicCard'
 import { HubBreadcrumb } from './HubBreadcrumb'
+import { useHubAdmin } from './hub-admin'
 import { useHubFilter, type SortKey } from './useHubFilter'
 
 const SERIF = { fontFamily: 'var(--font-lora), serif' }
@@ -32,7 +33,9 @@ export default function HubTopicView({ topic }: { topic: HubTopicDetail }) {
   const [search, setSearch] = useState('')
   const [activeCategory, setActiveCategory] = useState<string | null>(null)
   const [dateRange, setDateRange] = useState<DateRange>(EMPTY_RANGE)
-  const [sortKey, setSortKey] = useState<SortKey>('newest')
+  const [sortKey, setSortKey] = useState<SortKey>('manual')
+
+  const admin = useHubAdmin()
 
   const itemsAsEntries = topic.items.map((item) => ({ ...item, kind: 'item' as const, href: '', itemType: item.type, path: topic.breadcrumb }))
   const filteredItems = useHubFilter(itemsAsEntries, search, activeCategory, dateRange, sortKey)
@@ -65,6 +68,16 @@ export default function HubTopicView({ topic }: { topic: HubTopicDetail }) {
         {metaBits.length > 0 && <p className="text-[11px] uppercase tracking-[0.15em] text-[var(--muted)]/80">{metaBits.join('  ·  ')}</p>}
       </header>
 
+      {admin?.isAdmin && admin.editMode && (
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border border-[var(--accent)]/30 bg-[var(--accent)]/5 p-2">
+          <AdminBtn onClick={() => admin.editTopic(topic.id)}><Pencil size={15} /> Edit topic</AdminBtn>
+          <AdminBtn onClick={() => admin.createTopic(topic.id)}><Plus size={15} /> Add subtopic</AdminBtn>
+          <AdminBtn onClick={() => admin.manageItems(topic.id, topic.title, topic.items)}><ListPlus size={15} /> Manage content</AdminBtn>
+          <div className="flex-1" />
+          <AdminBtn danger onClick={() => admin.deleteTopic(topic.id, topic.title, hasContent)}><Trash2 size={15} /> Delete</AdminBtn>
+        </div>
+      )}
+
       {/* Subtopics */}
       {topic.children.length > 0 && (
         <section>
@@ -82,7 +95,7 @@ export default function HubTopicView({ topic }: { topic: HubTopicDetail }) {
             {showToolbar && (
               <select value={sortKey} onChange={(e) => setSortKey(e.target.value as SortKey)}
                 className="h-8 px-2 rounded-lg border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)] text-xs font-medium">
-                <option value="newest">Newest</option><option value="oldest">Oldest</option><option value="a-z">A–Z</option><option value="z-a">Z–A</option>
+                <option value="manual">Default order</option><option value="newest">Newest</option><option value="oldest">Oldest</option><option value="a-z">A–Z</option><option value="z-a">Z–A</option>
               </select>
             )}
           </SectionLabel>
@@ -139,5 +152,21 @@ function EmptyState({ text }: { text: string }) {
       <Search size={24} className="text-[var(--muted)]" />
       <p className="text-sm text-[var(--muted)]">{text}</p>
     </div>
+  )
+}
+
+function AdminBtn({ onClick, danger, children }: { onClick: () => void; danger?: boolean; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`tap-scale inline-flex items-center gap-1.5 h-9 px-3 rounded-lg text-[13px] font-medium border transition-colors ${
+        danger
+          ? 'border-red-500/40 text-red-500 hover:bg-red-500/10'
+          : 'border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] hover:border-[var(--accent)]'
+      }`}
+    >
+      {children}
+    </button>
   )
 }

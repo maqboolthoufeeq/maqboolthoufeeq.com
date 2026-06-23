@@ -1,7 +1,7 @@
 'use client'
 
-import { useRef, useState } from 'react'
-import { Download, ArrowUpRight, ArrowDownToLine } from 'lucide-react'
+import { useRef, useState, useEffect } from 'react'
+import { Download, ArrowUpRight, ArrowDownToLine, X } from 'lucide-react'
 import type { HubItemData } from '@/lib/hub'
 import { type HubGalleryImage, type HubItemType, parseHubEmbed, aspectClass } from '@/lib/hub-content'
 import { formatBytes } from '@/lib/social'
@@ -147,7 +147,7 @@ function SingleImage({ image, title }: { image: HubGalleryImage; title: string }
   return (
     <div className="space-y-2">
       <button type="button" onClick={() => setOpen(true)} className="tap-scale block w-full cursor-zoom-in overflow-hidden rounded-lg border border-[var(--border)]">
-        <img src={image.url} alt={title || ''} loading="lazy" className="w-full h-auto max-h-[26rem] object-cover" />
+        <img src={image.url} alt={title || ''} loading="lazy" className="w-full h-auto" />
       </button>
       {image.fileName && <a href={image.url} download={image.fileName} className="tap-scale inline-flex items-center gap-1.5 h-8 px-3 rounded-lg bg-[var(--accent)] text-white text-xs font-medium hover:opacity-90"><Download size={14} /> Download</a>}
       {open && <GalleryLightbox images={[image]} initialIndex={0} onClose={() => setOpen(false)} />}
@@ -185,9 +185,9 @@ function ImageGallery({ images, title }: { images: HubGalleryImage[]; title: str
               key={`${img.url}-${idx}`}
               type="button"
               onClick={() => { setActive(idx); setOpen(true) }}
-              className="tap-scale shrink-0 w-full snap-center cursor-zoom-in"
+              className="tap-scale shrink-0 w-full snap-center cursor-zoom-in self-center"
             >
-              <img src={img.url} alt={title || ''} loading="lazy" className="w-full h-auto max-h-[26rem] object-cover" />
+              <img src={img.url} alt={title || ''} loading="lazy" className="w-full h-auto" />
             </button>
           ))}
         </div>
@@ -211,6 +211,18 @@ function GalleryLightbox({ images, initialIndex, onClose }: { images: HubGallery
   const scroller = useRef<HTMLDivElement>(null)
   const [active, setActive] = useState(initialIndex)
 
+  // Close on Escape + lock body scroll while the lightbox is open.
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', onKey)
+    const orig = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      document.body.style.overflow = orig
+    }
+  }, [onClose])
+
   function handleScroll() {
     const el = scroller.current
     if (!el || el.clientWidth === 0) return
@@ -218,7 +230,7 @@ function GalleryLightbox({ images, initialIndex, onClose }: { images: HubGallery
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/85" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-black/85" onClick={onClose} role="dialog" aria-modal="true">
       <div
         ref={(el) => {
           scroller.current = el
@@ -234,8 +246,16 @@ function GalleryLightbox({ images, initialIndex, onClose }: { images: HubGallery
           </div>
         ))}
       </div>
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Close"
+        className="tap-scale absolute top-4 right-4 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors"
+      >
+        <X size={20} />
+      </button>
       {images.length > 1 && (
-        <span className="absolute top-4 right-4 px-2.5 py-1 rounded-full bg-black/60 text-white text-xs font-medium tabular-nums">
+        <span className="absolute top-4 left-4 px-2.5 py-1 rounded-full bg-black/60 text-white text-xs font-medium tabular-nums">
           {active + 1}/{images.length}
         </span>
       )}

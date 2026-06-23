@@ -28,6 +28,14 @@ export function HubTopicCard({ topic, index }: { topic: HubTopicSummary; index?:
         {index != null && (
           <span className="shrink-0 w-7 text-sm tabular-nums text-[var(--muted)] group-hover:text-[var(--accent)] transition-colors pt-1.5">{String(index + 1).padStart(2, '0')}</span>
         )}
+        {topic.coverImage && (
+          <img
+            src={topic.coverImage}
+            alt=""
+            loading="lazy"
+            className="shrink-0 self-center w-11 h-11 rounded-lg object-cover border border-[var(--border)]"
+          />
+        )}
         <span className="min-w-0 flex-1">
           <span className="flex items-center gap-2">
             {topic.icon && <span className="shrink-0 text-base leading-none">{topic.icon}</span>}

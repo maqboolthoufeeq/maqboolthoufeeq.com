@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { Upload, CheckCircle2, AlertCircle } from 'lucide-react'
 import Switch from '@/components/admin/Switch'
 import TagSelector from '@/components/admin/TagSelector'
+import CategorySelector from '@/components/admin/CategorySelector'
 import HubItemEditor from '@/components/admin/HubItemEditor'
 import ConfirmDialog from '@/components/admin/ConfirmDialog'
 import type { HubTopicEditData, HubCategoryRef } from '@/lib/hub'
@@ -263,19 +264,14 @@ export default function HubTopicForm({
       {/* Category */}
       <div>
         <label className="block text-sm text-[var(--muted)] mb-1.5">Category</label>
-        <select
+        <CategorySelector
           value={categoryId}
-          onChange={(e) => {
-            setCategoryId(e.target.value)
+          initialCategories={categories}
+          onChange={(cat) => {
+            setCategoryId(cat?.id ?? '')
             setSaved(false)
           }}
-          className={inputCls}
-        >
-          <option value="">No category</option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
+        />
       </div>
 
       {/* Tags */}

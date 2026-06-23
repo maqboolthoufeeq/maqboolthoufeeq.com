@@ -173,6 +173,41 @@ model SiteContent {
   updatedAt DateTime @updatedAt
 }
 
+// ─── Integrations (cross-publishing) ──────────────────────────────────────────
+// One row per connected platform (dev.to, Hashnode, Telegram, Discord, …). The
+// `credentials` column holds an AES-256-GCM–encrypted JSON blob of the secrets we
+// must SEND to the platform (so, unlike the hashed OAuth tokens, it's reversibly
+// encrypted — see lib/integrations/crypto.ts). It is NEVER returned to the client;
+// the admin UI only ever sees `meta` (masked hints like the last 4 chars) and the
+// non-secret `config`. `linkOnly` providers store just a profile URL in `config`
+// and are never auto-posted (ban-safe by design).
+model Integration {
+  provider    String   @id // stable provider key, e.g. 'devto' | 'discord' | 'instagram'
+  enabled     Boolean  @default(false)
+  credentials String?  // AES-256-GCM ciphertext (iv:tag:data), or null until connected
+  config      Json     @default("{}") // non-secret config (publicationId, defaultText, profileUrl…)
+  meta        Json     @default("{}") // safe-to-display hints (masked key tail, account handle…)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+// An audit record of a single cross-post attempt to one platform for one piece of
+// content. Drives the "already shared to X" UI and an honest success/error history.
+model PublishRecord {
+  id          String   @id @default(cuid())
+  provider    String
+  contentType String // 'post' | 'hubItem' | 'hubTopic'
+  contentId   String
+  status      String // 'success' | 'error'
+  remoteUrl   String? // canonical URL on the target platform, when returned
+  remoteId    String? // platform-side id of the created post, when returned
+  error       String? // redacted error message when status='error'
+  createdAt   DateTime @default(now())
+
+  @@index([contentType, contentId])
+  @@index([provider])
+}
+
 // A site-wide announcement / "latest" notice. The newest row with `active=true`
 // is shown as a dismissible bar on top of the landing page; every row (active or
 // not) is kept as a public + admin-visible history of past announcements.

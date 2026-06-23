@@ -206,46 +206,181 @@ function ImageGallery({ images, title }: { images: HubGalleryImage[]; title: str
   )
 }
 
-/** Full-screen swipeable lightbox shared by single and multi-photo blocks. */
-function GalleryLightbox({ images, initialIndex, onClose }: { images: HubGalleryImage[]; initialIndex: number; onClose: () => void }) {
-  const scroller = useRef<HTMLDivElement>(null)
-  const [active, setActive] = useState(initialIndex)
+type Zoom = { scale: number; x: number; y: number }
+const NO_ZOOM: Zoom = { scale: 1, x: 0, y: 0 }
+const MAX_SCALE = 4
 
-  // Close on Escape + lock body scroll while the lightbox is open.
+const clamp = (v: number, lo: number, hi: number) => Math.max(lo, Math.min(hi, v))
+const dist = (a: { x: number; y: number }, b: { x: number; y: number }) => Math.hypot(a.x - b.x, a.y - b.y)
+/** Keep a pan within bounds so a zoomed image can't be dragged off-screen. */
+function clampZoom(z: Zoom, el: HTMLElement): Zoom {
+  if (z.scale <= 1) return NO_ZOOM
+  const maxX = (el.clientWidth * (z.scale - 1)) / 2
+  const maxY = (el.clientHeight * (z.scale - 1)) / 2
+  return { scale: z.scale, x: clamp(z.x, -maxX, maxX), y: clamp(z.y, -maxY, maxY) }
+}
+
+/**
+ * Full-screen photo viewer: a transform-based carousel driven by pointer events.
+ * Two-finger pinch (and ctrl/⌘+wheel on trackpads) zooms; drag pans when zoomed
+ * and swipes between photos otherwise; double-tap toggles zoom. Closes on the
+ * button, Escape, a tap on the backdrop, or the browser back gesture.
+ */
+function GalleryLightbox({ images, initialIndex, onClose }: { images: HubGalleryImage[]; initialIndex: number; onClose: () => void }) {
+  const container = useRef<HTMLDivElement>(null)
+  const [active, setActive] = useState(initialIndex)
+  const [zoom, setZoom] = useState<Zoom>(NO_ZOOM)
+  const [dragX, setDragX] = useState(0)
+  const [animate, setAnimate] = useState(false)
+  const onCloseRef = useRef(onClose)
+  onCloseRef.current = onClose
+
+  // Active pointers + the in-flight gesture's starting baseline.
+  const pointers = useRef<Map<number, { x: number; y: number }>>(new Map())
+  const g = useRef({ mode: 'none' as 'none' | 'swipe' | 'pan' | 'pinch', startX: 0, startY: 0, startDist: 0, startScale: 1, startX0: 0, startY0: 0, moved: false })
+
+  // Lock body scroll, close on Escape, and make the browser back button /
+  // swipe-back close the viewer instead of navigating off the page.
   useEffect(() => {
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.history.pushState({ hubLightbox: true }, '')
+    const onPop = () => onCloseRef.current()
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onCloseRef.current() }
+    window.addEventListener('popstate', onPop)
     window.addEventListener('keydown', onKey)
     const orig = document.body.style.overflow
     document.body.style.overflow = 'hidden'
     return () => {
+      window.removeEventListener('popstate', onPop)
       window.removeEventListener('keydown', onKey)
       document.body.style.overflow = orig
+      if (window.history.state?.hubLightbox) window.history.back()
     }
-  }, [onClose])
+  }, [])
 
-  function handleScroll() {
-    const el = scroller.current
-    if (!el || el.clientWidth === 0) return
-    setActive(Math.round(el.scrollLeft / el.clientWidth))
+  // Trackpad pinch arrives as wheel + ctrl/meta; needs a non-passive listener to
+  // preventDefault (browser-zoom) and zoom the image instead.
+  useEffect(() => {
+    const el = container.current
+    if (!el) return
+    const onWheel = (e: WheelEvent) => {
+      if (!e.ctrlKey && !e.metaKey) return
+      e.preventDefault()
+      setAnimate(false)
+      setZoom((z) => clampZoom({ scale: clamp(z.scale - e.deltaY * 0.01, 1, MAX_SCALE), x: z.x, y: z.y }, el))
+    }
+    el.addEventListener('wheel', onWheel, { passive: false })
+    return () => el.removeEventListener('wheel', onWheel)
+  }, [])
+
+  function onPointerDown(e: React.PointerEvent) {
+    container.current?.setPointerCapture(e.pointerId)
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+    setAnimate(false)
+    const pts = [...pointers.current.values()]
+    g.current.moved = false
+    if (pts.length === 2) {
+      g.current.mode = 'pinch'
+      g.current.startDist = dist(pts[0], pts[1])
+      g.current.startScale = zoom.scale
+    } else {
+      g.current.mode = zoom.scale > 1 ? 'pan' : 'swipe'
+      g.current.startX = e.clientX
+      g.current.startY = e.clientY
+      g.current.startX0 = zoom.x
+      g.current.startY0 = zoom.y
+    }
+  }
+
+  function onPointerMove(e: React.PointerEvent) {
+    if (!pointers.current.has(e.pointerId)) return
+    pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
+    const el = container.current
+    if (!el) return
+    const pts = [...pointers.current.values()]
+    if (g.current.mode === 'pinch' && pts.length >= 2) {
+      const scale = clamp(g.current.startScale * (dist(pts[0], pts[1]) / g.current.startDist), 1, MAX_SCALE)
+      g.current.moved = true
+      setZoom((z) => clampZoom({ scale, x: z.x, y: z.y }, el))
+    } else if (g.current.mode === 'pan' && pts.length === 1) {
+      const dx = e.clientX - g.current.startX
+      const dy = e.clientY - g.current.startY
+      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) g.current.moved = true
+      setZoom(clampZoom({ scale: zoom.scale, x: g.current.startX0 + dx, y: g.current.startY0 + dy }, el))
+    } else if (g.current.mode === 'swipe' && pts.length === 1) {
+      const dx = e.clientX - g.current.startX
+      if (Math.abs(dx) > 4) g.current.moved = true
+      setDragX(dx)
+    }
+  }
+
+  function onPointerUp(e: React.PointerEvent) {
+    pointers.current.delete(e.pointerId)
+    const el = container.current
+    const remaining = pointers.current.size
+    const mode = g.current.mode
+
+    if (mode === 'pinch') {
+      if (zoom.scale <= 1.01) { setAnimate(true); setZoom(NO_ZOOM) }
+      if (remaining === 1) {
+        const p = [...pointers.current.values()][0]
+        g.current.mode = 'pan'; g.current.startX = p.x; g.current.startY = p.y; g.current.startX0 = zoom.x; g.current.startY0 = zoom.y
+      } else if (remaining === 0) {
+        g.current.mode = 'none'
+      }
+      return
+    }
+
+    if (remaining > 0) return
+
+    if (mode === 'swipe') {
+      if (!g.current.moved) { onClose(); return } // tap closes
+      const width = el?.clientWidth ?? window.innerWidth
+      let next = active
+      if (dragX < -width * 0.2 && active < images.length - 1) next = active + 1
+      else if (dragX > width * 0.2 && active > 0) next = active - 1
+      setAnimate(true)
+      setDragX(0)
+      if (next !== active) { setActive(next); setZoom(NO_ZOOM) }
+    }
+    g.current.mode = 'none'
+  }
+
+  function onDoubleClick() {
+    const el = container.current
+    if (!el) return
+    setAnimate(true)
+    setZoom((z) => (z.scale > 1 ? NO_ZOOM : { scale: 2.5, x: 0, y: 0 }))
   }
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/85" onClick={onClose} role="dialog" aria-modal="true">
+    <div className="fixed inset-0 z-50 bg-black/85" role="dialog" aria-modal="true">
       <div
-        ref={(el) => {
-          scroller.current = el
-          if (el) el.scrollLeft = initialIndex * el.clientWidth
-        }}
-        onScroll={handleScroll}
-        onClick={(e) => e.stopPropagation()}
-        className="flex h-full w-full overflow-x-auto no-scrollbar snap-x snap-mandatory"
+        ref={container}
+        onPointerDown={onPointerDown}
+        onPointerMove={onPointerMove}
+        onPointerUp={onPointerUp}
+        onPointerCancel={onPointerUp}
+        onDoubleClick={onDoubleClick}
+        className="absolute inset-0 overflow-hidden touch-none select-none"
       >
-        {images.map((img, idx) => (
-          <div key={`${img.url}-${idx}`} className="flex h-full w-full shrink-0 snap-center items-center justify-center p-4">
-            <img src={img.url} alt="" className="max-w-full max-h-[90vh] w-auto rounded-lg" />
-          </div>
-        ))}
+        <div
+          className="flex h-full w-full"
+          style={{ transform: `translateX(calc(${-active * 100}% + ${dragX}px))`, transition: animate ? 'transform 0.25s ease' : 'none' }}
+        >
+          {images.map((img, idx) => (
+            <div key={`${img.url}-${idx}`} className="flex h-full w-full shrink-0 items-center justify-center p-4">
+              <img
+                src={img.url}
+                alt=""
+                draggable={false}
+                style={idx === active ? { transform: `translate(${zoom.x}px, ${zoom.y}px) scale(${zoom.scale})`, transition: animate ? 'transform 0.25s ease' : 'none' } : undefined}
+                className="max-w-full max-h-[90vh] w-auto rounded-lg"
+              />
+            </div>
+          ))}
+        </div>
       </div>
+
       <button
         type="button"
         onClick={onClose}
@@ -255,9 +390,16 @@ function GalleryLightbox({ images, initialIndex, onClose }: { images: HubGallery
         <X size={20} />
       </button>
       {images.length > 1 && (
-        <span className="absolute top-4 left-4 px-2.5 py-1 rounded-full bg-black/60 text-white text-xs font-medium tabular-nums">
-          {active + 1}/{images.length}
-        </span>
+        <>
+          <span className="absolute top-4 left-4 px-2.5 py-1 rounded-full bg-black/60 text-white text-xs font-medium tabular-nums">
+            {active + 1}/{images.length}
+          </span>
+          <div className="absolute inset-x-0 bottom-[calc(1rem+env(safe-area-inset-bottom))] flex items-center justify-center gap-1.5 pointer-events-none">
+            {images.map((_, idx) => (
+              <span key={idx} className={cn('h-1.5 w-1.5 rounded-full transition-colors', idx === active ? 'bg-white' : 'bg-white/40')} />
+            ))}
+          </div>
+        </>
       )}
     </div>
   )

@@ -2,12 +2,16 @@ import Link from 'next/link'
 import { FolderOpen } from 'lucide-react'
 import AdminShell from '@/components/admin/AdminShell'
 import HubTopicList from '@/components/admin/HubTopicList'
-import { getHubAdminTree } from '@/lib/hub'
+import { getHubAdminTree, getHubCategories, getHubTopicOptions } from '@/lib/hub'
 
 export const dynamic = 'force-dynamic'
 
 export default async function AdminHubPage() {
-  const tree = await getHubAdminTree()
+  const [tree, categories, topicOptions] = await Promise.all([
+    getHubAdminTree(),
+    getHubCategories(),
+    getHubTopicOptions(),
+  ])
 
   return (
     <AdminShell
@@ -24,7 +28,7 @@ export default async function AdminHubPage() {
         </Link>
       }
     >
-      <HubTopicList tree={tree} />
+      <HubTopicList tree={tree} categories={categories} topicOptions={topicOptions} />
     </AdminShell>
   )
 }

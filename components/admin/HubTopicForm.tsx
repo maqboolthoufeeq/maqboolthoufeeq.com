@@ -17,10 +17,16 @@ export default function HubTopicForm({
   initial,
   topicOptions,
   categories,
+  defaultParentId = null,
+  onCreated,
 }: {
   initial: HubTopicEditData | null
   topicOptions: { id: string; title: string; depth: number; parentId: string | null }[]
   categories: HubCategoryRef[]
+  /** Preselect a parent when creating (used by the inline "add subtopic" modal). */
+  defaultParentId?: string | null
+  /** When creating, called with the new id instead of navigating to its edit page. */
+  onCreated?: (id: string) => void
 }) {
   const router = useRouter()
   const isCreating = !initial
@@ -28,7 +34,7 @@ export default function HubTopicForm({
   const [description, setDescription] = useState(initial?.description ?? '')
   const [icon, setIcon] = useState(initial?.icon ?? '')
   const [coverImage, setCoverImage] = useState(initial?.coverImage ?? '')
-  const [parentId, setParentId] = useState(initial?.parentId ?? '')
+  const [parentId, setParentId] = useState(initial?.parentId ?? defaultParentId ?? '')
   const [categoryId, setCategoryId] = useState(initial?.categoryId ?? '')
   const [selectedTagIds, setSelectedTagIds] = useState(
     initial?.tags?.map((t) => t.id) ?? []
@@ -87,7 +93,8 @@ export default function HubTopicForm({
       router.refresh()
 
       if (isCreating) {
-        router.push(`/admin/hub/${created.id}/edit`)
+        if (onCreated) onCreated(created.id)
+        else router.push(`/admin/hub/${created.id}/edit`)
       } else {
         setTimeout(() => setSaved(false), 2000)
       }

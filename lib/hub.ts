@@ -427,6 +427,8 @@ export interface HubAdminTopicNode extends HubTopicSummary {
   published: boolean
   parentId: string | null
   depth: number
+  /** This topic's own content blocks, in display order (admin inline view). */
+  items: HubItemData[]
   children: HubAdminTopicNode[]
 }
 
@@ -437,6 +439,10 @@ export async function getHubAdminTree(): Promise<HubAdminTopicNode[]> {
     include: {
       category: CATEGORY_SELECT,
       tags: TAG_SELECT,
+      items: {
+        orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
+        include: { category: CATEGORY_SELECT, tags: TAG_SELECT },
+      },
       _count: { select: { children: true, items: true } },
     },
   })
@@ -448,6 +454,7 @@ export async function getHubAdminTree(): Promise<HubAdminTopicNode[]> {
       published: t.published,
       parentId: t.parentId,
       depth: 0,
+      items: t.items.map(toItemData),
       children: [],
     })
   }

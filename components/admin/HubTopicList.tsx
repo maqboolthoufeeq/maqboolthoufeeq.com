@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import {
   Plus, Pencil, Trash2, Eye, EyeOff, Settings,
   List as ListIcon, LayoutGrid, Check, X, GripVertical, ChevronRight,
+  FolderPlus, FilePlus2,
 } from 'lucide-react'
 import {
   DndContext, DragOverlay, PointerSensor, KeyboardSensor, useSensor, useSensors, closestCenter,
@@ -15,8 +16,13 @@ import {
 import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import ConfirmDialog from '@/components/admin/ConfirmDialog'
-import type { HubAdminTopicNode } from '@/lib/hub'
+import Modal from '@/components/admin/Modal'
+import HubItemEditor from '@/components/admin/HubItemEditor'
+import HubTopicForm from '@/components/admin/HubTopicForm'
+import { HUB_ITEM_META } from '@/lib/hub-content'
+import type { HubAdminTopicNode, HubCategoryRef } from '@/lib/hub'
 import { HubTopicGridCard } from './HubTopicGridCard'
+import { getIconComponent } from './HubItemCard'
 
 const inputCls =
   'w-full h-11 px-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)] text-sm'
@@ -26,6 +32,7 @@ const EMPTY_SET: ReadonlySet<string> = new Set()
 
 type View = 'list' | 'grid'
 type Confirm = { kind: 'single'; node: HubAdminTopicNode } | { kind: 'bulk'; ids: string[] } | null
+type AddModal = { kind: 'items' | 'subtopic'; node: HubAdminTopicNode } | null
 
 export function flattenNodes(nodes: HubAdminTopicNode[]): HubAdminTopicNode[] {
   return nodes.flatMap((n) => [n, ...flattenNodes(n.children)])
@@ -83,7 +90,11 @@ function getProjection(items: HubAdminTopicNode[], activeId: string, overId: str
   return { depth, parentId }
 }
 
-export default function HubTopicList({ tree }: { tree: HubAdminTopicNode[] }) {
+export default function HubTopicList({ tree, categories, topicOptions }: {
+  tree: HubAdminTopicNode[]
+  categories: HubCategoryRef[]
+  topicOptions: { id: string; title: string; depth: number; parentId: string | null }[]
+}) {
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [view, setView] = useState<View>('list')
@@ -91,7 +102,13 @@ export default function HubTopicList({ tree }: { tree: HubAdminTopicNode[] }) {
   const [confirm, setConfirm] = useState<Confirm>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
-  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
+  // Start fully collapsed so the tree reads cleanly; expandable nodes are those
+  // with subtopics or content blocks.
+  const [collapsed, setCollapsed] = useState<Set<string>>(
+    () => new Set(flattenNodes(tree).filter((n) => n.children.length > 0 || n.items.length > 0).map((n) => n.id)),
+  )
+  const [addMenuId, setAddMenuId] = useState<string | null>(null)
+  const [addModal, setAddModal] = useState<AddModal>(null)
   const [activeId, setActiveId] = useState<string | null>(null)
   const [overId, setOverId] = useState<string | null>(null)
   const [offsetX, setOffsetX] = useState(0)
@@ -273,12 +290,18 @@ export default function HubTopicList({ tree }: { tree: HubAdminTopicNode[] }) {
                   node={node}
                   depth={activeId === node.id && projected ? projected.depth : node.depth}
                   isOver={overId === node.id && activeId !== null && activeId !== node.id}
-                  isCollapsed={collapsed.has(node.id)}
+                  isCollapsed={visibleCollapsed.has(node.id)}
                   onToggleCollapsed={() => toggleCollapsed(node.id)}
                   isSelected={selected.has(node.id)}
                   onToggleSelect={() => toggleSelect(node.id)}
                   onTogglePublished={() => setPublished([node.id], !node.published)}
                   onDelete={() => setConfirm({ kind: 'single', node })}
+                  addMenuOpen={addMenuId === node.id}
+                  onToggleAddMenu={() => setAddMenuId((cur) => (cur === node.id ? null : node.id))}
+                  onCloseAddMenu={() => setAddMenuId(null)}
+                  onAddContent={() => { setAddMenuId(null); setAddModal({ kind: 'items', node }) }}
+                  onAddSubtopic={() => { setAddMenuId(null); setAddModal({ kind: 'subtopic', node }) }}
+                  onOpenItems={() => setAddModal({ kind: 'items', node })}
                   dragDisabled={!!search}
                 />
               ))}
@@ -334,6 +357,40 @@ export default function HubTopicList({ tree }: { tree: HubAdminTopicNode[] }) {
         onConfirm={() => { if (confirm) deleteIds(confirm.kind === 'bulk' ? confirm.ids : [confirm.node.id]) }}
         onCancel={() => { if (!busy) setConfirm(null) }}
       />
+
+      {/* Add content blocks to a topic (inline, without leaving the list) */}
+      <Modal
+        open={addModal?.kind === 'items'}
+        title={`Content blocks — ${addModal?.node.title ?? ''}`}
+        onClose={() => setAddModal(null)}
+      >
+        {addModal?.kind === 'items' && (
+          <HubItemEditor
+            key={addModal.node.id}
+            topicId={addModal.node.id}
+            initialItems={addModal.node.items}
+            categories={categories}
+          />
+        )}
+      </Modal>
+
+      {/* Add a subtopic nested under a topic */}
+      <Modal
+        open={addModal?.kind === 'subtopic'}
+        title={`Add subtopic under "${addModal?.node.title ?? ''}"`}
+        onClose={() => setAddModal(null)}
+      >
+        {addModal?.kind === 'subtopic' && (
+          <HubTopicForm
+            key={addModal.node.id}
+            initial={null}
+            topicOptions={topicOptions}
+            categories={categories}
+            defaultParentId={addModal.node.id}
+            onCreated={() => { setAddModal(null); router.refresh() }}
+          />
+        )}
+      </Modal>
     </div>
   )
 }
@@ -372,7 +429,7 @@ function BulkBtn({ onClick, disabled, label, danger, children }: { onClick: () =
 
 interface DragHandle { attributes: DraggableAttributes; listeners: DraggableSyntheticListeners }
 
-function SortableTopicRow({ node, depth, isOver, isCollapsed, onToggleCollapsed, isSelected, onToggleSelect, onTogglePublished, onDelete, dragDisabled }: {
+function SortableTopicRow({ node, depth, isOver, isCollapsed, onToggleCollapsed, isSelected, onToggleSelect, onTogglePublished, onDelete, addMenuOpen, onToggleAddMenu, onCloseAddMenu, onAddContent, onAddSubtopic, onOpenItems, dragDisabled }: {
   node: HubAdminTopicNode
   depth: number
   isOver: boolean
@@ -382,6 +439,12 @@ function SortableTopicRow({ node, depth, isOver, isCollapsed, onToggleCollapsed,
   onToggleSelect: () => void
   onTogglePublished: () => void
   onDelete: () => void
+  addMenuOpen: boolean
+  onToggleAddMenu: () => void
+  onCloseAddMenu: () => void
+  onAddContent: () => void
+  onAddSubtopic: () => void
+  onOpenItems: () => void
   dragDisabled: boolean
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: node.id, disabled: dragDisabled })
@@ -404,12 +467,18 @@ function SortableTopicRow({ node, depth, isOver, isCollapsed, onToggleCollapsed,
         onToggleSelect={onToggleSelect}
         onTogglePublished={onTogglePublished}
         onDelete={onDelete}
+        addMenuOpen={addMenuOpen}
+        onToggleAddMenu={onToggleAddMenu}
+        onCloseAddMenu={onCloseAddMenu}
+        onAddContent={onAddContent}
+        onAddSubtopic={onAddSubtopic}
+        onOpenItems={onOpenItems}
       />
     </li>
   )
 }
 
-function TopicRowContent({ node, depth, isSelected, isCollapsed, isOver, dragging, dragHandle, onToggleCollapsed, onToggleSelect, onTogglePublished, onDelete }: {
+function TopicRowContent({ node, depth, isSelected, isCollapsed, isOver, dragging, dragHandle, onToggleCollapsed, onToggleSelect, onTogglePublished, onDelete, addMenuOpen = false, onToggleAddMenu = () => {}, onCloseAddMenu = () => {}, onAddContent = () => {}, onAddSubtopic = () => {}, onOpenItems = () => {} }: {
   node: HubAdminTopicNode
   depth: number
   isSelected: boolean
@@ -421,12 +490,23 @@ function TopicRowContent({ node, depth, isSelected, isCollapsed, isOver, draggin
   onToggleSelect: () => void
   onTogglePublished: () => void
   onDelete: () => void
+  addMenuOpen?: boolean
+  onToggleAddMenu?: () => void
+  onCloseAddMenu?: () => void
+  onAddContent?: () => void
+  onAddSubtopic?: () => void
+  onOpenItems?: () => void
 }) {
   const hasChildren = node.children.length > 0
+  const hasItems = node.items.length > 0
+  const expandable = hasChildren || hasItems
+  // Show this topic's own content blocks inline when expanded (subtopics render
+  // as separate indented rows below, driven by the parent's visibility filter).
+  const showItems = !dragging && !isCollapsed && hasItems
   return (
     <div
       style={dragging ? { marginLeft: `${Math.min(depth, 6) * INDENT_PX}px` } : undefined}
-      className={`rounded-xl border bg-[var(--surface)] overflow-hidden transition-colors ${isSelected ? 'border-[var(--accent)] ring-1 ring-[var(--accent)]' : isOver ? 'border-[var(--accent)]/60' : 'border-[var(--border)]'} ${dragging ? 'shadow-2xl' : ''}`}
+      className={`rounded-xl border bg-[var(--surface)] transition-colors ${isSelected ? 'border-[var(--accent)] ring-1 ring-[var(--accent)]' : isOver ? 'border-[var(--accent)]/60' : 'border-[var(--border)]'} ${dragging ? 'shadow-2xl' : ''}`}
     >
       <div className="flex items-center gap-2 px-3 py-3">
         <button
@@ -442,8 +522,8 @@ function TopicRowContent({ node, depth, isSelected, isCollapsed, isOver, draggin
         <button
           type="button"
           onClick={onToggleCollapsed}
-          aria-label={isCollapsed ? 'Expand subtopics' : 'Collapse subtopics'}
-          className={`shrink-0 w-5 h-5 flex items-center justify-center text-[var(--muted)] hover:text-[var(--foreground)] transition-transform ${isCollapsed ? '' : 'rotate-90'} ${hasChildren ? '' : 'invisible'}`}
+          aria-label={isCollapsed ? 'Expand' : 'Collapse'}
+          className={`shrink-0 w-5 h-5 flex items-center justify-center text-[var(--muted)] hover:text-[var(--foreground)] transition-transform ${isCollapsed ? '' : 'rotate-90'} ${expandable ? '' : 'invisible'}`}
         >
           <ChevronRight size={15} />
         </button>
@@ -457,11 +537,57 @@ function TopicRowContent({ node, depth, isSelected, isCollapsed, isOver, draggin
           {node.category && <p className="text-xs text-[var(--muted)] mt-0.5">{node.category.name}</p>}
         </div>
         <div className="flex items-center gap-1 shrink-0">
+          <div className="relative">
+            <button
+              type="button"
+              onClick={onToggleAddMenu}
+              aria-label="Add to topic"
+              aria-haspopup="menu"
+              aria-expanded={addMenuOpen}
+              title="Add content or subtopic"
+              className="tap-scale p-1.5 rounded-lg text-[var(--muted)] hover:text-[var(--accent)] hover:bg-[var(--background)]"
+            >
+              <Plus size={16} strokeWidth={2.4} />
+            </button>
+            {addMenuOpen && (
+              <>
+                {/* Outside-click catcher (sits below the menu, above the rows) */}
+                <button type="button" aria-hidden tabIndex={-1} onClick={onCloseAddMenu} className="fixed inset-0 z-40 cursor-default" />
+                <div role="menu" className="absolute right-0 top-full mt-1 z-50 w-48 py-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xl">
+                  <button type="button" role="menuitem" onClick={onAddContent} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[var(--foreground)] hover:bg-[var(--background)] text-left">
+                    <FilePlus2 size={15} className="text-[var(--accent)]" /> Add content block
+                  </button>
+                  <button type="button" role="menuitem" onClick={onAddSubtopic} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[var(--foreground)] hover:bg-[var(--background)] text-left">
+                    <FolderPlus size={15} className="text-[var(--accent)]" /> Add subtopic
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
           <button onClick={onTogglePublished} aria-label={node.published ? 'Unpublish' : 'Publish'} title={node.published ? 'Published' : 'Draft'} className="tap-scale p-1.5 rounded-lg text-[var(--muted)] hover:text-[var(--foreground)]">{node.published ? <Eye size={16} /> : <EyeOff size={16} />}</button>
           <Link href={`/admin/hub/${node.id}/edit`} aria-label="Edit" className="tap-scale p-1.5 rounded-lg text-[var(--accent)] hover:bg-[var(--background)]"><Pencil size={16} /></Link>
           <button onClick={onDelete} aria-label="Delete" className="tap-scale p-1.5 rounded-lg text-red-500 hover:bg-[var(--background)]"><Trash2 size={16} /></button>
         </div>
       </div>
+
+      {showItems && (
+        <div className="border-t border-[var(--border)] bg-[var(--background)]/40 px-2 py-1.5 space-y-0.5 rounded-b-xl">
+          {node.items.map((it) => (
+            <button
+              key={it.id}
+              type="button"
+              onClick={onOpenItems}
+              title="Edit content blocks"
+              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left hover:bg-[var(--surface)] transition-colors"
+            >
+              <span className="shrink-0 text-[var(--accent)]">{getIconComponent(HUB_ITEM_META[it.type].icon, 15)}</span>
+              <span className="flex-1 min-w-0 text-sm text-[var(--foreground)] truncate">{it.title || 'Untitled'}</span>
+              {!it.published && <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-600">Draft</span>}
+              <span className="shrink-0 text-[10px] text-[var(--muted)] uppercase tracking-wide">{HUB_ITEM_META[it.type].label}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

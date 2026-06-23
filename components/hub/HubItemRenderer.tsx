@@ -1,7 +1,7 @@
 'use client'
 
 import { useRef, useState, useEffect } from 'react'
-import { Download, ArrowUpRight, ArrowDownToLine, X } from 'lucide-react'
+import { Download, ArrowUpRight, ArrowDownToLine, X, Copy, Check } from 'lucide-react'
 import type { HubItemData } from '@/lib/hub'
 import { type HubGalleryImage, type HubItemType, parseHubEmbed, aspectClass } from '@/lib/hub-content'
 import { formatBytes } from '@/lib/social'
@@ -78,20 +78,66 @@ function FileRow({ item, index }: { item: HubItemData; index: number }) {
 /* ─── Media / notes — numbered header + content beneath ───────────────────── */
 
 function MediaBlock({ item, index }: { item: HubItemData; index: number }) {
+  const contentRef = useRef<HTMLDivElement>(null)
+  const isNote = item.type === 'text' || item.type === 'markdown' || item.type === 'richtext'
   return (
     <div id={`item-${item.id}`} className="py-3.5 border-b border-[var(--border)]">
-      <div className="flex items-baseline gap-4 mb-3">
+      <div className="flex items-baseline gap-3 mb-3">
         <Index>{num(index)}</Index>
         <span className="flex-1 min-w-0">
           <span className="block font-medium text-[var(--foreground)] truncate">{item.title}</span>
           {item.description && <span className="block text-xs text-[var(--muted)] truncate mt-0.5">{item.description}</span>}
         </span>
+        {isNote && <CopyButton getText={() => contentRef.current?.textContent ?? ''} />}
         <TypeTag type={item.type} />
       </div>
-      <div className="sm:pl-11">
+      <div className="sm:pl-11" ref={contentRef}>
         <Content item={item} />
       </div>
     </div>
+  )
+}
+
+/** Small copy control for note blocks: swaps the icon for an animated "Copied"
+ * label for ~1.5s after a successful copy. */
+function CopyButton({ getText }: { getText: () => string }) {
+  const [copied, setCopied] = useState(false)
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  useEffect(() => () => { if (timer.current) clearTimeout(timer.current) }, [])
+
+  async function handleCopy() {
+    const text = getText().trim()
+    if (!text) return
+    try {
+      await navigator.clipboard.writeText(text)
+    } catch {
+      return
+    }
+    setCopied(true)
+    if (timer.current) clearTimeout(timer.current)
+    timer.current = setTimeout(() => setCopied(false), 1500)
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={handleCopy}
+      aria-label={copied ? 'Copied' : 'Copy note'}
+      title="Copy"
+      className={cn(
+        'shrink-0 self-center inline-flex items-center gap-1 h-6 px-1.5 rounded-md text-[11px] font-medium transition-colors',
+        copied ? 'text-green-500' : 'text-[var(--muted)] hover:text-[var(--foreground)]',
+      )}
+    >
+      {copied ? (
+        <span className="inline-flex items-center gap-1 animate-[code-copied-pop_0.32s_ease]">
+          <Check size={12} strokeWidth={2.6} /> Copied
+        </span>
+      ) : (
+        <Copy size={13} />
+      )}
+    </button>
   )
 }
 
@@ -240,11 +286,15 @@ function GalleryLightbox({ images, initialIndex, onClose }: { images: HubGallery
   const g = useRef({ mode: 'none' as 'none' | 'swipe' | 'pan' | 'pinch', startX: 0, startY: 0, startDist: 0, startScale: 1, startX0: 0, startY0: 0, moved: false })
 
   // Lock body scroll, close on Escape, and make the browser back button /
-  // swipe-back close the viewer instead of navigating off the page.
+  // swipe-back close the viewer instead of navigating off the page. All closes
+  // go through history.back() → popstate (see `requestClose`); cleanup never
+  // calls history.back() itself, because under React's dev double-mount that
+  // fired an async popstate onto the remounted listener and flickered the modal
+  // shut on open.
   useEffect(() => {
     window.history.pushState({ hubLightbox: true }, '')
     const onPop = () => onCloseRef.current()
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onCloseRef.current() }
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') window.history.back() }
     window.addEventListener('popstate', onPop)
     window.addEventListener('keydown', onKey)
     const orig = document.body.style.overflow
@@ -253,9 +303,10 @@ function GalleryLightbox({ images, initialIndex, onClose }: { images: HubGallery
       window.removeEventListener('popstate', onPop)
       window.removeEventListener('keydown', onKey)
       document.body.style.overflow = orig
-      if (window.history.state?.hubLightbox) window.history.back()
     }
   }, [])
+
+  const requestClose = () => window.history.back()
 
   // Trackpad pinch arrives as wheel + ctrl/meta; needs a non-passive listener to
   // preventDefault (browser-zoom) and zoom the image instead.
@@ -333,7 +384,7 @@ function GalleryLightbox({ images, initialIndex, onClose }: { images: HubGallery
     if (remaining > 0) return
 
     if (mode === 'swipe') {
-      if (!g.current.moved) { onClose(); return } // tap closes
+      if (!g.current.moved) { requestClose(); return } // tap closes
       const width = el?.clientWidth ?? window.innerWidth
       let next = active
       if (dragX < -width * 0.2 && active < images.length - 1) next = active + 1
@@ -383,7 +434,7 @@ function GalleryLightbox({ images, initialIndex, onClose }: { images: HubGallery
 
       <button
         type="button"
-        onClick={onClose}
+        onClick={requestClose}
         aria-label="Close"
         className="tap-scale absolute top-4 right-4 z-10 w-10 h-10 flex items-center justify-center rounded-full bg-black/60 text-white hover:bg-black/80 transition-colors"
       >

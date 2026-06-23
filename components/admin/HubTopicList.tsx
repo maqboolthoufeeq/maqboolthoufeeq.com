@@ -279,7 +279,7 @@ export default function HubTopicList({ tree, categories, topicOptions }: {
           <p className="text-[var(--muted)] text-sm">{search ? 'No topics match your search.' : 'No topics yet. Create one to get started.'}</p>
         </div>
       ) : view === 'list' ? (
-        <DndContext sensors={sensors} collisionDetection={closestCenter}
+        <DndContext id="hub-topic-tree" sensors={sensors} collisionDetection={closestCenter}
           onDragStart={handleDragStart} onDragMove={handleDragMove} onDragOver={handleDragOver}
           onDragEnd={handleDragEnd} onDragCancel={resetDrag}>
           <SortableContext items={visibleNodes.map((n) => n.id)} strategy={verticalListSortingStrategy}>

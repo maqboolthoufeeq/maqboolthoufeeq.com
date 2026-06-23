@@ -55,6 +55,7 @@ export default function HubItemEditor({
         fileType: item.fileType,
         content: item.content,
         thumbnail: item.thumbnail,
+        images: item.images,
       },
       item.type === 'richtext' ? sanitizePostHtml : undefined
     )
@@ -87,6 +88,7 @@ export default function HubItemEditor({
           fileType: item.fileType || null,
           content: item.content || null,
           thumbnail: item.thumbnail || null,
+          images: item.images,
           categoryId: item.category?.id || null,
           published: item.published,
           showDate: !!item.date,
@@ -171,6 +173,7 @@ export default function HubItemEditor({
       content: null,
       contentHtml: null,
       thumbnail: null,
+      images: [],
       category: null,
       tags: [],
       date: null,

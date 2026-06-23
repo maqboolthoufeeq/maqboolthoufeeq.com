@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import type { Prisma } from '@prisma/client'
 import { auth } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { sanitizePostHtml } from '@/lib/sanitize'
@@ -32,6 +33,7 @@ export async function POST(req: NextRequest) {
     fileType,
     content,
     thumbnail,
+    images,
     categoryId,
     published,
     showDate,
@@ -48,7 +50,7 @@ export async function POST(req: NextRequest) {
 
   // Sanitize the entire item
   const sanitized = sanitizeHubItem(
-    { type, title, description, url, fileUrl, fileName, fileSize, fileType, content, thumbnail },
+    { type, title, description, url, fileUrl, fileName, fileSize, fileType, content, thumbnail, images },
     sanitizePostHtml,
   )
 
@@ -69,6 +71,7 @@ export async function POST(req: NextRequest) {
       fileType: sanitized.value.fileType,
       content: sanitized.value.content,
       thumbnail: sanitized.value.thumbnail,
+      images: sanitized.value.images as unknown as Prisma.InputJsonValue,
       categoryId: categoryId || null,
       published: published === undefined ? true : Boolean(published),
       showDate: Boolean(showDate),

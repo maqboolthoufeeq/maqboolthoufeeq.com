@@ -4,18 +4,35 @@ import { useState, useEffect, useMemo } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import {
-  Plus, Pencil, Trash2, ChevronUp, ChevronDown, Eye, EyeOff, Settings,
-  List as ListIcon, LayoutGrid, Check, X,
+  Plus, Pencil, Trash2, Eye, EyeOff, Settings,
+  List as ListIcon, LayoutGrid, Check, X, GripVertical, ChevronRight,
+  FolderPlus, FilePlus2,
 } from 'lucide-react'
+import {
+  DndContext, DragOverlay, PointerSensor, KeyboardSensor, useSensor, useSensors, closestCenter,
+  type DraggableAttributes, type DraggableSyntheticListeners,
+  type DragStartEvent, type DragMoveEvent, type DragOverEvent, type DragEndEvent,
+} from '@dnd-kit/core'
+import { SortableContext, useSortable, arrayMove, verticalListSortingStrategy, sortableKeyboardCoordinates } from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import ConfirmDialog from '@/components/admin/ConfirmDialog'
-import type { HubAdminTopicNode } from '@/lib/hub'
+import Modal from '@/components/admin/Modal'
+import HubItemEditor from '@/components/admin/HubItemEditor'
+import HubTopicForm from '@/components/admin/HubTopicForm'
+import { HUB_ITEM_META } from '@/lib/hub-content'
+import type { HubAdminTopicNode, HubCategoryRef } from '@/lib/hub'
 import { HubTopicGridCard } from './HubTopicGridCard'
+import { getIconComponent } from './HubItemCard'
 
 const inputCls =
   'w-full h-11 px-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-[var(--foreground)] focus:outline-none focus:border-[var(--accent)] text-sm'
 
+const INDENT_PX = 22
+const EMPTY_SET: ReadonlySet<string> = new Set()
+
 type View = 'list' | 'grid'
 type Confirm = { kind: 'single'; node: HubAdminTopicNode } | { kind: 'bulk'; ids: string[] } | null
+type AddModal = { kind: 'items' | 'subtopic'; node: HubAdminTopicNode } | null
 
 export function flattenNodes(nodes: HubAdminTopicNode[]): HubAdminTopicNode[] {
   return nodes.flatMap((n) => [n, ...flattenNodes(n.children)])
@@ -29,13 +46,72 @@ function filterTree(nodes: HubAdminTopicNode[], q: string): HubAdminTopicNode[] 
     .filter((n) => n.title.toLowerCase().includes(query) || n.children.length > 0)
 }
 
-export default function HubTopicList({ tree }: { tree: HubAdminTopicNode[] }) {
+/** Flattens the tree into display order, skipping the children of collapsed nodes. */
+function flattenVisible(nodes: HubAdminTopicNode[], collapsed: ReadonlySet<string>): HubAdminTopicNode[] {
+  const out: HubAdminTopicNode[] = []
+  for (const n of nodes) {
+    out.push(n)
+    if (n.children.length > 0 && !collapsed.has(n.id)) out.push(...flattenVisible(n.children, collapsed))
+  }
+  return out
+}
+
+interface Projection { depth: number; parentId: string | null }
+
+/** Projects the drop position (new depth + parent) from the active item's
+ *  horizontal drag offset, so dragging right nests under the row above and
+ *  dragging left un-nests — mirrors dnd-kit's sortable-tree pattern. */
+function getProjection(items: HubAdminTopicNode[], activeId: string, overId: string, dragOffsetX: number): Projection | null {
+  const activeIndex = items.findIndex((i) => i.id === activeId)
+  const overIndex = items.findIndex((i) => i.id === overId)
+  if (activeIndex === -1 || overIndex === -1) return null
+
+  const activeItem = items[activeIndex]
+  const newItems = arrayMove(items, activeIndex, overIndex)
+  const previousItem = newItems[overIndex - 1]
+  const nextItem = newItems[overIndex + 1]
+
+  const dragDepth = Math.round(dragOffsetX / INDENT_PX)
+  const projectedDepth = activeItem.depth + dragDepth
+  const maxDepth = previousItem ? previousItem.depth + 1 : 0
+  const minDepth = nextItem ? nextItem.depth : 0
+
+  let depth = projectedDepth
+  if (projectedDepth >= maxDepth) depth = maxDepth
+  else if (projectedDepth < minDepth) depth = minDepth
+
+  let parentId: string | null = null
+  if (depth > 0 && previousItem) {
+    if (depth === previousItem.depth) parentId = previousItem.parentId
+    else if (depth > previousItem.depth) parentId = previousItem.id
+    else parentId = newItems.slice(0, overIndex).reverse().find((item) => item.depth === depth)?.parentId ?? null
+  }
+
+  return { depth, parentId }
+}
+
+export default function HubTopicList({ tree, categories, topicOptions }: {
+  tree: HubAdminTopicNode[]
+  categories: HubCategoryRef[]
+  topicOptions: { id: string; title: string; depth: number; parentId: string | null }[]
+}) {
   const router = useRouter()
   const [search, setSearch] = useState('')
   const [view, setView] = useState<View>('list')
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [confirm, setConfirm] = useState<Confirm>(null)
   const [busy, setBusy] = useState(false)
+  const [error, setError] = useState('')
+  // Start fully collapsed so the tree reads cleanly; expandable nodes are those
+  // with subtopics or content blocks.
+  const [collapsed, setCollapsed] = useState<Set<string>>(
+    () => new Set(flattenNodes(tree).filter((n) => n.children.length > 0 || n.items.length > 0).map((n) => n.id)),
+  )
+  const [addMenuId, setAddMenuId] = useState<string | null>(null)
+  const [addModal, setAddModal] = useState<AddModal>(null)
+  const [activeId, setActiveId] = useState<string | null>(null)
+  const [overId, setOverId] = useState<string | null>(null)
+  const [offsetX, setOffsetX] = useState(0)
 
   // Persist the view preference (client-only to avoid hydration mismatch).
   useEffect(() => {
@@ -46,10 +122,21 @@ export default function HubTopicList({ tree }: { tree: HubAdminTopicNode[] }) {
 
   const filtered = useMemo(() => (search ? filterTree(tree, search) : tree), [tree, search])
   const flat = useMemo(() => flattenNodes(filtered), [filtered])
+  // Search prunes branches, so force everything open while searching to keep matches visible.
+  const visibleCollapsed = search ? EMPTY_SET : collapsed
+  const visibleNodes = useMemo(() => flattenVisible(filtered, visibleCollapsed), [filtered, visibleCollapsed])
   const parentTitle = useMemo(() => {
     const byId = new Map(flattenNodes(tree).map((n) => [n.id, n.title]))
     return (id: string | null) => (id ? byId.get(id) ?? null : null)
   }, [tree])
+
+  function toggleCollapsed(id: string) {
+    setCollapsed((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id); else next.add(id)
+      return next
+    })
+  }
 
   // ── Selection ──────────────────────────────────────────────────────────────
   const allSelected = flat.length > 0 && flat.every((n) => selected.has(n.id))
@@ -82,14 +169,72 @@ export default function HubTopicList({ tree }: { tree: HubAdminTopicNode[] }) {
       clearSelection()
     } finally { setBusy(false); setConfirm(null) }
   }
-  async function reorderSiblings(siblings: HubAdminTopicNode[], id: string, dir: -1 | 1) {
-    const idx = siblings.findIndex((n) => n.id === id)
-    const target = idx + dir
-    if (idx === -1 || target < 0 || target >= siblings.length) return
-    const ids = siblings.map((n) => n.id)
-    ;[ids[idx], ids[target]] = [ids[target], ids[idx]]
-    const res = await fetch('/api/hub/topics/reorder', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ids }) })
-    if (res.ok) router.refresh()
+
+  // ── Drag and drop (reorder siblings + re-parent by dragging right/left) ─────
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }),
+  )
+  const projected = activeId && overId ? getProjection(visibleNodes, activeId, overId, offsetX) : null
+  const activeNode = activeId ? visibleNodes.find((n) => n.id === activeId) ?? null : null
+
+  function handleDragStart(event: DragStartEvent) {
+    setActiveId(String(event.active.id))
+    setOverId(String(event.active.id))
+  }
+  function handleDragMove(event: DragMoveEvent) {
+    setOffsetX(event.delta.x)
+    setOverId(event.over ? String(event.over.id) : null)
+  }
+  function handleDragOver(event: DragOverEvent) {
+    setOverId(event.over ? String(event.over.id) : null)
+  }
+  function resetDrag() {
+    setActiveId(null); setOverId(null); setOffsetX(0)
+  }
+  async function handleDragEnd(event: DragEndEvent) {
+    const { active, over } = event
+    if (!over || active.id === over.id) { resetDrag(); return }
+
+    const activeIdVal = String(active.id)
+    const overIdVal = String(over.id)
+    const projection = getProjection(visibleNodes, activeIdVal, overIdVal, event.delta.x)
+    resetDrag()
+    if (!projection) return
+
+    const activeIndex = visibleNodes.findIndex((n) => n.id === activeIdVal)
+    const overIndex = visibleNodes.findIndex((n) => n.id === overIdVal)
+    const original = visibleNodes[activeIndex]
+    const moved = arrayMove(visibleNodes, activeIndex, overIndex)
+    const siblingIds = moved
+      .map((n) => (n.id === activeIdVal ? { ...n, parentId: projection.parentId } : n))
+      .filter((n) => n.parentId === projection.parentId)
+      .map((n) => n.id)
+
+    setBusy(true)
+    setError('')
+    try {
+      if (projection.parentId !== original.parentId) {
+        const res = await fetch(`/api/hub/topics/${activeIdVal}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ parentId: projection.parentId }),
+        })
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}))
+          setError(data.error ?? 'Failed to move topic')
+          return
+        }
+      }
+      if (siblingIds.length > 1) {
+        await fetch('/api/hub/topics/reorder', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ ids: siblingIds }),
+        })
+      }
+      router.refresh()
+    } finally {
+      setBusy(false)
+    }
   }
 
   const selectedCount = selected.size
@@ -98,6 +243,12 @@ export default function HubTopicList({ tree }: { tree: HubAdminTopicNode[] }) {
 
   return (
     <div className="space-y-4 pb-24">
+      {error && (
+        <div className="p-3 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-sm">
+          {error}
+        </div>
+      )}
+
       {/* Header: search + view toggle + actions */}
       <div className="flex items-center gap-2 sm:gap-3">
         <input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Search topics…" className={inputCls} />
@@ -118,6 +269,7 @@ export default function HubTopicList({ tree }: { tree: HubAdminTopicNode[] }) {
         <div className="flex items-center gap-2 px-1 text-xs text-[var(--muted)]">
           <Checkbox checked={allSelected} indeterminate={selectedCount > 0 && !allSelected} onChange={toggleSelectAll} label="Select all topics" />
           <span>{selectedCount > 0 ? `${selectedCount} selected` : `Select all (${flat.length})`}</span>
+          {view === 'list' && !search && flat.length > 1 && <span className="ml-auto hidden sm:inline">Drag a row by its handle — drop further right to nest, left to move up a level.</span>}
         </div>
       )}
 
@@ -127,8 +279,50 @@ export default function HubTopicList({ tree }: { tree: HubAdminTopicNode[] }) {
           <p className="text-[var(--muted)] text-sm">{search ? 'No topics match your search.' : 'No topics yet. Create one to get started.'}</p>
         </div>
       ) : view === 'list' ? (
-        <TopicTree nodes={filtered} selected={selected} onToggleSelect={toggleSelect}
-          onReorder={reorderSiblings} onTogglePublished={(id, p) => setPublished([id], !p)} onDelete={(node) => setConfirm({ kind: 'single', node })} />
+        <DndContext id="hub-topic-tree" sensors={sensors} collisionDetection={closestCenter}
+          onDragStart={handleDragStart} onDragMove={handleDragMove} onDragOver={handleDragOver}
+          onDragEnd={handleDragEnd} onDragCancel={resetDrag}>
+          <SortableContext items={visibleNodes.map((n) => n.id)} strategy={verticalListSortingStrategy}>
+            <ul className="space-y-2">
+              {visibleNodes.map((node) => (
+                <SortableTopicRow
+                  key={node.id}
+                  node={node}
+                  depth={activeId === node.id && projected ? projected.depth : node.depth}
+                  isOver={overId === node.id && activeId !== null && activeId !== node.id}
+                  isCollapsed={visibleCollapsed.has(node.id)}
+                  onToggleCollapsed={() => toggleCollapsed(node.id)}
+                  isSelected={selected.has(node.id)}
+                  onToggleSelect={() => toggleSelect(node.id)}
+                  onTogglePublished={() => setPublished([node.id], !node.published)}
+                  onDelete={() => setConfirm({ kind: 'single', node })}
+                  addMenuOpen={addMenuId === node.id}
+                  onToggleAddMenu={() => setAddMenuId((cur) => (cur === node.id ? null : node.id))}
+                  onCloseAddMenu={() => setAddMenuId(null)}
+                  onAddContent={() => { setAddMenuId(null); setAddModal({ kind: 'items', node }) }}
+                  onAddSubtopic={() => { setAddMenuId(null); setAddModal({ kind: 'subtopic', node }) }}
+                  onOpenItems={() => setAddModal({ kind: 'items', node })}
+                  dragDisabled={!!search}
+                />
+              ))}
+            </ul>
+          </SortableContext>
+          <DragOverlay>
+            {activeNode && (
+              <TopicRowContent
+                node={activeNode}
+                depth={projected?.depth ?? activeNode.depth}
+                isSelected={selected.has(activeNode.id)}
+                isCollapsed={collapsed.has(activeNode.id)}
+                dragging
+                onToggleCollapsed={() => {}}
+                onToggleSelect={() => {}}
+                onTogglePublished={() => {}}
+                onDelete={() => {}}
+              />
+            )}
+          </DragOverlay>
+        </DndContext>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {flat.map((node) => (
@@ -163,6 +357,40 @@ export default function HubTopicList({ tree }: { tree: HubAdminTopicNode[] }) {
         onConfirm={() => { if (confirm) deleteIds(confirm.kind === 'bulk' ? confirm.ids : [confirm.node.id]) }}
         onCancel={() => { if (!busy) setConfirm(null) }}
       />
+
+      {/* Add content blocks to a topic (inline, without leaving the list) */}
+      <Modal
+        open={addModal?.kind === 'items'}
+        title={`Content blocks — ${addModal?.node.title ?? ''}`}
+        onClose={() => setAddModal(null)}
+      >
+        {addModal?.kind === 'items' && (
+          <HubItemEditor
+            key={addModal.node.id}
+            topicId={addModal.node.id}
+            initialItems={addModal.node.items}
+            categories={categories}
+          />
+        )}
+      </Modal>
+
+      {/* Add a subtopic nested under a topic */}
+      <Modal
+        open={addModal?.kind === 'subtopic'}
+        title={`Add subtopic under "${addModal?.node.title ?? ''}"`}
+        onClose={() => setAddModal(null)}
+      >
+        {addModal?.kind === 'subtopic' && (
+          <HubTopicForm
+            key={addModal.node.id}
+            initial={null}
+            topicOptions={topicOptions}
+            categories={categories}
+            defaultParentId={addModal.node.id}
+            onCreated={() => { setAddModal(null); router.refresh() }}
+          />
+        )}
+      </Modal>
     </div>
   )
 }
@@ -197,49 +425,108 @@ function BulkBtn({ onClick, disabled, label, danger, children }: { onClick: () =
   )
 }
 
-/* ─── List view tree ─────────────────────────────────────────────────────── */
+/* ─── List view: flat, depth-indented, draggable rows ───────────────────── */
 
-function TopicTree({ nodes, selected, onToggleSelect, onReorder, onTogglePublished, onDelete, depth = 0 }: {
-  nodes: HubAdminTopicNode[]
-  selected: Set<string>
-  onToggleSelect: (id: string) => void
-  onReorder: (siblings: HubAdminTopicNode[], id: string, dir: -1 | 1) => void
-  onTogglePublished: (id: string, published: boolean) => void
-  onDelete: (node: HubAdminTopicNode) => void
-  depth?: number
+interface DragHandle { attributes: DraggableAttributes; listeners: DraggableSyntheticListeners }
+
+function SortableTopicRow({ node, depth, isOver, isCollapsed, onToggleCollapsed, isSelected, onToggleSelect, onTogglePublished, onDelete, addMenuOpen, onToggleAddMenu, onCloseAddMenu, onAddContent, onAddSubtopic, onOpenItems, dragDisabled }: {
+  node: HubAdminTopicNode
+  depth: number
+  isOver: boolean
+  isCollapsed: boolean
+  onToggleCollapsed: () => void
+  isSelected: boolean
+  onToggleSelect: () => void
+  onTogglePublished: () => void
+  onDelete: () => void
+  addMenuOpen: boolean
+  onToggleAddMenu: () => void
+  onCloseAddMenu: () => void
+  onAddContent: () => void
+  onAddSubtopic: () => void
+  onOpenItems: () => void
+  dragDisabled: boolean
 }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: node.id, disabled: dragDisabled })
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    marginLeft: `${Math.min(depth, 6) * INDENT_PX}px`,
+    opacity: isDragging ? 0.4 : 1,
+  }
   return (
-    <ul className="space-y-2">
-      {nodes.map((node, idx) => (
-        <li key={node.id}>
-          <TopicRow node={node} depth={depth} index={idx} total={nodes.length} isSelected={selected.has(node.id)}
-            onToggleSelect={() => onToggleSelect(node.id)} onReorder={(dir) => onReorder(nodes, node.id, dir)}
-            onTogglePublished={() => onTogglePublished(node.id, node.published)} onDelete={() => onDelete(node)} />
-          {node.children.length > 0 && (
-            <div className="mt-2">
-              <TopicTree nodes={node.children} selected={selected} onToggleSelect={onToggleSelect} onReorder={onReorder}
-                onTogglePublished={onTogglePublished} onDelete={onDelete} depth={depth + 1} />
-            </div>
-          )}
-        </li>
-      ))}
-    </ul>
+    <li ref={setNodeRef} style={style}>
+      <TopicRowContent
+        node={node}
+        depth={depth}
+        isSelected={isSelected}
+        isCollapsed={isCollapsed}
+        isOver={isOver}
+        dragHandle={dragDisabled ? null : { attributes, listeners }}
+        onToggleCollapsed={onToggleCollapsed}
+        onToggleSelect={onToggleSelect}
+        onTogglePublished={onTogglePublished}
+        onDelete={onDelete}
+        addMenuOpen={addMenuOpen}
+        onToggleAddMenu={onToggleAddMenu}
+        onCloseAddMenu={onCloseAddMenu}
+        onAddContent={onAddContent}
+        onAddSubtopic={onAddSubtopic}
+        onOpenItems={onOpenItems}
+      />
+    </li>
   )
 }
 
-function TopicRow({ node, depth, index, total, isSelected, onToggleSelect, onReorder, onTogglePublished, onDelete }: {
-  node: HubAdminTopicNode; depth: number; index: number; total: number; isSelected: boolean
-  onToggleSelect: () => void; onReorder: (dir: -1 | 1) => void; onTogglePublished: () => void; onDelete: () => void
+function TopicRowContent({ node, depth, isSelected, isCollapsed, isOver, dragging, dragHandle, onToggleCollapsed, onToggleSelect, onTogglePublished, onDelete, addMenuOpen = false, onToggleAddMenu = () => {}, onCloseAddMenu = () => {}, onAddContent = () => {}, onAddSubtopic = () => {}, onOpenItems = () => {} }: {
+  node: HubAdminTopicNode
+  depth: number
+  isSelected: boolean
+  isCollapsed: boolean
+  isOver?: boolean
+  dragging?: boolean
+  dragHandle?: DragHandle | null
+  onToggleCollapsed: () => void
+  onToggleSelect: () => void
+  onTogglePublished: () => void
+  onDelete: () => void
+  addMenuOpen?: boolean
+  onToggleAddMenu?: () => void
+  onCloseAddMenu?: () => void
+  onAddContent?: () => void
+  onAddSubtopic?: () => void
+  onOpenItems?: () => void
 }) {
+  const hasChildren = node.children.length > 0
+  const hasItems = node.items.length > 0
+  const expandable = hasChildren || hasItems
+  // Show this topic's own content blocks inline when expanded (subtopics render
+  // as separate indented rows below, driven by the parent's visibility filter).
+  const showItems = !dragging && !isCollapsed && hasItems
   return (
-    <div className={`rounded-xl border bg-[var(--surface)] overflow-hidden transition-colors ${isSelected ? 'border-[var(--accent)] ring-1 ring-[var(--accent)]' : 'border-[var(--border)]'}`}
-      style={{ marginLeft: depth > 0 ? `${Math.min(depth, 4) * 1}rem` : '0' }}>
-      <div className="flex items-center gap-2.5 px-3 py-3">
+    <div
+      style={dragging ? { marginLeft: `${Math.min(depth, 6) * INDENT_PX}px` } : undefined}
+      className={`rounded-xl border bg-[var(--surface)] transition-colors ${isSelected ? 'border-[var(--accent)] ring-1 ring-[var(--accent)]' : isOver ? 'border-[var(--accent)]/60' : 'border-[var(--border)]'} ${dragging ? 'shadow-2xl' : ''}`}
+    >
+      <div className="flex items-center gap-2 px-3 py-3">
+        <button
+          type="button"
+          aria-label="Drag to reorder or nest"
+          className={`tap-scale shrink-0 text-[var(--muted)] hover:text-[var(--foreground)] touch-none ${dragHandle ? 'cursor-grab active:cursor-grabbing' : 'cursor-not-allowed opacity-30'}`}
+          {...(dragHandle?.attributes ?? {})}
+          {...(dragHandle?.listeners ?? {})}
+        >
+          <GripVertical size={16} />
+        </button>
         <Checkbox checked={isSelected} onChange={onToggleSelect} label={`Select ${node.title}`} />
-        <div className="flex flex-col gap-1 shrink-0">
-          <button onClick={onReorder.bind(null, -1)} disabled={index === 0} aria-label="Move up" className="text-[var(--muted)] hover:text-[var(--foreground)] disabled:opacity-20 h-5 flex items-center"><ChevronUp size={16} /></button>
-          <button onClick={onReorder.bind(null, 1)} disabled={index === total - 1} aria-label="Move down" className="text-[var(--muted)] hover:text-[var(--foreground)] disabled:opacity-20 h-5 flex items-center"><ChevronDown size={16} /></button>
-        </div>
+        <button
+          type="button"
+          onClick={onToggleCollapsed}
+          aria-label={isCollapsed ? 'Expand' : 'Collapse'}
+          className={`shrink-0 w-5 h-5 flex items-center justify-center text-[var(--muted)] hover:text-[var(--foreground)] transition-transform ${isCollapsed ? '' : 'rotate-90'} ${expandable ? '' : 'invisible'}`}
+        >
+          <ChevronRight size={15} />
+        </button>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
             <p className="font-semibold text-[var(--foreground)] truncate">{node.title}</p>
@@ -250,11 +537,57 @@ function TopicRow({ node, depth, index, total, isSelected, onToggleSelect, onReo
           {node.category && <p className="text-xs text-[var(--muted)] mt-0.5">{node.category.name}</p>}
         </div>
         <div className="flex items-center gap-1 shrink-0">
+          <div className="relative">
+            <button
+              type="button"
+              onClick={onToggleAddMenu}
+              aria-label="Add to topic"
+              aria-haspopup="menu"
+              aria-expanded={addMenuOpen}
+              title="Add content or subtopic"
+              className="tap-scale p-1.5 rounded-lg text-[var(--muted)] hover:text-[var(--accent)] hover:bg-[var(--background)]"
+            >
+              <Plus size={16} strokeWidth={2.4} />
+            </button>
+            {addMenuOpen && (
+              <>
+                {/* Outside-click catcher (sits below the menu, above the rows) */}
+                <button type="button" aria-hidden tabIndex={-1} onClick={onCloseAddMenu} className="fixed inset-0 z-40 cursor-default" />
+                <div role="menu" className="absolute right-0 top-full mt-1 z-50 w-48 py-1 rounded-xl border border-[var(--border)] bg-[var(--surface)] shadow-xl">
+                  <button type="button" role="menuitem" onClick={onAddContent} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[var(--foreground)] hover:bg-[var(--background)] text-left">
+                    <FilePlus2 size={15} className="text-[var(--accent)]" /> Add content block
+                  </button>
+                  <button type="button" role="menuitem" onClick={onAddSubtopic} className="w-full flex items-center gap-2 px-3 py-2 text-sm text-[var(--foreground)] hover:bg-[var(--background)] text-left">
+                    <FolderPlus size={15} className="text-[var(--accent)]" /> Add subtopic
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
           <button onClick={onTogglePublished} aria-label={node.published ? 'Unpublish' : 'Publish'} title={node.published ? 'Published' : 'Draft'} className="tap-scale p-1.5 rounded-lg text-[var(--muted)] hover:text-[var(--foreground)]">{node.published ? <Eye size={16} /> : <EyeOff size={16} />}</button>
           <Link href={`/admin/hub/${node.id}/edit`} aria-label="Edit" className="tap-scale p-1.5 rounded-lg text-[var(--accent)] hover:bg-[var(--background)]"><Pencil size={16} /></Link>
           <button onClick={onDelete} aria-label="Delete" className="tap-scale p-1.5 rounded-lg text-red-500 hover:bg-[var(--background)]"><Trash2 size={16} /></button>
         </div>
       </div>
+
+      {showItems && (
+        <div className="border-t border-[var(--border)] bg-[var(--background)]/40 px-2 py-1.5 space-y-0.5 rounded-b-xl">
+          {node.items.map((it) => (
+            <button
+              key={it.id}
+              type="button"
+              onClick={onOpenItems}
+              title="Edit content blocks"
+              className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-left hover:bg-[var(--surface)] transition-colors"
+            >
+              <span className="shrink-0 text-[var(--accent)]">{getIconComponent(HUB_ITEM_META[it.type].icon, 15)}</span>
+              <span className="flex-1 min-w-0 text-sm text-[var(--foreground)] truncate">{it.title || 'Untitled'}</span>
+              {!it.published && <span className="shrink-0 text-[10px] px-1.5 py-0.5 rounded-full bg-amber-500/20 text-amber-600">Draft</span>}
+              <span className="shrink-0 text-[10px] text-[var(--muted)] uppercase tracking-wide">{HUB_ITEM_META[it.type].label}</span>
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

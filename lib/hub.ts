@@ -1,6 +1,6 @@
 import { prisma } from './prisma'
 import { sanitizePostHtml } from './sanitize'
-import { type HubItemType, isHubItemType, markdownToHtml } from './hub-content'
+import { type HubGalleryImage, type HubItemType, isHubItemType, markdownToHtml } from './hub-content'
 
 /**
  * Server-side data layer for the Link Hub: maps Prisma rows to plain JSON shapes
@@ -39,6 +39,8 @@ export interface HubItemData {
   /** Pre-sanitised HTML for `markdown` / `richtext` blocks. */
   contentHtml: string | null
   thumbnail: string | null
+  /** Gallery photos for an `image` block (1+ entries); always `[]` for other types. */
+  images: HubGalleryImage[]
   category: HubCategoryRef | null
   tags: HubTagRef[]
   /** Visibility — always true on public payloads (they exclude drafts); used by the admin editor. */
@@ -125,12 +127,38 @@ type ItemRow = {
   fileType: string | null
   content: string | null
   thumbnail: string | null
+  images: unknown
   published: boolean
   showDate: boolean
   displayDate: Date | null
   createdAt: Date
   category: CategoryRow
   tags: TagRow[]
+}
+
+function toGalleryImage(v: unknown): HubGalleryImage | null {
+  if (!v || typeof v !== 'object') return null
+  const o = v as Record<string, unknown>
+  if (typeof o.url !== 'string') return null
+  return {
+    url: o.url,
+    fileName: typeof o.fileName === 'string' ? o.fileName : null,
+    fileSize: typeof o.fileSize === 'number' ? o.fileSize : null,
+    fileType: typeof o.fileType === 'string' ? o.fileType : null,
+  }
+}
+
+/** Reads the `images` gallery column, falling back to a 1-photo gallery built
+ * from the legacy fileUrl/url columns for rows saved before that column existed. */
+function toItemImages(item: ItemRow): HubGalleryImage[] {
+  if (Array.isArray(item.images)) {
+    const parsed = item.images.map(toGalleryImage).filter((v): v is HubGalleryImage => v !== null)
+    if (parsed.length > 0) return parsed
+  }
+  const fallback = item.fileUrl ?? item.url
+  return fallback
+    ? [{ url: fallback, fileName: item.fileName, fileSize: item.fileSize, fileType: item.fileType }]
+    : []
 }
 
 function toItemData(item: ItemRow): HubItemData {
@@ -161,6 +189,7 @@ function toItemData(item: ItemRow): HubItemData {
     content,
     contentHtml,
     thumbnail: item.thumbnail,
+    images: type === 'image' ? toItemImages(item) : [],
     category: toCategoryRef(item.category),
     tags: toTagRefs(item.tags),
     published: item.published,
@@ -398,6 +427,8 @@ export interface HubAdminTopicNode extends HubTopicSummary {
   published: boolean
   parentId: string | null
   depth: number
+  /** This topic's own content blocks, in display order (admin inline view). */
+  items: HubItemData[]
   children: HubAdminTopicNode[]
 }
 
@@ -408,6 +439,10 @@ export async function getHubAdminTree(): Promise<HubAdminTopicNode[]> {
     include: {
       category: CATEGORY_SELECT,
       tags: TAG_SELECT,
+      items: {
+        orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
+        include: { category: CATEGORY_SELECT, tags: TAG_SELECT },
+      },
       _count: { select: { children: true, items: true } },
     },
   })
@@ -419,6 +454,7 @@ export async function getHubAdminTree(): Promise<HubAdminTopicNode[]> {
       published: t.published,
       parentId: t.parentId,
       depth: 0,
+      items: t.items.map(toItemData),
       children: [],
     })
   }

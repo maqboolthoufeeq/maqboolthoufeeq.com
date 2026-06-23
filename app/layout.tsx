@@ -13,6 +13,7 @@ import { identityGraph, normalizeSameAs } from '@/lib/structured-data'
 import { JsonLd } from '@/components/JsonLd'
 import { DesignSync } from './DesignSync'
 import VisitTracker from '@/components/VisitTracker'
+import AgentationDev from '@/components/AgentationDev'
 import './globals.css'
 
 export const dynamic = 'force-dynamic'
@@ -142,6 +143,8 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
           {children}
         </ThemeProvider>
+        {/* Dev-only annotation toolbar for AI agents — never rendered in production. */}
+        {process.env.NODE_ENV === 'development' && <AgentationDev />}
       </body>
     </html>
   )

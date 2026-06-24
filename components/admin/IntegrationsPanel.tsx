@@ -82,10 +82,9 @@ export default function IntegrationsPanel({
         <div className="flex gap-2.5 mt-3 rounded-xl border border-emerald-500/30 bg-emerald-500/5 p-3">
           <ShieldCheck size={16} className="shrink-0 mt-0.5 text-emerald-500" />
           <p className="text-xs text-[var(--foreground)] leading-relaxed">
-            Every connection uses the platform&rsquo;s <strong>official API</strong>. Platforms with no safe posting API
-            (Instagram, TikTok, YouTube, Substack&hellip;) are <strong>link-only</strong> and never auto-posted — this is
-            deliberate, so your accounts are never at risk of a ban. Credentials are encrypted at rest (AES-256-GCM) and
-            never shown again after saving.
+            Every platform listed here posts through its <strong>official API</strong> — platforms with no safe posting
+            API are deliberately left out, so your accounts are never at risk of a ban. Credentials are encrypted at rest
+            (AES-256-GCM) and never shown again after saving.
           </p>
         </div>
         {connectedPublishable > 0 && (

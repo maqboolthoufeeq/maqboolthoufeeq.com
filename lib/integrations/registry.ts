@@ -10,13 +10,12 @@ import { x } from './providers/x'
 import { linkedin } from './providers/linkedin'
 import { reddit } from './providers/reddit'
 import { facebook } from './providers/facebook'
-import { linkOnlyProviders } from './providers/link-only'
 
 /**
- * The full provider registry, ordered for display (publishers first, by usefulness;
- * link-only profiles last). The cross-post button only ever targets providers whose
- * capability is autoPublish/announce AND that define publish(); link-only entries are
- * config-for-display only.
+ * The full provider registry, ordered for display (publishers first, by usefulness).
+ * Every provider here can actually post via an official API — full-article
+ * (autoPublish) or short post + canonical link (announce). Platforms with no safe
+ * posting API are intentionally not listed.
  */
 const PROVIDERS: IntegrationProvider[] = [
   // Full-article auto-publish
@@ -32,8 +31,6 @@ const PROVIDERS: IntegrationProvider[] = [
   slack,
   reddit,
   facebook,
-  // Link-only (no safe posting API — display only)
-  ...linkOnlyProviders,
 ]
 
 const BY_ID = new Map(PROVIDERS.map((p) => [p.id, p]))

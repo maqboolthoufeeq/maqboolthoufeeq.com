@@ -69,12 +69,12 @@ components/blog + hub: "Publish everywhere" button entry points
 
 | # | Task | Status |
 |---|------|--------|
-| 1 | PLAN + Prisma models (Integration, PublishRecord) + db push | in progress |
-| 2 | Secure core: crypto, types, store, registry, html→md, publish orchestrator | pending |
-| 3 | Providers (auto/announce + link-only), from verified API specs | pending |
-| 4 | Admin Integrations UI + API routes (connect, test, enable, mask) | pending |
-| 5 | Publish-everywhere button on blog + hub + /api/integrations/publish | pending |
-| 6 | Tests, `make pr` gate, browser verify, push + PR | pending |
+| 1 | PLAN + Prisma models (Integration, PublishRecord) + db push | ✅ done |
+| 2 | Secure core: crypto, types, store, registry, html→md, publish orchestrator | ✅ done |
+| 3 | Providers (auto/announce + link-only), from verified API specs | ✅ done |
+| 4 | Admin Integrations UI + API routes (connect, test, enable, mask) | ✅ done |
+| 5 | Publish-everywhere button on blog + hub + /api/integrations/publish | ✅ done |
+| 6 | Tests, `make pr` gate, browser verify, push + PR | ✅ done |
 
 ## Verification plan
 
@@ -85,7 +85,36 @@ components/blog + hub: "Publish everywhere" button entry points
   run a cross-post against a mock, screenshot. If local DB/dev unavailable → document as
   deferred with reason (honesty rule), keep unit coverage.
 
+## Verified vs deferred (honesty)
+
+- **Verified in browser (Playwright, dev server):** admin `/integrations` renders all
+  providers grouped by category with correct capability badges + ban-safety copy; the
+  Discord connect modal shows setup docs + form; saving a webhook persists it
+  **AES-GCM-encrypted (confirmed `v1:…` ciphertext, no plaintext in DB)** with a masked
+  `••••…` hint; the enable toggle works; the "Publish everywhere" button on a blog post
+  opens the cross-post modal and lists the connected+enabled Discord target pre-checked.
+  No console errors. Test data + the temporary preauth token were cleaned up afterwards.
+- **Verified by unit tests (47):** crypto round-trip + tamper/fail-closed; HTML→Markdown
+  cases; SSRF guards (http/private-IP/metadata rejection); provider payload builders
+  (dev.to body + canonical_url, Telegram, Discord); publish orchestrator (partial
+  failure isolation, token-rotation persistence, providerIds filter); registry invariants
+  (link-only never auto-posts).
+- **Deferred (cannot test without live keys):** the actual outbound POST to each real
+  third-party API. The request contracts were verified against official docs (research
+  workflow, 2026-06-24, high confidence) and exercised with mocked fetch; the real round
+  trip happens the first time the owner connects a real account and clicks publish.
+- **Provider notes:** Medium is link-only (its API was archived 2023). Hashnode requires
+  a Pro plan for API access (since 2026-05). X free tier is pay-per-use (since 2026-02).
+  LinkedIn/Facebook/Reddit need platform app review / pre-approval for production.
+
 ## Change log
 
-- _(in progress)_ branch created; research workflow (API-contract verification) launched;
-  plan + data model started.
+- Branch `integrations` created from `dev`.
+- Research workflow (14 agents) verified each platform's official API contract +
+  ban-safety; results in `API_REFERENCE.md`.
+- Commit 1: Prisma models + secure core (crypto, types, http/SSRF, html→md, store,
+  registry, publish orchestrator) + all providers.
+- Commit 2: admin Integrations UI + API routes + publish-everywhere button (blog post
+  page, posts table, hub item editor) + dashboard/nav entries + 47 unit tests.
+- Gate `make pr` green (lint, type-check, tests). `next build` compiles all 5 routes.
+- Browser-verified the full connect → encrypt → enable → cross-post flow; cleaned up.

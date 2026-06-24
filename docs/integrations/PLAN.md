@@ -118,3 +118,7 @@ components/blog + hub: "Publish everywhere" button entry points
   page, posts table, hub item editor) + dashboard/nav entries + 47 unit tests.
 - Gate `make pr` green (lint, type-check, tests). `next build` compiles all 5 routes.
 - Browser-verified the full connect → encrypt → enable → cross-post flow; cleaned up.
+- Pushed `integrations` → origin. `gh` CLI not authenticated here, so open the PR via:
+  **https://github.com/maqboolthoufeeq/maqboolthoufeeq.com/pull/new/integrations**
+  (base `dev`). After connecting real accounts, run `npx prisma db push` on prod so the
+  `Integration` + `PublishRecord` tables exist (already pushed to the dev/Neon DB).

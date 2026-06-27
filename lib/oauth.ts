@@ -4,6 +4,36 @@ import { prisma } from './prisma'
 const CODE_TTL_MS = 10 * 60 * 1000       // 10 minutes
 const TOKEN_TTL_MS = 90 * 24 * 3600 * 1000 // 90 days
 
+/**
+ * The redirect URIs the well-known hosted MCP clients send to the authorization
+ * endpoint. A client created from the admin panel (where the owner only types a
+ * name) is registered against these by default, so pasting its Client ID/Secret
+ * into claude.ai's connector "just works" — without them the auth-code flow fails
+ * with "redirect_uri not registered for this client", since `isAllowedRedirectUri`
+ * (correctly) rejects an empty registration list. The owner can still override
+ * this list to register a different client's callback.
+ */
+export const DEFAULT_MCP_REDIRECT_URIS = [
+  'https://claude.ai/api/mcp/auth_callback',
+  'https://claude.com/api/mcp/auth_callback',
+]
+
+/**
+ * Clean a caller-supplied redirect-URI list: trim, drop blanks/dupes, and keep
+ * only safe-scheme URIs. Returns `[]` when nothing usable remains, letting the
+ * caller fall back to {@link DEFAULT_MCP_REDIRECT_URIS}.
+ */
+export function sanitizeRedirectUris(input: unknown): string[] {
+  const arr = Array.isArray(input) ? input : []
+  const seen = new Set<string>()
+  for (const raw of arr) {
+    if (typeof raw !== 'string') continue
+    const uri = raw.trim()
+    if (uri && isSafeRedirectUri(uri)) seen.add(uri)
+  }
+  return [...seen]
+}
+
 function generate(bytes = 32) {
   return randomBytes(bytes).toString('hex')
 }
@@ -93,6 +123,16 @@ export async function listOAuthClients() {
 
 export async function deleteOAuthClient(id: string) {
   return prisma.oAuthClient.delete({ where: { id } })
+}
+
+/** Replace a client's registered redirect URIs (admin-only; lets the owner fix or
+ * retarget a client without recreating it). Returns the updated public fields. */
+export async function updateOAuthClientRedirects(id: string, redirectUrls: string[]) {
+  return prisma.oAuthClient.update({
+    where: { id },
+    data: { redirectUrls },
+    select: { id: true, name: true, clientId: true, redirectUrls: true, createdAt: true },
+  })
 }
 
 export async function createAuthCode(clientId: string, redirectUrl: string, codeChallenge?: string) {

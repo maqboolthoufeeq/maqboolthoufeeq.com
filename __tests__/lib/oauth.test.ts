@@ -4,7 +4,13 @@ jest.mock('@/lib/prisma', () => ({
   prisma: { oAuthClient: { create: (...args: unknown[]) => mockCreate(...args) } },
 }))
 
-import { isSafeRedirectUri, isAllowedRedirectUri, registerOAuthClient } from '@/lib/oauth'
+import {
+  isSafeRedirectUri,
+  isAllowedRedirectUri,
+  registerOAuthClient,
+  sanitizeRedirectUris,
+  DEFAULT_MCP_REDIRECT_URIS,
+} from '@/lib/oauth'
 
 describe('isSafeRedirectUri', () => {
   it('accepts https URIs (e.g. claude.ai callback)', () => {
@@ -29,6 +35,31 @@ describe('isAllowedRedirectUri', () => {
     expect(isAllowedRedirectUri(registered, 'https://claude.ai/api/mcp/auth_callback')).toBe(true)
     expect(isAllowedRedirectUri(registered, 'https://claude.ai/api/mcp/auth_callback/')).toBe(false)
     expect(isAllowedRedirectUri([], 'https://claude.ai/api/mcp/auth_callback')).toBe(false)
+  })
+})
+
+describe('sanitizeRedirectUris', () => {
+  it('trims, de-dupes and keeps only safe URIs', () => {
+    expect(
+      sanitizeRedirectUris([
+        '  https://claude.ai/api/mcp/auth_callback  ',
+        'https://claude.ai/api/mcp/auth_callback', // dupe
+        'http://evil.example.com/cb',              // unsafe
+        '',                                        // blank
+        42,                                        // non-string
+      ]),
+    ).toEqual(['https://claude.ai/api/mcp/auth_callback'])
+  })
+
+  it('returns [] for non-arrays or all-unsafe input, so callers can fall back', () => {
+    expect(sanitizeRedirectUris(undefined)).toEqual([])
+    expect(sanitizeRedirectUris('https://claude.ai/cb')).toEqual([])
+    expect(sanitizeRedirectUris(['com.evil.app://cb'])).toEqual([])
+  })
+
+  it('exposes a default that includes the claude.ai callback', () => {
+    expect(DEFAULT_MCP_REDIRECT_URIS).toContain('https://claude.ai/api/mcp/auth_callback')
+    expect(DEFAULT_MCP_REDIRECT_URIS.every(isSafeRedirectUri)).toBe(true)
   })
 })
 

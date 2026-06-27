@@ -25,8 +25,21 @@ interface Props {
   origin: string
 }
 
+/** Redirect URIs the hosted Anthropic MCP connectors use — pre-filled so a client
+ * created here works with claude.ai immediately. Mirrors DEFAULT_MCP_REDIRECT_URIS
+ * in lib/oauth.ts. */
+const DEFAULT_REDIRECT_URIS = [
+  'https://claude.ai/api/mcp/auth_callback',
+  'https://claude.com/api/mcp/auth_callback',
+].join('\n')
+
 function fmt(iso: string) {
   return new Date(iso).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })
+}
+
+/** Split a textarea (one URI per line) into a clean list. */
+function parseRedirectUris(text: string): string[] {
+  return text.split('\n').map((s) => s.trim()).filter(Boolean)
 }
 
 function CopyButton({ value, label = 'Copy' }: { value: string; label?: string }) {
@@ -58,8 +71,14 @@ export default function McpPanel({ tokens: init, clients: initClients, disabledT
   // Client creation state
   const [showNewClient, setShowNewClient]   = useState(false)
   const [newClientName, setNewClientName]   = useState('')
+  const [newClientRedirects, setNewClientRedirects] = useState(DEFAULT_REDIRECT_URIS)
   const [creatingClient, setCreatingClient] = useState(false)
   const [freshClient, setFreshClient]       = useState<{ clientId: string; clientSecret: string; name: string } | null>(null)
+
+  // Per-client redirect-URI editing state (clientId being edited → textarea value).
+  const [editingId, setEditingId]     = useState<string | null>(null)
+  const [editRedirects, setEditRedirects] = useState('')
+  const [savingEdit, setSavingEdit]   = useState(false)
 
   const [provider, setProvider] = useState('claude-ai')
 
@@ -119,13 +138,37 @@ export default function McpPanel({ tokens: init, clients: initClients, disabledT
     const res = await fetch('/api/oauth/clients', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name: newClientName.trim() }),
+      body: JSON.stringify({ name: newClientName.trim(), redirectUrls: parseRedirectUris(newClientRedirects) }),
     })
     const data = await res.json()
     setFreshClient({ clientId: data.clientId, clientSecret: data.clientSecret, name: data.name })
     setClients((prev) => [{ id: data.id, name: data.name, clientId: data.clientId, redirectUrls: data.redirectUrls ?? [], createdAt: data.createdAt }, ...prev])
     setNewClientName('')
+    setNewClientRedirects(DEFAULT_REDIRECT_URIS)
     setCreatingClient(false)
+  }
+
+  const startEditRedirects = (c: Client) => {
+    setEditingId(c.clientId)
+    setEditRedirects((c.redirectUrls.length ? c.redirectUrls : parseRedirectUris(DEFAULT_REDIRECT_URIS)).join('\n'))
+  }
+
+  const saveRedirects = async (c: Client) => {
+    setSavingEdit(true)
+    const res = await fetch('/api/oauth/clients', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: c.id, redirectUrls: parseRedirectUris(editRedirects) }),
+    })
+    if (res.ok) {
+      const data = await res.json()
+      setClients((prev) => prev.map((x) => (x.id === c.id ? { ...x, redirectUrls: data.redirectUrls ?? [] } : x)))
+      setEditingId(null)
+    } else {
+      const data = await res.json().catch(() => ({}))
+      alert(data.error || 'Could not save redirect URIs')
+    }
+    setSavingEdit(false)
   }
 
   const closeCredentialsModal = () => {
@@ -394,17 +437,51 @@ export default function McpPanel({ tokens: init, clients: initClients, disabledT
         ) : (
           <div className="space-y-2">
             {clients.map((c) => (
-              <div key={c.id} className="flex items-start justify-between gap-4 p-3 rounded-lg border border-[var(--border)]">
-                <div className="min-w-0">
-                  <p className="text-sm font-medium text-[var(--foreground)]">{c.name}</p>
-                  <p className="text-xs font-mono text-[var(--muted)] truncate">ID: {c.clientId}</p>
-                  {c.redirectUrls.length > 0 && (
-                    <p className="text-xs text-[var(--muted)] truncate">{c.redirectUrls.join(', ')}</p>
-                  )}
+              <div key={c.id} className="p-3 rounded-lg border border-[var(--border)]">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-[var(--foreground)]">{c.name}</p>
+                    <p className="text-xs font-mono text-[var(--muted)] truncate">ID: {c.clientId}</p>
+                    {c.redirectUrls.length > 0 ? (
+                      <p className="text-xs text-[var(--muted)] truncate" title={c.redirectUrls.join(', ')}>
+                        ↪ {c.redirectUrls.join(', ')}
+                      </p>
+                    ) : (
+                      <p className="text-xs text-amber-500">⚠ No redirect URIs — connector logins will fail</p>
+                    )}
+                  </div>
+                  <div className="flex items-center gap-3 shrink-0 mt-0.5">
+                    <button
+                      onClick={() => (editingId === c.clientId ? setEditingId(null) : startEditRedirects(c))}
+                      className="text-xs text-[var(--muted)] hover:text-[var(--accent)]"
+                    >
+                      {editingId === c.clientId ? 'Cancel' : 'Edit redirects'}
+                    </button>
+                    <button onClick={() => deleteClient(c.id)} className="text-xs text-red-400 hover:text-red-300">
+                      Delete
+                    </button>
+                  </div>
                 </div>
-                <button onClick={() => deleteClient(c.id)} className="text-xs text-red-400 hover:text-red-300 shrink-0 mt-0.5">
-                  Delete
-                </button>
+                {editingId === c.clientId && (
+                  <div className="mt-3 space-y-2">
+                    <textarea
+                      className={`${inputCls} font-mono text-xs`}
+                      rows={2}
+                      value={editRedirects}
+                      onChange={(e) => setEditRedirects(e.target.value)}
+                      placeholder="One redirect URI per line"
+                    />
+                    <div className="flex justify-end">
+                      <button
+                        onClick={() => saveRedirects(c)}
+                        disabled={savingEdit}
+                        className="px-3 py-1.5 text-xs bg-[var(--accent)] text-white rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity"
+                      >
+                        {savingEdit ? 'Saving…' : 'Save redirect URIs'}
+                      </button>
+                    </div>
+                  </div>
+                )}
               </div>
             ))}
           </div>
@@ -429,6 +506,21 @@ export default function McpPanel({ tokens: init, clients: initClients, disabledT
                   onKeyDown={(e) => e.key === 'Enter' && createClient()}
                   autoFocus
                 />
+                <div>
+                  <label className="block text-xs text-[var(--muted)] mb-1.5">
+                    Redirect URIs <span className="text-[var(--muted)]">(one per line)</span>
+                  </label>
+                  <textarea
+                    className={`${inputCls} font-mono text-xs`}
+                    rows={2}
+                    value={newClientRedirects}
+                    onChange={(e) => setNewClientRedirects(e.target.value)}
+                  />
+                  <p className="text-xs text-[var(--muted)] mt-1">
+                    Pre-filled with Claude.ai&apos;s callback. The connector&apos;s login will fail unless its exact
+                    redirect URI is listed here.
+                  </p>
+                </div>
                 <div className="flex gap-2 justify-end">
                   <button
                     onClick={() => setShowNewClient(false)}

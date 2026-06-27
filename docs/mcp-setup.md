@@ -17,6 +17,26 @@ You create an **OAuth client** (one-time), run an authorization flow to get an
 
 ---
 
+## Connecting from claude.ai (web/desktop connectors)
+
+When you add this MCP server as a **connector in claude.ai**, you do **not** create
+a client by hand. Claude discovers the server's OAuth metadata at
+`/.well-known/oauth-authorization-server` and uses **Dynamic Client Registration
+(RFC 7591)** to register itself automatically — including its callback URL
+`https://claude.ai/api/mcp/auth_callback` — by POSTing to `/api/oauth/register`.
+
+You then get redirected to the consent screen, log in as admin, and click
+**Allow**. That's it — no manual `clientId`/redirect-URI setup.
+
+> If you previously saw `redirect_uri not registered for this client`, it was
+> because the server had no registration endpoint and the manually-created client
+> didn't list claude.ai's callback URL. Registration now handles this for you.
+
+The steps below are only needed for **Claude Desktop's `claude_desktop_config.json`**
+(static token) setup.
+
+---
+
 ## Step 1 — Create an OAuth client
 
 Log into your admin panel, then run this in a terminal (or use any HTTP client):

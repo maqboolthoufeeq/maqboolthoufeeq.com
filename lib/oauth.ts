@@ -30,15 +30,12 @@ function safeEqualHex(a: string, b: string): boolean {
 }
 
 /**
- * A redirect_uri is acceptable only if it was pre-registered for the client
- * (exact match — no prefix games) AND uses a safe scheme: https everywhere, or
- * http on loopback for local development clients. An empty registration list is
- * rejected outright (previously it acted as an "allow any redirect" wildcard,
- * an open-redirect / token-exfiltration hole).
+ * A redirect_uri uses a safe scheme: https everywhere, or http on loopback for
+ * local development clients. Anything else (custom schemes, plain http on a
+ * public host, malformed URLs) is rejected — those are the open-redirect /
+ * token-exfiltration vectors.
  */
-export function isAllowedRedirectUri(registered: string[], redirectUri: string): boolean {
-  if (!registered || registered.length === 0) return false
-  if (!registered.includes(redirectUri)) return false
+export function isSafeRedirectUri(redirectUri: string): boolean {
   let url: URL
   try {
     url = new URL(redirectUri)
@@ -50,6 +47,18 @@ export function isAllowedRedirectUri(registered: string[], redirectUri: string):
   return false
 }
 
+/**
+ * A redirect_uri is acceptable only if it was pre-registered for the client
+ * (exact match — no prefix games) AND uses a safe scheme. An empty registration
+ * list is rejected outright (previously it acted as an "allow any redirect"
+ * wildcard, an open-redirect / token-exfiltration hole).
+ */
+export function isAllowedRedirectUri(registered: string[], redirectUri: string): boolean {
+  if (!registered || registered.length === 0) return false
+  if (!registered.includes(redirectUri)) return false
+  return isSafeRedirectUri(redirectUri)
+}
+
 export async function createOAuthClient(name: string, redirectUrls: string[] = []) {
   const clientId = `mcp_${randomBytes(10).toString('hex')}`
   const clientSecret = randomBytes(42).toString('base64url')
@@ -58,6 +67,21 @@ export async function createOAuthClient(name: string, redirectUrls: string[] = [
     data: { name, clientId, clientSecret: sha256(clientSecret), redirectUrls },
   })
   return { ...client, clientSecret }
+}
+
+/**
+ * RFC 7591 Dynamic Client Registration. MCP clients (e.g. claude.ai) call this
+ * with the redirect URIs they will use; we mint a client_id/client_secret bound
+ * to exactly those URIs. Registration is intentionally open (no admin session):
+ * minting a client grants no access on its own — the authorization-code flow
+ * still requires the site owner to log in and click "Allow" on the consent
+ * screen before any token is issued. Returns null if any redirect URI is unsafe
+ * or none were supplied.
+ */
+export async function registerOAuthClient(name: string, redirectUrls: string[]) {
+  if (!Array.isArray(redirectUrls) || redirectUrls.length === 0) return null
+  if (!redirectUrls.every(isSafeRedirectUri)) return null
+  return createOAuthClient(name || 'MCP Client', redirectUrls)
 }
 
 export async function listOAuthClients() {

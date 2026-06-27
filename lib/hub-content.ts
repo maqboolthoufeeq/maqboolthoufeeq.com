@@ -42,7 +42,7 @@ export const HUB_ITEM_META: Record<HubItemType, { label: string; hint: string; i
   audio:    { label: 'Audio',     hint: 'Upload or link an audio file',                  icon: 'Music' },
   pdf:      { label: 'PDF',       hint: 'A PDF to preview inline and download',          icon: 'FileType' },
   file:     { label: 'File',      hint: 'Any downloadable file (docs, archives, …)',     icon: 'Download' },
-  embed:    { label: 'Embed',     hint: 'Embed YouTube, Vimeo, Spotify, Figma, …',       icon: 'Code' },
+  embed:    { label: 'Embed',     hint: 'Paste a link or embed code: YouTube, Canva, Spotify, Figma, …', icon: 'Code' },
 }
 
 export function isHubItemType(value: unknown): value is HubItemType {
@@ -238,10 +238,13 @@ export function sanitizeHubItem(
     }
 
     case 'embed': {
-      const url = normalizeHubUrl(str(input.url))
-      if (!url) return { ok: false, error: 'A valid embed URL is required' }
-      if (!parseHubEmbed(url)) {
-        return { ok: false, error: 'That site can’t be embedded. Try YouTube, Vimeo, Spotify, SoundCloud, Loom, CodePen, Figma or Google Drive.' }
+      // Accept either a provider URL or a full embed-code snippet; we extract and
+      // re-validate the iframe src, never persisting/rendering the raw markup.
+      const raw = str(input.url).trim()
+      if (!raw) return { ok: false, error: 'A valid embed URL or embed code is required' }
+      const url = canonicalizeHubEmbed(raw)
+      if (!url) {
+        return { ok: false, error: 'That can’t be embedded. Paste a link or the full embed code for YouTube, Vimeo, Canva, Spotify, SoundCloud, Loom, CodePen, Figma, Google Drive or Google Maps.' }
       }
       return { ok: true, value: { ...base, url } }
     }
@@ -278,7 +281,9 @@ function sanitizeGalleryImages(raw: unknown): HubGalleryImage[] {
 
 /* ─── Allow-listed embed parser ──────────────────────────────────────────── */
 
-export type EmbedAspect = 'video' | 'square' | 'tall'
+export type EmbedAspect = 'video' | 'square' | 'tall' | 'portrait'
+
+const EMBED_ASPECTS = new Set<EmbedAspect>(['video', 'square', 'tall', 'portrait'])
 
 export interface HubEmbed {
   provider: string
@@ -290,40 +295,121 @@ export interface HubEmbed {
 }
 
 /**
- * Turn a pasted provider URL into a safe iframe source for a small allow-list of
- * well-known embed hosts. Returns null for anything not recognised — we never
- * render an arbitrary iframe, which is what keeps embeds XSS-safe.
+ * Decode the handful of HTML entities that show up inside a pasted embed's
+ * iframe `src` (Canva, Spotify, etc. entity-encode `&`, `/`, `:` in their
+ * snippets). Intentionally minimal — the result is only ever used to build a URL
+ * that is then re-validated against the provider allow-list.
  */
-export function parseHubEmbed(rawUrl: string): HubEmbed | null {
-  const url = rawUrl.trim()
-  if (!url) return null
+/** Upper bound on a pasted embed input — real embed snippets are well under this;
+ *  the cap keeps the regex scanners off pathologically large untrusted input. */
+const MAX_EMBED_INPUT = 8192
+
+function decodeEmbedEntities(s: string): string {
+  return s
+    .replace(/&amp;/gi, '&')
+    .replace(/&#x2f;/gi, '/')
+    .replace(/&#47;/g, '/')
+    .replace(/&#x3a;/gi, ':')
+    .replace(/&#58;/g, ':')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;/g, "'")
+}
+
+/** Pull the first `<iframe … src="…">` out of a pasted embed snippet. */
+function extractIframeSrc(html: string): string | null {
+  const m = html.match(/<iframe\b[^>]*?\ssrc\s*=\s*["']([^"']+)["']/i)
+  return m ? decodeEmbedEntities(m[1]).trim() : null
+}
+
+/** Map a height/width ratio to the nearest named aspect. */
+function aspectFromRatio(heightOverWidth: number): EmbedAspect {
+  if (heightOverWidth >= 1.55) return 'portrait' // ~9:16 (1.78) — reels/stories
+  if (heightOverWidth >= 1.16) return 'tall'     // ~3:4 (1.33)
+  if (heightOverWidth >= 0.85) return 'square'   // ~1:1
+  return 'video'                                 // ~16:9 (0.5625)
+}
+
+/**
+ * Infer the aspect ratio from a pasted embed snippet: providers wrap the iframe
+ * in a responsive box whose `padding-top: NN%` IS the height/width ratio (Canva,
+ * many others); fall back to the iframe's numeric width/height attributes.
+ */
+function detectHtmlAspect(html: string): EmbedAspect | null {
+  const pad = html.match(/padding-top\s*:\s*([\d.]+)%/i)
+  if (pad) {
+    const ratio = Number(pad[1]) / 100
+    if (Number.isFinite(ratio) && ratio > 0) return aspectFromRatio(ratio)
+  }
+  const w = html.match(/\bwidth\s*=\s*["']?(\d+(?:\.\d+)?)/i)
+  const h = html.match(/\bheight\s*=\s*["']?(\d+(?:\.\d+)?)/i)
+  if (w && h) {
+    const ww = Number(w[1]), hh = Number(h[1])
+    if (ww > 0 && hh > 0) return aspectFromRatio(hh / ww)
+  }
+  return null
+}
+
+/** Read our own `#embed-aspect=…` hint off a stored URL (set by canonicalizeHubEmbed). */
+function aspectFromFragment(hash: string): EmbedAspect | null {
+  const m = hash.match(/embed-aspect=([a-z]+)/i)
+  return m && EMBED_ASPECTS.has(m[1].toLowerCase() as EmbedAspect) ? (m[1].toLowerCase() as EmbedAspect) : null
+}
+
+/**
+ * Turn a pasted provider URL — OR a full provider embed snippet (the `<iframe>…`
+ * block a site's "embed" button gives you) — into a safe iframe source for a
+ * small allow-list of well-known hosts. When given HTML we extract only the
+ * iframe's `src` (never rendering the pasted markup) and re-validate that URL,
+ * so embeds stay XSS-safe. Returns null for anything not recognised.
+ *
+ * Aspect precedence: a ratio detected from a pasted snippet wins, then our own
+ * `#embed-aspect=` hint on a stored URL, then the provider's default.
+ */
+export function parseHubEmbed(rawInput: string): HubEmbed | null {
+  const raw = rawInput.trim()
+  if (!raw || raw.length > MAX_EMBED_INPUT) return null
+
+  const isHtml = /<iframe[\s>]/i.test(raw)
+  const htmlAspect = isHtml ? detectHtmlAspect(raw) : null
+  const candidate = isHtml ? extractIframeSrc(raw) : raw
+  if (!candidate) return null
 
   let u: URL
   try {
-    u = new URL(/^https?:\/\//i.test(url) ? url : `https://${url}`)
+    u = new URL(/^https?:\/\//i.test(candidate) ? candidate : `https://${candidate}`)
   } catch {
     return null
   }
   if (u.protocol !== 'http:' && u.protocol !== 'https:') return null
   const host = u.hostname.replace(/^www\./, '').toLowerCase()
+  const overrideAspect = htmlAspect ?? aspectFromFragment(u.hash)
+  const done = (e: HubEmbed): HubEmbed => (overrideAspect ? { ...e, aspect: overrideAspect } : e)
 
   // YouTube — reuse the hardened parser/embed-builder from lib/social.
-  const yt = parseYouTubeId(url)
+  const yt = parseYouTubeId(candidate)
   if (yt && (host.endsWith('youtube.com') || host === 'youtu.be' || host === 'youtube-nocookie.com')) {
-    return { provider: 'YouTube', src: youTubeEmbedUrl(yt), aspect: 'video', allowFullScreen: true }
+    return done({ provider: 'YouTube', src: youTubeEmbedUrl(yt), aspect: 'video', allowFullScreen: true })
   }
 
   // Vimeo — vimeo.com/{id} or player.vimeo.com/video/{id}
   if (host === 'vimeo.com' || host === 'player.vimeo.com') {
     const id = (u.pathname.match(/(\d{6,})/) ?? [])[1]
-    if (id) return { provider: 'Vimeo', src: `https://player.vimeo.com/video/${id}`, aspect: 'video', allowFullScreen: true }
+    if (id) return done({ provider: 'Vimeo', src: `https://player.vimeo.com/video/${id}`, aspect: 'video', allowFullScreen: true })
+  }
+
+  // Canva — canva.com/design/{id}/{token}/(watch|view) → /…?embed
+  if (host === 'canva.com') {
+    const m = u.pathname.match(/^\/design\/([\w-]+)\/([\w-]+)\/(watch|view)/)
+    if (m) {
+      return done({ provider: 'Canva', src: `https://www.canva.com/design/${m[1]}/${m[2]}/${m[3]}?embed`, aspect: 'video', allowFullScreen: true })
+    }
   }
 
   // Google Drive — file/d/{id} → /preview
   if (host === 'drive.google.com') {
     const id = (u.pathname.match(/\/d\/([^/]+)/) ?? [])[1]
     if (id && /^[\w-]{10,}$/.test(id)) {
-      return { provider: 'Google Drive', src: `https://drive.google.com/file/d/${id}/preview`, aspect: 'video', allowFullScreen: true }
+      return done({ provider: 'Google Drive', src: `https://drive.google.com/file/d/${id}/preview`, aspect: 'video', allowFullScreen: true })
     }
   }
 
@@ -332,47 +418,79 @@ export function parseHubEmbed(rawUrl: string): HubEmbed | null {
     const m = u.pathname.match(/^\/(track|album|playlist|episode|show|artist)\/([A-Za-z0-9]+)/)
     if (m) {
       const tall = m[1] === 'playlist' || m[1] === 'album' || m[1] === 'show'
-      return { provider: 'Spotify', src: `https://open.spotify.com/embed/${m[1]}/${m[2]}`, aspect: tall ? 'tall' : 'square', allowFullScreen: false }
+      return done({ provider: 'Spotify', src: `https://open.spotify.com/embed/${m[1]}/${m[2]}`, aspect: tall ? 'tall' : 'square', allowFullScreen: false })
     }
   }
 
   // SoundCloud — wrap the track URL in the official player.
   if (host === 'soundcloud.com') {
     const clean = `https://soundcloud.com${u.pathname}`
-    return { provider: 'SoundCloud', src: `https://w.soundcloud.com/player/?url=${encodeURIComponent(clean)}&color=%23ff5500&visual=true`, aspect: 'square', allowFullScreen: false }
+    return done({ provider: 'SoundCloud', src: `https://w.soundcloud.com/player/?url=${encodeURIComponent(clean)}&color=%23ff5500&visual=true`, aspect: 'square', allowFullScreen: false })
   }
 
   // Loom — loom.com/share/{id} → /embed/{id}
   if (host === 'loom.com') {
     const id = (u.pathname.match(/\/(?:share|embed)\/([\w-]+)/) ?? [])[1]
-    if (id) return { provider: 'Loom', src: `https://www.loom.com/embed/${id}`, aspect: 'video', allowFullScreen: true }
+    if (id) return done({ provider: 'Loom', src: `https://www.loom.com/embed/${id}`, aspect: 'video', allowFullScreen: true })
   }
 
   // CodePen — codepen.io/{user}/pen/{id} or /team/{name}/pen/{id} → /embed/{id}
   if (host === 'codepen.io') {
     const m = u.pathname.match(/^\/(.+?)\/(?:pen|embed)\/([\w-]+)/)
-    if (m) return { provider: 'CodePen', src: `https://codepen.io/${m[1]}/embed/${m[2]}?default-tab=result`, aspect: 'video', allowFullScreen: true }
+    if (m) return done({ provider: 'CodePen', src: `https://codepen.io/${m[1]}/embed/${m[2]}?default-tab=result`, aspect: 'video', allowFullScreen: true })
   }
 
   // Figma — wrap file/proto URLs in the official embed.
   if (host === 'figma.com') {
     if (/^\/(file|proto|design|board)\//.test(u.pathname)) {
-      return { provider: 'Figma', src: `https://www.figma.com/embed?embed_host=share&url=${encodeURIComponent(`https://www.figma.com${u.pathname}${u.search}`)}`, aspect: 'video', allowFullScreen: true }
+      return done({ provider: 'Figma', src: `https://www.figma.com/embed?embed_host=share&url=${encodeURIComponent(`https://www.figma.com${u.pathname}${u.search}`)}`, aspect: 'video', allowFullScreen: true })
     }
   }
 
-  // Google Maps — only accept an already-embeddable /maps/embed URL.
-  if ((host === 'google.com' || host.endsWith('.google.com')) && u.pathname.startsWith('/maps/embed')) {
-    return { provider: 'Google Maps', src: `https://www.google.com/maps/embed${u.search}`, aspect: 'video', allowFullScreen: false }
+  // Google Maps — only accept an already-embeddable /maps/embed URL. Exact host
+  // only (no endsWith) to avoid subdomain spoofing, mirroring parseYouTubeId.
+  if ((host === 'google.com' || host === 'maps.google.com') && u.pathname.startsWith('/maps/embed')) {
+    return done({ provider: 'Google Maps', src: `https://www.google.com/maps/embed${u.search}`, aspect: 'video', allowFullScreen: false })
   }
 
   return null
+}
+
+/**
+ * Resolve a pasted embed (a URL or a full embed-code snippet) to the canonical
+ * URL we persist: a provider URL that {@link parseHubEmbed} re-parses to the same
+ * iframe, carrying any aspect we managed to detect in an `#embed-aspect=` hint.
+ * Returns null when the input isn't an embeddable provider. This is what the
+ * stored `url` of an `embed` block holds.
+ */
+export function canonicalizeHubEmbed(rawInput: string): string | null {
+  const raw = rawInput.trim()
+  if (!raw || raw.length > MAX_EMBED_INPUT) return null
+
+  const isHtml = /<iframe[\s>]/i.test(raw)
+  const htmlAspect = isHtml ? detectHtmlAspect(raw) : null
+  const candidate = (isHtml ? extractIframeSrc(raw) : raw)?.trim()
+  if (!candidate) return null
+  // Must resolve to a known provider (also defuses javascript:/data: etc.).
+  if (!parseHubEmbed(candidate)) return null
+
+  let u: URL
+  try {
+    u = new URL(/^https?:\/\//i.test(candidate) ? candidate : `https://${candidate}`)
+  } catch {
+    return null
+  }
+  const aspect = htmlAspect ?? aspectFromFragment(u.hash)
+  u.hash = aspect ? `embed-aspect=${aspect}` : ''
+  const out = u.toString()
+  return out.length <= HUB_LIMITS.url ? out : null
 }
 
 /** Tailwind aspect class for an embed/media aspect. */
 export function aspectClass(aspect: EmbedAspect): string {
   if (aspect === 'square') return 'aspect-square'
   if (aspect === 'tall') return 'aspect-[3/4]'
+  if (aspect === 'portrait') return 'aspect-[9/16]'
   return 'aspect-video'
 }
 

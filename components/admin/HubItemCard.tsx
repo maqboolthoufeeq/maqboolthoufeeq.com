@@ -357,19 +357,26 @@ function ItemTypeFields({
       {supportsUrl && !['pdf', 'file'].includes(item.type) && (
         <div>
           <label className="block text-xs text-[var(--muted)] mb-1.5">
-            {item.type === 'video' ? 'External URL' : 'URL'}
+            {item.type === 'embed' ? 'URL or embed code' : item.type === 'video' ? 'External URL' : 'URL'}
           </label>
-          <input
-            value={item.url || ''}
-            onChange={(e) => onUpdate({ url: e.target.value })}
-            placeholder={
-              item.type === 'embed' ? 'YouTube, Vimeo, Spotify, Figma…'
-                : item.type === 'video' ? 'https://… or YouTube/Vimeo URL'
-                  : 'https://…'
-            }
-            maxLength={HUB_LIMITS.url}
-            className={inputCls}
-          />
+          {item.type === 'embed' ? (
+            <textarea
+              value={item.url || ''}
+              onChange={(e) => onUpdate({ url: e.target.value })}
+              placeholder="Paste a link or the full embed code — YouTube, Vimeo, Canva, Spotify, Figma…"
+              maxLength={HUB_LIMITS.url}
+              rows={3}
+              className={`${inputCls} font-mono text-xs`}
+            />
+          ) : (
+            <input
+              value={item.url || ''}
+              onChange={(e) => onUpdate({ url: e.target.value })}
+              placeholder={item.type === 'video' ? 'https://… or YouTube/Vimeo URL' : 'https://…'}
+              maxLength={HUB_LIMITS.url}
+              className={inputCls}
+            />
+          )}
           {item.type === 'embed' && item.url && (
             <EmbedPreview url={item.url} />
           )}
@@ -516,14 +523,14 @@ function EmbedPreview({ url }: { url: string }) {
     return (
       <p className="text-xs text-red-500 mt-1">
         <AlertCircle size={12} className="inline mr-1" />
-        Unsupported embed provider
+        Can’t embed this — paste a supported link or its embed code
       </p>
     )
   }
   return (
     <p className="text-xs text-green-500 mt-1">
       <CheckCircle2 size={12} className="inline mr-1" />
-      {embed.provider}
+      {embed.provider} · {embed.aspect}
     </p>
   )
 }

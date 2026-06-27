@@ -3,6 +3,8 @@ import {
   normalizeHubUrl,
   sanitizeHubItem,
   parseHubEmbed,
+  canonicalizeHubEmbed,
+  aspectClass,
   markdownToHtml,
   HUB_LIMITS,
 } from '@/lib/hub-content'
@@ -105,6 +107,116 @@ describe('parseHubEmbed', () => {
   it('returns null for unknown hosts', () => {
     expect(parseHubEmbed('https://evil.example/embed')).toBeNull()
     expect(parseHubEmbed('not a url at all !!!')).toBeNull()
+  })
+})
+
+const CANVA_URL = 'https://www.canva.com/design/DAHNzsLDtUQ/mMNPYldxLclU76HhVLc-dw/watch'
+
+// The exact snippet Canva's "embed" button produces for a portrait reel cover.
+const CANVA_EMBED_HTML = `
+<div style="position: relative; width: 100%; height: 0; padding-top: 177.7778%;
+ padding-bottom: 0; box-shadow: 0 2px 8px 0 rgba(63,69,81,0.16); margin-top: 1.6em; margin-bottom: 0.9em; overflow: hidden;
+ border-radius: 8px; will-change: transform;">
+  <iframe loading="lazy" style="position: absolute; width: 100%; height: 100%; top: 0; left: 0; border: none; padding: 0;margin: 0;"
+    src="https://www.canva.com/design/DAHNzsLDtUQ/mMNPYldxLclU76HhVLc-dw/watch?embed" allowfullscreen="allowfullscreen" allow="fullscreen">
+  </iframe>
+</div>
+<a href="https:&#x2F;&#x2F;www.canva.com&#x2F;design&#x2F;DAHNzsLDtUQ&#x2F;mMNPYldxLclU76HhVLc-dw&#x2F;watch?utm_content=DAHNzsLDtUQ&amp;utm_campaign=designshare&amp;utm_medium=embeds&amp;utm_source=link" target="_blank" rel="noopener">Instagram reel Cover Design elements</a> by Maqbool Thoufeeq.T`
+
+describe('parseHubEmbed — Canva', () => {
+  it('builds a safe embed from a plain Canva watch URL (default aspect)', () => {
+    const e = parseHubEmbed(CANVA_URL)
+    expect(e?.provider).toBe('Canva')
+    expect(e?.src).toBe('https://www.canva.com/design/DAHNzsLDtUQ/mMNPYldxLclU76HhVLc-dw/watch?embed')
+    expect(e?.aspect).toBe('video')
+    expect(e?.allowFullScreen).toBe(true)
+  })
+
+  it('preserves the /view variant', () => {
+    expect(parseHubEmbed('https://www.canva.com/design/AAA/bbb-cc/view')?.src)
+      .toBe('https://www.canva.com/design/AAA/bbb-cc/view?embed')
+  })
+})
+
+describe('parseHubEmbed — pasted embed code', () => {
+  it('extracts the iframe src from a full Canva snippet and detects portrait aspect', () => {
+    const e = parseHubEmbed(CANVA_EMBED_HTML)
+    expect(e?.provider).toBe('Canva')
+    expect(e?.src).toBe('https://www.canva.com/design/DAHNzsLDtUQ/mMNPYldxLclU76HhVLc-dw/watch?embed')
+    expect(e?.aspect).toBe('portrait') // padding-top: 177.7778% ⇒ 9:16
+  })
+
+  it('works for any allow-listed provider snippet (e.g. a YouTube iframe)', () => {
+    const html = '<iframe width="560" height="315" src="https://www.youtube.com/embed/dQw4w9WgXcQ" allowfullscreen></iframe>'
+    const e = parseHubEmbed(html)
+    expect(e?.provider).toBe('YouTube')
+    expect(e?.src).toContain('dQw4w9WgXcQ')
+    expect(e?.aspect).toBe('video') // 560×315 ⇒ 16:9
+  })
+
+  it('never trusts an iframe pointing at a non-allowlisted host', () => {
+    expect(parseHubEmbed('<iframe src="https://evil.example/phish"></iframe>')).toBeNull()
+    expect(parseHubEmbed('<iframe src="javascript:alert(1)"></iframe>')).toBeNull()
+  })
+})
+
+describe('parseHubEmbed — host hardening', () => {
+  it('accepts a genuine Google Maps embed but rejects spoofed subdomains', () => {
+    expect(parseHubEmbed('https://www.google.com/maps/embed?pb=!1m18')?.provider).toBe('Google Maps')
+    expect(parseHubEmbed('https://maps.evil.google.com/maps/embed?pb=x')).toBeNull()
+    expect(parseHubEmbed('https://google.com.evil.com/maps/embed?pb=x')).toBeNull()
+  })
+})
+
+describe('canonicalizeHubEmbed', () => {
+  it('returns a clean re-parseable URL for a plain provider URL', () => {
+    const url = canonicalizeHubEmbed(CANVA_URL)
+    expect(url).toBe('https://www.canva.com/design/DAHNzsLDtUQ/mMNPYldxLclU76HhVLc-dw/watch')
+    expect(parseHubEmbed(url ?? "")?.provider).toBe('Canva')
+  })
+
+  it('persists a detected aspect in a fragment that round-trips through parseHubEmbed', () => {
+    const url = canonicalizeHubEmbed(CANVA_EMBED_HTML)
+    expect(url).toContain('embed-aspect=portrait')
+    const e = parseHubEmbed(url ?? "")
+    expect(e?.provider).toBe('Canva')
+    expect(e?.aspect).toBe('portrait')
+    expect(e?.src).not.toContain('embed-aspect') // our hint never leaks into the iframe src
+  })
+
+  it('rejects non-embeddable input', () => {
+    expect(canonicalizeHubEmbed('https://evil.example/x')).toBeNull()
+    expect(canonicalizeHubEmbed('javascript:alert(1)')).toBeNull()
+    expect(canonicalizeHubEmbed('')).toBeNull()
+  })
+})
+
+describe('sanitizeHubItem — embed (URL or pasted code)', () => {
+  it('accepts a full pasted embed snippet and stores a safe re-parseable url', () => {
+    const res = sanitizeHubItem({ type: 'embed', title: 'Reel cover', url: CANVA_EMBED_HTML })
+    expect(res.ok).toBe(true)
+    if (res.ok) {
+      expect(res.value.url).toContain('canva.com/design/DAHNzsLDtUQ')
+      expect(parseHubEmbed(res.value.url ?? "")?.aspect).toBe('portrait')
+    }
+  })
+
+  it('accepts a plain Canva URL', () => {
+    expect(sanitizeHubItem({ type: 'embed', title: 'C', url: CANVA_URL }).ok).toBe(true)
+  })
+
+  it('rejects an un-embeddable site or raw markup', () => {
+    expect(sanitizeHubItem({ type: 'embed', title: 'E', url: 'https://evil.example/x' }).ok).toBe(false)
+    expect(sanitizeHubItem({ type: 'embed', title: 'E', url: '<iframe src="https://evil.example/x"></iframe>' }).ok).toBe(false)
+  })
+})
+
+describe('aspectClass', () => {
+  it('maps every aspect including the new portrait', () => {
+    expect(aspectClass('video')).toBe('aspect-video')
+    expect(aspectClass('square')).toBe('aspect-square')
+    expect(aspectClass('tall')).toBe('aspect-[3/4]')
+    expect(aspectClass('portrait')).toBe('aspect-[9/16]')
   })
 })
 

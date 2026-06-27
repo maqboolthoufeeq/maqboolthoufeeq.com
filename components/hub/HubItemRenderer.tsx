@@ -173,7 +173,7 @@ function Content({ item }: { item: HubItemData }) {
       if (!embed) return item.url ? <a href={item.url} target="_blank" rel="noopener noreferrer" className="text-sm text-[var(--accent)] hover:underline inline-flex items-center gap-1">Open embed <ArrowUpRight size={14} /></a> : null
       return (
         <div className={cn('w-full overflow-hidden rounded-lg border border-[var(--border)]', aspectClass(embed.aspect))}>
-          <iframe src={embed.src} allowFullScreen={embed.allowFullScreen} loading="lazy" className="w-full h-full" title={item.title || 'Embed'} />
+          <iframe src={embed.src} allow={embed.allowFullScreen ? 'fullscreen' : undefined} allowFullScreen={embed.allowFullScreen} loading="lazy" className="w-full h-full" title={item.title || 'Embed'} />
         </div>
       )
     }
@@ -469,7 +469,7 @@ function VideoContent({ item }: { item: HubItemData }) {
   if (embed) {
     return (
       <div className={cn('w-full overflow-hidden rounded-lg border border-[var(--border)]', aspectClass(embed.aspect))}>
-        <iframe src={embed.src} allowFullScreen={embed.allowFullScreen} loading="lazy" className="w-full h-full" title={item.title || 'Video'} />
+        <iframe src={embed.src} allow={embed.allowFullScreen ? 'fullscreen' : undefined} allowFullScreen={embed.allowFullScreen} loading="lazy" className="w-full h-full" title={item.title || 'Video'} />
       </div>
     )
   }

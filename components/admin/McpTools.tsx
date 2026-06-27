@@ -56,6 +56,28 @@ const GROUPS = [
     ],
   },
   {
+    label: 'Link Hub',
+    tools: [
+      { name: 'list_hub_categories',  desc: 'List hub categories' },
+      { name: 'create_hub_category',  desc: 'Create a category' },
+      { name: 'update_hub_category',  desc: 'Rename / recolor category' },
+      { name: 'delete_hub_category',  desc: 'Delete a category' },
+      { name: 'reorder_hub_categories', desc: 'Set category order' },
+      { name: 'list_hub_topics',      desc: 'List topics & structure' },
+      { name: 'get_hub_topic',        desc: 'Fetch topic + blocks' },
+      { name: 'create_hub_topic',     desc: 'Create topic / subtopic' },
+      { name: 'update_hub_topic',     desc: 'Update / re-nest topic' },
+      { name: 'delete_hub_topic',     desc: 'Delete topic (cascades)' },
+      { name: 'reorder_hub_topics',   desc: 'Set sibling order' },
+      { name: 'list_hub_items',       desc: 'List a topic’s blocks' },
+      { name: 'get_hub_item',         desc: 'Fetch one block' },
+      { name: 'create_hub_item',      desc: 'Add a content block' },
+      { name: 'update_hub_item',      desc: 'Update a block' },
+      { name: 'delete_hub_item',      desc: 'Delete a block' },
+      { name: 'reorder_hub_items',    desc: 'Set block order' },
+    ],
+  },
+  {
     label: 'Social Media',
     tools: [
       { name: 'list_media',    desc: 'List reels & videos' },

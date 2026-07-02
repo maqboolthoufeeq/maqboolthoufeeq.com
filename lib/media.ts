@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { prisma } from './prisma'
 import {
   type Platform,
@@ -91,11 +92,17 @@ function toCard(item: MediaRow): MediaCardData {
   }
 }
 
+/** Category rows in display order, fetched once per request (the reels and
+ *  videos sections each build their groups from the same list). */
+const loadMediaCategories = cache(() =>
+  prisma.mediaCategory.findMany({ orderBy: [{ order: 'asc' }, { name: 'asc' }] }),
+)
+
 /**
  * Items for a landing-page carousel: featured first, then the admin's order.
- * Capped so the homepage row stays light.
+ * Capped so the homepage row stays light. Deduped per request.
  */
-export async function getMediaForLanding(platform: Platform, take = 12): Promise<MediaCardData[]> {
+export const getMediaForLanding = cache(async (platform: Platform, take = 12): Promise<MediaCardData[]> => {
   const items = await prisma.mediaItem.findMany({
     where: { platform, published: true },
     orderBy: [{ featured: 'desc' }, { order: 'asc' }, { createdAt: 'desc' }],
@@ -103,20 +110,20 @@ export async function getMediaForLanding(platform: Platform, take = 12): Promise
     include: { category: { select: { name: true } } },
   })
   return items.map(toCard)
-}
+})
 
 /**
  * Everything needed for a /reels or /videos page: a featured row on top, then a
  * row per category (playlist-style), then any uncategorised items.
  */
-export async function getMediaPageData(platform: Platform): Promise<MediaPageData> {
+export const getMediaPageData = cache(async (platform: Platform): Promise<MediaPageData> => {
   const [items, categories] = await Promise.all([
     prisma.mediaItem.findMany({
       where: { platform, published: true },
       orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
       include: { category: { select: { name: true } } },
     }),
-    prisma.mediaCategory.findMany({ orderBy: [{ order: 'asc' }, { name: 'asc' }] }),
+    loadMediaCategories(),
   ])
 
   const all = items.map(toCard)
@@ -132,13 +139,13 @@ export async function getMediaPageData(platform: Platform): Promise<MediaPageDat
   const uncategorized = all.filter((c) => !c.categoryId)
 
   return { all, featured, groups, uncategorized }
-}
+})
 
 /** True when there is at least one published item of either platform. */
-export async function hasAnyMedia(): Promise<boolean> {
+export const hasAnyMedia = cache(async (): Promise<boolean> => {
   const count = await prisma.mediaItem.count({ where: { published: true } })
   return count > 0
-}
+})
 
 export interface TopicMedia {
   category: { id: string; name: string; slug: string }

@@ -57,11 +57,29 @@ export async function createOtp(): Promise<string> {
   return otp
 }
 
+const MAX_OTP_ATTEMPTS = 5
+
 export async function verifyOtp(code: string): Promise<boolean> {
+  // There is a single active OTP (createOtp deletes previous ones). Every call
+  // counts as an attempt against it — after MAX_OTP_ATTEMPTS misses the code is
+  // dead and a fresh login is required. Without this cap a 6-digit code is
+  // brute-forceable within its 10-minute window.
   const row = await prisma.adminToken.findFirst({
-    where: { token: code, type: 'otp', used: false, expiresAt: { gt: new Date() } },
+    where: { type: 'otp', used: false, expiresAt: { gt: new Date() } },
   })
   if (!row) return false
+
+  const updated = await prisma.adminToken.update({
+    where: { id: row.id },
+    data: { attempts: { increment: 1 } },
+    select: { attempts: true, token: true },
+  })
+  if (updated.attempts > MAX_OTP_ATTEMPTS) return false
+
+  const expected = Buffer.from(updated.token)
+  const given = Buffer.from(code)
+  if (expected.length !== given.length || !crypto.timingSafeEqual(expected, given)) return false
+
   await prisma.adminToken.update({ where: { id: row.id }, data: { used: true } })
   return true
 }
@@ -71,6 +89,9 @@ export async function verifyOtp(code: string): Promise<boolean> {
 export async function createPreAuthToken(): Promise<string> {
   const token = crypto.randomBytes(32).toString('hex')
   const expiresAt = new Date(Date.now() + 5 * 60 * 1000) // 5 min
+  // Opportunistically sweep expired tokens of every type so the table can't
+  // grow without bound (nothing else ever deletes expired preauth/reset rows).
+  await prisma.adminToken.deleteMany({ where: { expiresAt: { lt: new Date() } } }).catch(() => {})
   await prisma.adminToken.create({ data: { token, type: 'preauth', expiresAt } })
   return token
 }

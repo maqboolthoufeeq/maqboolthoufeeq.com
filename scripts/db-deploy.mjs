@@ -64,6 +64,23 @@ function sleepSync(seconds) {
 
 const databaseUrl = toDirectUrl(raw);
 
+/**
+ * Re-apply the expression GIN indexes that back full-text search
+ * (prisma/fts-indexes.sql). `db push` can drop indexes it does not know
+ * about, so this runs after every successful push; the statements are
+ * CREATE INDEX IF NOT EXISTS, making the step idempotent. Non-fatal: a
+ * failed index build degrades search to seq scans, never the deploy.
+ */
+function applyFtsIndexes() {
+  console.info('[db-deploy] applying full-text search indexes…');
+  const result = spawnSync('npx', ['prisma', 'db', 'execute', '--file', 'prisma/fts-indexes.sql'], {
+    stdio: 'inherit',
+    env: { ...process.env, DATABASE_URL: databaseUrl },
+  });
+  if (result.status === 0) console.info('[db-deploy] search indexes in place.');
+  else console.warn('[db-deploy] search-index step failed (non-fatal) — search falls back to seq scans.');
+}
+
 for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
   console.log(`[db-deploy] prisma db push (attempt ${attempt}/${MAX_ATTEMPTS})…`);
   const result = spawnSync('npx', ['prisma', 'db', 'push'], {
@@ -75,6 +92,7 @@ for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
 
   if (result.status === 0) {
     console.log('[db-deploy] schema in sync.');
+    applyFtsIndexes();
     process.exit(0);
   }
 

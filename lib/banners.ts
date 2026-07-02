@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { prisma } from './prisma'
 import { type Banner, normalizeVariant } from './banner-types'
 
@@ -39,14 +40,15 @@ function serialize(row: BannerRow): Banner {
   }
 }
 
-/** The single banner shown at the top of the site: newest active one, or null. */
-export async function getActiveBanner(): Promise<Banner | null> {
+/** The single banner shown at the top of the site: newest active one, or null.
+ *  Deduped per request — layout and template can both ask without a second query. */
+export const getActiveBanner = cache(async (): Promise<Banner | null> => {
   const row = await prisma.banner.findFirst({
     where: { active: true },
     orderBy: { createdAt: 'desc' },
   })
   return row ? serialize(row) : null
-}
+})
 
 /** Full announcement history (newest first) for the public + admin history views. */
 export async function getBanners(): Promise<Banner[]> {

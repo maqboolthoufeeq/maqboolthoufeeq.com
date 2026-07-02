@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { prisma } from './prisma'
 import { getSiteUrl } from './utils'
 
@@ -261,9 +262,27 @@ const DEFAULTS = {
 type ContentKey = keyof typeof DEFAULTS
 type ContentValue<K extends ContentKey> = (typeof DEFAULTS)[K]
 
+/**
+ * One `findMany` per request for the whole (small) SiteContent table, deduped
+ * with React `cache()`. Pages call `getSiteContent(<key>)` from many sections
+ * independently; each call used to be its own `findUnique`, so a single
+ * homepage render burned 5+ queries on this table alone. Outside RSC rendering
+ * (route handlers) `cache()` is a passthrough — one query per call, no worse
+ * than before.
+ */
+const loadSiteContent = cache(async (): Promise<Map<string, unknown>> => {
+  const rows = await prisma.siteContent.findMany({ select: { key: true, value: true } })
+  return new Map(rows.map((r) => [r.key, r.value]))
+})
+
+/** Raw stored value for any key (no defaults merge) from the batched read. */
+export async function getRawSiteContent(key: string): Promise<unknown> {
+  return (await loadSiteContent()).get(key)
+}
+
 export async function getSiteContent<K extends ContentKey>(key: K): Promise<ContentValue<K>> {
-  const row = await prisma.siteContent.findUnique({ where: { key } })
-  if (!row) {
+  const value = await getRawSiteContent(key)
+  if (value === undefined) {
     // Lazily seed defaults, tolerating a concurrent request that seeded the same
     // key first (unique-constraint race → P2002). Without this, the first burst
     // of hits on a fresh database — now including the favicon/manifest/sitemap
@@ -275,7 +294,7 @@ export async function getSiteContent<K extends ContentKey>(key: K): Promise<Cont
     }
     return DEFAULTS[key]
   }
-  return { ...DEFAULTS[key], ...(row.value as object) } as ContentValue<K>
+  return { ...DEFAULTS[key], ...(value as object) } as ContentValue<K>
 }
 
 export async function setSiteContent<K extends ContentKey>(key: K, value: ContentValue<K>) {

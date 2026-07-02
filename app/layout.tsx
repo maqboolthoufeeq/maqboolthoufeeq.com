@@ -4,11 +4,10 @@ import { GeistSans } from 'geist/font/sans'
 import { Lora } from 'next/font/google'
 import { ThemeProviderWrapper as ThemeProvider } from '@/components/ThemeProviderWrapper'
 import NavigationProgress from '@/components/NavigationProgress'
-import { prisma } from '@/lib/prisma'
 import { DEFAULT_THEME_ID, getTheme, themeToCSS } from '@/lib/themes'
 import { DEFAULT_DESIGN_ID } from '@/lib/designs'
 import { getRequestOrigin } from '@/lib/request-origin'
-import { getSeo, getSiteContent } from '@/lib/site-content'
+import { getSeo, getSiteContent, getRawSiteContent } from '@/lib/site-content'
 import { ogCardUrl, ogImages } from '@/lib/seo'
 import { absoluteUrl } from '@/lib/utils'
 import { identityGraph, normalizeSameAs } from '@/lib/structured-data'
@@ -106,17 +105,17 @@ export const viewport: Viewport = {
 }
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
-  const [themeRow, designRow, origin, seo, hero, about, contact] = await Promise.all([
-    prisma.siteContent.findUnique({ where: { key: 'theme' } }),
-    prisma.siteContent.findUnique({ where: { key: 'design' } }),
+  const [themeValue, designValue, origin, seo, hero, about, contact] = await Promise.all([
+    getRawSiteContent('theme'),
+    getRawSiteContent('design'),
     getRequestOrigin(),
     getSeo(),
     getSiteContent('hero'),
     getSiteContent('about'),
     getSiteContent('contact'),
   ])
-  const themeId = (themeRow?.value as { id?: string } | null)?.id ?? DEFAULT_THEME_ID
-  const designId = (designRow?.value as { id?: string } | null)?.id ?? DEFAULT_DESIGN_ID
+  const themeId = (themeValue as { id?: string } | undefined)?.id ?? DEFAULT_THEME_ID
+  const designId = (designValue as { id?: string } | undefined)?.id ?? DEFAULT_DESIGN_ID
   const theme = getTheme(themeId)
   // themeCSS is built from hardcoded values in lib/themes.ts — no user input reaches it
   const themeCSS = themeToCSS(theme)

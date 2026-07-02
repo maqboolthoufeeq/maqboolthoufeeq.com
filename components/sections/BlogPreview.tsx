@@ -1,7 +1,6 @@
 import Link from 'next/link'
-import Image from 'next/image'
 import { prisma } from '@/lib/prisma'
-import { readingTime } from '@/lib/utils'
+import PostCard from '@/components/blog/PostCard'
 
 export default async function BlogPreview() {
   const posts = await prisma.post.findMany({
@@ -16,6 +15,7 @@ export default async function BlogPreview() {
       content: true,
       publishedAt: true,
       coverImage: true,
+      tags: { select: { id: true, name: true, slug: true } },
     },
   })
 
@@ -31,52 +31,13 @@ export default async function BlogPreview() {
       </div>
       <div className="w-10 h-0.5 bg-[var(--accent)] mb-6 sm:mb-10" />
 
-      <ul className="space-y-6">
-        {posts.map((post, i) => {
-          const imageRight = i % 2 !== 0
-          return (
-            <li key={post.id}>
-              <article className="rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:border-[var(--accent)] transition-colors overflow-hidden">
-                <Link
-                  href={`/blog/${post.slug}`}
-                  className={`group flex flex-col sm:flex-row${imageRight ? ' sm:flex-row-reverse' : ''}`}
-                >
-                  {post.coverImage ? (
-                    <div className="relative h-48 sm:h-auto sm:w-64 flex-shrink-0">
-                      <Image
-                        src={post.coverImage}
-                        alt={post.title}
-                        fill
-                        className="object-cover"
-                        unoptimized
-                      />
-                    </div>
-                  ) : null}
-                  <div className="p-5 flex flex-col justify-center flex-1">
-                    <h3 className="font-semibold text-[var(--foreground)] mb-2 group-hover:text-[var(--accent)] transition-colors">
-                      {post.title}
-                    </h3>
-                    {post.excerpt && (
-                      <p className="text-sm text-[var(--muted)] mb-3 line-clamp-2">{post.excerpt}</p>
-                    )}
-                    <div className="flex gap-4 text-xs text-[var(--muted)]">
-                      {post.publishedAt && (
-                        <span>
-                          {new Date(post.publishedAt).toLocaleDateString('en-US', {
-                            year: 'numeric',
-                            month: 'short',
-                            day: 'numeric',
-                          })}
-                        </span>
-                      )}
-                      <span>{readingTime(post.content)} min read</span>
-                    </div>
-                  </div>
-                </Link>
-              </article>
-            </li>
-          )
-        })}
+      {/* Same grid-card view as the blog page, so cards stay a consistent size. */}
+      <ul className="grid grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 items-stretch">
+        {posts.map((post, i) => (
+          <li key={post.id} className="h-full">
+            <PostCard post={post} view="grid" index={i} />
+          </li>
+        ))}
       </ul>
     </section>
   )

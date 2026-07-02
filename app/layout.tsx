@@ -137,6 +137,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
     <html lang="en" suppressHydrationWarning data-design={designId}>
       <head>
         {themeCSS && <style dangerouslySetInnerHTML={{ __html: themeCSS }} />}
+        {/* Warm up the video/thumbnail CDNs so reels & videos posters/embeds
+            load fast the moment the Watch section or /reels /videos is opened. */}
+        <link rel="preconnect" href="https://i.ytimg.com" crossOrigin="anonymous" />
+        <link rel="preconnect" href="https://www.youtube-nocookie.com" />
+        <link rel="dns-prefetch" href="https://i.ytimg.com" />
+        <link rel="dns-prefetch" href="https://www.youtube-nocookie.com" />
+        <link rel="dns-prefetch" href="https://www.instagram.com" />
         <JsonLd data={siteGraph} />
       </head>
       <body className={`${GeistSans.className} ${lora.variable}`}>

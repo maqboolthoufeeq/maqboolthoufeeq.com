@@ -92,6 +92,9 @@ export interface SectionVisibility {
   socialVideos: boolean
   contact: boolean
   blogArchive: boolean
+  /** Show a Link Hub preview section on the landing page (falls back to hidden
+   *  automatically when there's no hub content yet). */
+  hub: boolean
 }
 
 export interface AnalyticsContent {
@@ -238,6 +241,7 @@ const DEFAULTS = {
     socialVideos: true as boolean,
     contact: true as boolean,
     blogArchive: true as boolean,
+    hub: true as boolean,
   } satisfies SectionVisibility,
 
   analytics: {

@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect, useCallback, useRef } from 'react'
-import { useRouter, useSearchParams, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Code2, ExternalLink, X, ChevronLeft, ChevronRight, ChevronDown, Maximize2 } from 'lucide-react'
@@ -20,24 +19,23 @@ export type ProjectDetail = {
   tags: Tag[]
 }
 
+/** Custom event the opener fires and every mounted modal listens for. */
+const OPEN_EVENT = 'project:open'
+
 /**
- * Returns a stable `openProject(id)` that drives the detail modal via the
- * `?project=<id>` query param, so the modal state lives in the URL (shareable,
- * back-button friendly). Used by every project list/grid on the site.
+ * Returns a stable `openProject(id)` that opens the detail modal *instantly*.
+ *
+ * It dispatches a client-side event rather than a `router.push`, so the modal
+ * appears on the very next frame — no server round-trip. (On `force-dynamic`
+ * pages a query-param `router.push` would refetch the RSC payload before the
+ * modal could show, which is exactly the "click and wait" lag we're removing.)
+ * The modal still mirrors the open project to a shareable `?project=<id>` URL
+ * via `history.pushState`, so deep links and the back button keep working.
  */
 export function useOpenProject() {
-  const router = useRouter()
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
-
-  return useCallback(
-    (id: string) => {
-      const params = new URLSearchParams(searchParams.toString())
-      params.set('project', id)
-      router.push(`${pathname}?${params.toString()}`, { scroll: false })
-    },
-    [router, pathname, searchParams],
-  )
+  return useCallback((id: string) => {
+    window.dispatchEvent(new CustomEvent(OPEN_EVENT, { detail: id }))
+  }, [])
 }
 
 /**
@@ -46,9 +44,6 @@ export function useOpenProject() {
  * alongside any list that uses `useOpenProject()`.
  */
 export default function ProjectDetailModal({ projects }: { projects: ProjectDetail[] }) {
-  const router = useRouter()
-  const pathname = usePathname()
-  const searchParams = useSearchParams()
   const [selected, setSelected] = useState<ProjectDetail | null>(null)
   const [imgIdx, setImgIdx] = useState(0)
   const [lightbox, setLightbox] = useState(false)
@@ -58,6 +53,16 @@ export default function ProjectDetailModal({ projects }: { projects: ProjectDeta
   const allImages = selected
     ? ([selected.imageUrl, ...(selected.images ?? [])].filter(Boolean) as string[])
     : []
+
+  // Mirror the open project to `?project=<id>` without a Next navigation, so the
+  // URL stays shareable/back-friendly while the modal itself is driven purely by
+  // local state (instant open, no RSC refetch).
+  const syncUrl = useCallback((id: string | null) => {
+    const url = new URL(window.location.href)
+    if (id) url.searchParams.set('project', id)
+    else url.searchParams.delete('project')
+    window.history.pushState(null, '', `${url.pathname}${url.search}${url.hash}`)
+  }, [])
 
   // True while the center section has more content below the fold.
   const updateScrollHint = useCallback(() => {
@@ -70,30 +75,51 @@ export default function ProjectDetailModal({ projects }: { projects: ProjectDeta
     if (el) el.scrollBy({ top: el.clientHeight * 0.8, behavior: 'smooth' })
   }
 
-  // Open/close based on URL.
+  // Deep-link open on mount + browser back/forward sync (reads the live URL,
+  // which `syncUrl`/router both keep current).
   useEffect(() => {
-    const id = searchParams.get('project')
-    if (id) {
-      const found = projects.find((p) => p.id === id)
+    const readFromUrl = () => {
+      const id = new URLSearchParams(window.location.search).get('project')
+      const found = id ? projects.find((p) => p.id === id) : undefined
       if (found) {
         setSelected(found)
         setImgIdx(0)
       } else {
+        if (id) {
+          // Shared/stale deep link pointing at a project that isn't on this page
+          // (e.g. removed, unpublished, or a different list). Fail quietly but
+          // leave a breadcrumb rather than a silent no-op.
+          console.warn(`[ProjectModal] no project matches ?project=${id} on this page`)
+        }
         setSelected(null)
+        setLightbox(false)
       }
-    } else {
-      setSelected(null)
-      setLightbox(false)
     }
-  }, [searchParams, projects])
+    readFromUrl()
+    window.addEventListener('popstate', readFromUrl)
+    return () => window.removeEventListener('popstate', readFromUrl)
+  }, [projects])
+
+  // Instant open requested from anywhere via useOpenProject().
+  useEffect(() => {
+    const onOpen = (e: Event) => {
+      const id = (e as CustomEvent<string>).detail
+      const found = projects.find((p) => p.id === id)
+      if (!found) return
+      setSelected(found)
+      setImgIdx(0)
+      setLightbox(false)
+      syncUrl(id)
+    }
+    window.addEventListener(OPEN_EVENT, onOpen as EventListener)
+    return () => window.removeEventListener(OPEN_EVENT, onOpen as EventListener)
+  }, [projects, syncUrl])
 
   const closeModal = useCallback(() => {
-    const params = new URLSearchParams(searchParams.toString())
-    params.delete('project')
-    const qs = params.toString()
-    router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false })
+    setSelected(null)
     setLightbox(false)
-  }, [router, pathname, searchParams])
+    syncUrl(null)
+  }, [syncUrl])
 
   // Keyboard navigation.
   useEffect(() => {
@@ -138,9 +164,9 @@ export default function ProjectDetailModal({ projects }: { projects: ProjectDeta
   const hasSiblings = projects.length > 1
   const goToProject = (i: number) => {
     const target = projects[(i + projects.length) % projects.length]
-    const params = new URLSearchParams(searchParams.toString())
-    params.set('project', target.id)
-    router.push(`${pathname}?${params.toString()}`, { scroll: false })
+    setSelected(target)
+    setImgIdx(0)
+    syncUrl(target.id)
   }
 
   return (

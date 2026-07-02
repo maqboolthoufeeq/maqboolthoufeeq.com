@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { LayoutGrid, List } from 'lucide-react'
+import { Grid2x2, Grid3x3, List } from 'lucide-react'
 import PostCard from './PostCard'
 import { fetchMorePosts } from '@/app/(public)/blog/actions'
 
@@ -35,7 +35,7 @@ export default function BlogListClient({
   const [posts, setPosts] = useState<Post[]>(initialPosts)
   const [hasMore, setHasMore] = useState(initialHasMore)
   const [loading, setLoading] = useState(false)
-  const [view, setView] = useState<'grid' | 'list'>('list')
+  const [view, setView] = useState<'list' | 'grid2' | 'grid3'>('list')
 
   // When the search/tag filter changes, the server re-renders and passes a new
   // set of posts. Adopt them so the list reflects the active filter without a
@@ -65,46 +65,53 @@ export default function BlogListClient({
     <div>
       <div className="flex justify-end mb-6">
         <div className="flex items-center gap-1 rounded-lg border border-[var(--border)] p-1">
-          <button
-            type="button"
-            onClick={() => setView('list')}
-            title="List view"
-            className={`p-1.5 rounded cursor-pointer transition-colors ${
-              view === 'list'
-                ? 'bg-[var(--accent)] text-white'
-                : 'text-[var(--muted)] hover:text-[var(--foreground)]'
-            }`}
-          >
-            <List size={16} />
-          </button>
-          <button
-            type="button"
-            onClick={() => setView('grid')}
-            title="Grid view"
-            className={`p-1.5 rounded cursor-pointer transition-colors ${
-              view === 'grid'
-                ? 'bg-[var(--accent)] text-white'
-                : 'text-[var(--muted)] hover:text-[var(--foreground)]'
-            }`}
-          >
-            <LayoutGrid size={16} />
-          </button>
+          {([
+            { key: 'list', label: 'List view', Icon: List },
+            { key: 'grid2', label: '2-column grid', Icon: Grid2x2 },
+            { key: 'grid3', label: '3-column grid', Icon: Grid3x3 },
+          ] as const).map(({ key, label, Icon }) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setView(key)}
+              title={label}
+              aria-label={label}
+              aria-pressed={view === key}
+              className={`p-1.5 rounded cursor-pointer transition-colors ${
+                view === key
+                  ? 'bg-[var(--accent)] text-white'
+                  : 'text-[var(--muted)] hover:text-[var(--foreground)]'
+              }`}
+            >
+              <Icon size={16} />
+            </button>
+          ))}
         </div>
       </div>
 
-      {view === 'grid' ? (
-        <ul className="grid sm:grid-cols-2 gap-6 items-stretch">
-          {posts.map((post, i) => (
-            <li key={post.id} className="h-full">
-              <PostCard post={post} view="grid" index={i} isAdmin={isAdmin} />
-            </li>
-          ))}
-        </ul>
-      ) : (
+      {view === 'list' ? (
         <ul className="space-y-6">
           {posts.map((post, i) => (
             <li key={post.id}>
               <PostCard post={post} view="list" index={i} isAdmin={isAdmin} />
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <ul
+          className={`grid items-stretch ${
+            view === 'grid3' ? 'grid-cols-3 gap-2.5 sm:gap-5' : 'grid-cols-2 gap-4 sm:gap-6'
+          }`}
+        >
+          {posts.map((post, i) => (
+            <li key={post.id} className="h-full">
+              <PostCard
+                post={post}
+                view="grid"
+                index={i}
+                isAdmin={isAdmin}
+                excerptMode={view === 'grid2' ? 'short' : 'auto'}
+              />
             </li>
           ))}
         </ul>

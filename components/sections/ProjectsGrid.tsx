@@ -14,15 +14,22 @@ export default function ProjectsGrid({ projects }: { projects: ProjectItem[] }) 
 
   return (
     <>
-      {/* ── Grid ─────────────────────────────────────────────────── */}
-      <ul className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      {/* ── Horizontal carousel ──────────────────────────────────────
+         A snap-scrolling row on every viewport: cards keep a fixed width
+         and the next one peeks in, signalling "swipe for more". Edge-bleeds
+         to the screen edges (-mx-4 px-4) inside the padded section, and hides
+         the scrollbar for a native, app-like feel. */}
+      <ul
+        aria-label="Projects — scroll horizontally to browse"
+        className="flex gap-4 sm:gap-6 overflow-x-auto snap-x snap-mandatory no-scrollbar -mx-4 px-4 pb-4 [scroll-padding-inline:1rem] overscroll-x-contain"
+      >
         {projects.map((p) => {
           const extraTech = Math.max(0, p.tech.length - TECH_LIMIT)
           return (
             <li
               key={p.id}
               onClick={() => openProject(p.id)}
-              className="cursor-pointer rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden flex flex-col hover:border-[var(--accent)] transition-colors"
+              className="snap-start shrink-0 w-[80%] min-[440px]:w-72 cursor-pointer rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden flex flex-col hover:border-[var(--accent)] active:scale-[0.98] transition"
             >
               {p.imageUrl && (
                 <div className="relative h-40 w-full bg-[var(--background)]">

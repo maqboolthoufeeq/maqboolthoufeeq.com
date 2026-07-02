@@ -36,7 +36,8 @@ export default async function SiteContentPage() {
 
         <CollapsibleSection
           title="Link hub"
-          description="A Linktree-style page of topics, links, files and embeds. Toggle its navbar link."
+          description="A Linktree-style page of topics, links, files and embeds. The top toggle shows a hub preview on the landing page; the navbar link is set below."
+          toggle={<SectionToggle sectionKey="hub" initialSections={sections} />}
         >
           <HubForm initial={hub} />
         </CollapsibleSection>

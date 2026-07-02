@@ -100,6 +100,19 @@ body {
 .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 .no-scrollbar::-webkit-scrollbar { display: none; }
 
+/* Global reduced-motion guard: for visitors who ask for less motion, collapse
+   every animation/transition to near-instant and disable smooth scrolling. This
+   covers the nav progress bar crawl, tap/press scale feedback, the expand
+   chevron and the theme colour transitions in one place (WCAG 2.3.3). */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
 /* ─────────────────────────────────────────────────────────────
    Design system — controlled by data-design on <html>
    ───────────────────────────────────────────────────────────── */

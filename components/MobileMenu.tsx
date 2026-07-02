@@ -8,7 +8,7 @@ import { isExternal } from '@/lib/utils'
 type NavLink = { href: string; label: string }
 
 const mobileLinkCls =
-  'block px-4 py-3 text-sm text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--surface)] rounded-lg transition-all'
+  'block px-4 py-3 text-sm text-[var(--muted)] hover:text-[var(--foreground)] hover:bg-[var(--surface)] active:bg-[var(--surface)] active:scale-[0.98] rounded-lg transition-all'
 
 export default function MobileMenu({ links }: { links: NavLink[] }) {
   const [open, setOpen] = useState(false)

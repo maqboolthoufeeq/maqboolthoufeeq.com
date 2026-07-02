@@ -54,11 +54,19 @@ export default function PostCard({
   view = 'grid',
   index = 0,
   isAdmin = false,
+  excerptMode = 'auto',
 }: {
   post: Post
   view?: 'grid' | 'list'
   index?: number
   isAdmin?: boolean
+  /**
+   * Grid-card excerpt behaviour:
+   *  • 'auto'   — hidden on the 2-col mobile view, 2 lines on sm+ (default)
+   *  • 'short'  — a tiny 1-line teaser on every width (used by the 2-col grid)
+   *  • 'hidden' — no excerpt at all
+   */
+  excerptMode?: 'auto' | 'short' | 'hidden'
 }) {
   const tags = post.tags ?? []
   const hasTags = tags.length > 0
@@ -94,23 +102,43 @@ export default function PostCard({
     )
   }
 
+  // Compact, fixed-size grid card: every part has a reserved size so all cards
+  // are identical regardless of content length (fixed cover, 2-line title, 2-line
+  // excerpt on sm+, single-row tags). The whole card links to the post — that's
+  // the "read more". `max-sm:hidden` (not `sm:block`) hides the excerpt on the
+  // 2-col mobile view *without* overriding line-clamp's display, so it actually
+  // clamps to 2 lines on larger screens instead of running full length.
   return (
-    <article className="group relative flex h-full flex-col rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:border-[var(--accent)] transition-colors overflow-hidden has-[a[data-card-link]:focus-visible]:ring-2 has-[a[data-card-link]:focus-visible]:ring-[var(--accent)] has-[a[data-card-link]:focus-visible]:ring-offset-2 has-[a[data-card-link]:focus-visible]:ring-offset-[var(--background)]">
-      {post.coverImage && (
-        <div className="relative h-44 w-full">
+    <article className="group relative flex h-full flex-col rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:border-[var(--accent)] active:scale-[0.98] transition overflow-hidden has-[a[data-card-link]:focus-visible]:ring-2 has-[a[data-card-link]:focus-visible]:ring-[var(--accent)] has-[a[data-card-link]:focus-visible]:ring-offset-2 has-[a[data-card-link]:focus-visible]:ring-offset-[var(--background)]">
+      <div className="relative h-32 sm:h-40 w-full shrink-0 bg-[var(--background)]">
+        {post.coverImage ? (
           <Image src={post.coverImage} alt={post.title} fill className="object-cover" unoptimized />
-        </div>
-      )}
-      <div className="p-5 flex flex-1 flex-col">
-        <h2 className="font-semibold text-lg text-[var(--foreground)] mb-2 transition-colors group-hover:text-[var(--accent)]">
+        ) : (
+          <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-[var(--accent)]/15 to-[var(--surface)]">
+            <span className="text-3xl text-[var(--accent)]/50" style={{ fontFamily: 'var(--font-lora), serif' }}>
+              {post.title.charAt(0)}
+            </span>
+          </div>
+        )}
+      </div>
+      <div className="flex flex-1 flex-col p-4 sm:p-5">
+        <h2 className="font-semibold text-base sm:text-lg text-[var(--foreground)] transition-colors group-hover:text-[var(--accent)] line-clamp-2 min-h-[3rem] sm:min-h-[3.5rem]">
           <TitleLink slug={post.slug} title={post.title} />
         </h2>
-        {post.excerpt && (
-          <p className="text-sm text-[var(--muted)] mb-3 line-clamp-2">{post.excerpt}</p>
-        )}
-        <div className="mt-auto pt-2">
+        {excerptMode === 'short' ? (
+          <p className="mt-1.5 text-xs sm:text-sm text-[var(--muted)] leading-snug line-clamp-1 min-h-[1.15rem]">
+            {post.excerpt}
+          </p>
+        ) : excerptMode === 'auto' ? (
+          <p className="max-sm:hidden mt-2 text-sm text-[var(--muted)] leading-relaxed line-clamp-2 min-h-[2.5rem]">
+            {post.excerpt}
+          </p>
+        ) : null}
+        <div className="mt-auto pt-3">
           <Meta post={post} />
-          {hasTags && <TagChips tags={tags} className="relative z-10 mt-3" />}
+          {hasTags && (
+            <TagChips tags={tags} className="relative z-10 mt-2.5 max-h-[1.625rem] overflow-hidden" />
+          )}
           {adminControls}
         </div>
       </div>

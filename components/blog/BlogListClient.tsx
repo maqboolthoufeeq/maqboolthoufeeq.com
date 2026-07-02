@@ -93,7 +93,7 @@ export default function BlogListClient({
       </div>
 
       {view === 'grid' ? (
-        <ul className="grid sm:grid-cols-2 gap-6 items-stretch">
+        <ul className="grid grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6 items-stretch">
           {posts.map((post, i) => (
             <li key={post.id} className="h-full">
               <PostCard post={post} view="grid" index={i} isAdmin={isAdmin} />

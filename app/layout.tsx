@@ -1,7 +1,9 @@
 import type { Metadata, Viewport } from 'next'
+import { Suspense } from 'react'
 import { GeistSans } from 'geist/font/sans'
 import { Lora } from 'next/font/google'
 import { ThemeProviderWrapper as ThemeProvider } from '@/components/ThemeProviderWrapper'
+import NavigationProgress from '@/components/NavigationProgress'
 import { prisma } from '@/lib/prisma'
 import { DEFAULT_THEME_ID, getTheme, themeToCSS } from '@/lib/themes'
 import { DEFAULT_DESIGN_ID } from '@/lib/designs'
@@ -138,6 +140,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
         <JsonLd data={siteGraph} />
       </head>
       <body className={`${GeistSans.className} ${lora.variable}`}>
+        <Suspense fallback={null}>
+          <NavigationProgress />
+        </Suspense>
         <DesignSync designId={designId} />
         <VisitTracker />
         <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>

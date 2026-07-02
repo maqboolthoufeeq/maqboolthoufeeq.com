@@ -6,7 +6,7 @@ import { getSiteContent } from '@/lib/site-content'
 import { isExternal } from '@/lib/utils'
 import { auth } from '@/lib/auth'
 
-const linkCls = 'px-3 py-1.5 text-sm text-[var(--muted)] hover:text-[var(--foreground)] rounded-lg hover:bg-[var(--surface)] transition-all'
+const linkCls = 'px-3 py-1.5 text-sm text-[var(--muted)] hover:text-[var(--foreground)] rounded-lg hover:bg-[var(--surface)] active:bg-[var(--surface)] active:scale-95 transition-all'
 
 export default async function Navbar() {
   const [navbar, hub, session] = await Promise.all([

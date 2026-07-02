@@ -1,4 +1,5 @@
 import { getSiteContent } from '@/lib/site-content'
+import MobileExpandable from './MobileExpandable'
 
 export default async function About() {
   const about = await getSiteContent('about')
@@ -9,24 +10,30 @@ export default async function About() {
       <div className="w-10 h-0.5 bg-[var(--accent)] mb-10" />
 
       <div className="grid sm:grid-cols-2 gap-12">
-        <div className="space-y-4 text-[var(--muted)] leading-relaxed">
-          {about.paragraphs.map((p, i) => (
-            <p key={i}>{p}</p>
-          ))}
-        </div>
+        {/* On mobile the bio shows a short teaser behind a Show more/less toggle;
+            desktop always renders it in full. Preference persists per visitor. */}
+        <MobileExpandable storageKey="about-bio" collapsedClass="max-h-28" label="About me">
+          <div className="space-y-4 text-[var(--muted)] leading-relaxed">
+            {about.paragraphs.map((p, i) => (
+              <p key={i}>{p}</p>
+            ))}
+          </div>
+        </MobileExpandable>
 
         <div>
           <p className="text-sm text-[var(--muted)] mb-4 font-mono">Technologies I work with:</p>
-          <ul className="flex flex-wrap gap-2">
-            {about.skills.map((skill) => (
-              <li
-                key={skill}
-                className="px-3 py-1 text-sm rounded-full border border-[var(--border)] text-[var(--foreground)] bg-[var(--surface)]"
-              >
-                {skill}
-              </li>
-            ))}
-          </ul>
+          <MobileExpandable storageKey="about-skills" collapsedClass="max-h-[4.5rem]" label="technologies I work with">
+            <ul className="flex flex-wrap gap-2">
+              {about.skills.map((skill) => (
+                <li
+                  key={skill}
+                  className="px-3 py-1 text-sm rounded-full border border-[var(--border)] text-[var(--foreground)] bg-[var(--surface)]"
+                >
+                  {skill}
+                </li>
+              ))}
+            </ul>
+          </MobileExpandable>
         </div>
       </div>
     </section>

@@ -95,18 +95,18 @@ export default function PostCard({
   }
 
   return (
-    <article className="group relative flex h-full flex-col rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:border-[var(--accent)] transition-colors overflow-hidden has-[a[data-card-link]:focus-visible]:ring-2 has-[a[data-card-link]:focus-visible]:ring-[var(--accent)] has-[a[data-card-link]:focus-visible]:ring-offset-2 has-[a[data-card-link]:focus-visible]:ring-offset-[var(--background)]">
+    <article className="group relative flex h-full flex-col rounded-xl border border-[var(--border)] bg-[var(--surface)] hover:border-[var(--accent)] active:scale-[0.98] transition overflow-hidden has-[a[data-card-link]:focus-visible]:ring-2 has-[a[data-card-link]:focus-visible]:ring-[var(--accent)] has-[a[data-card-link]:focus-visible]:ring-offset-2 has-[a[data-card-link]:focus-visible]:ring-offset-[var(--background)]">
       {post.coverImage && (
-        <div className="relative h-44 w-full">
+        <div className="relative h-32 sm:h-44 w-full">
           <Image src={post.coverImage} alt={post.title} fill className="object-cover" unoptimized />
         </div>
       )}
-      <div className="p-5 flex flex-1 flex-col">
-        <h2 className="font-semibold text-lg text-[var(--foreground)] mb-2 transition-colors group-hover:text-[var(--accent)]">
+      <div className="p-4 sm:p-5 flex flex-1 flex-col">
+        <h2 className="font-semibold text-base sm:text-lg text-[var(--foreground)] mb-2 transition-colors group-hover:text-[var(--accent)] line-clamp-2">
           <TitleLink slug={post.slug} title={post.title} />
         </h2>
         {post.excerpt && (
-          <p className="text-sm text-[var(--muted)] mb-3 line-clamp-2">{post.excerpt}</p>
+          <p className="hidden sm:block text-sm text-[var(--muted)] mb-3 line-clamp-2">{post.excerpt}</p>
         )}
         <div className="mt-auto pt-2">
           <Meta post={post} />

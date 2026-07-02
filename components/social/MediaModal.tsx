@@ -318,13 +318,17 @@ function MobileFeed({
         ))}
       </div>
 
-      {/* Up / down — advance even while a sound iframe is capturing touch */}
-      {items.length > 1 && (
-        <div className="absolute right-2 top-1/2 -translate-y-1/2 z-[82] flex flex-col gap-2">
-          <button onClick={() => scrollToIndex(activeIdx - 1)} aria-label="Previous" className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm hover:bg-black/60">
+      {/* Up / down — only while a sound iframe is playing (it captures touch, so
+          swiping can't advance). Otherwise we show nothing: the whole surface is
+          a native scroll area, so these buttons would just be dead-zones that eat
+          the user's swipe (esp. a right-thumb swipe in the lower-right). Container
+          is pointer-events-none so only the buttons themselves block touch. */}
+      {items.length > 1 && soundId !== null && (
+        <div className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 z-[82] flex flex-col gap-2">
+          <button onClick={() => scrollToIndex(activeIdx - 1)} aria-label="Previous" className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm hover:bg-black/60">
             <ChevronUp size={18} />
           </button>
-          <button onClick={() => scrollToIndex(activeIdx + 1)} aria-label="Next" className="flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm hover:bg-black/60">
+          <button onClick={() => scrollToIndex(activeIdx + 1)} aria-label="Next" className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm hover:bg-black/60">
             <ChevronDown size={18} />
           </button>
         </div>

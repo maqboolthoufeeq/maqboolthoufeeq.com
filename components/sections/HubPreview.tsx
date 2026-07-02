@@ -19,7 +19,7 @@ export default async function HubPreview() {
   if (topics.length === 0) return null
 
   return (
-    <section id="hub" className="max-w-5xl mx-auto px-4 py-20">
+    <section id="hub" className="max-w-5xl mx-auto px-4 py-6 sm:py-20">
       <div className="flex items-end justify-between gap-4 mb-2">
         <h2 className="text-2xl font-bold text-[var(--foreground)]">{hub.title || 'Hub'}</h2>
         <Link href="/hub" className="shrink-0 text-sm text-[var(--accent)] hover:underline">
@@ -88,6 +88,16 @@ export default async function HubPreview() {
           )
         })}
       </ul>
+
+      <div className="mt-6 flex justify-center">
+        <Link
+          href="/hub"
+          className="tap-scale inline-flex items-center gap-1.5 px-5 py-2 text-sm rounded-full border border-[var(--border)] text-[var(--muted)] hover:border-[var(--accent)] hover:text-[var(--foreground)] transition-colors"
+        >
+          Show more
+          <ArrowRight size={15} />
+        </Link>
+      </div>
     </section>
   )
 }

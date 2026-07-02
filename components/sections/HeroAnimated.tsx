@@ -43,7 +43,7 @@ const imageAnim: Variants = {
 
 export default function HeroAnimated({ hero }: { hero: HeroContent }) {
   return (
-    <section id="home" className="max-w-5xl mx-auto px-4 py-24 flex flex-col-reverse sm:flex-row items-center gap-12">
+    <section id="home" className="max-w-5xl mx-auto px-4 py-6 sm:py-24 flex flex-col-reverse sm:flex-row items-center gap-8 sm:gap-12">
       <motion.div
         className="flex-1 text-center sm:text-left"
         variants={container}

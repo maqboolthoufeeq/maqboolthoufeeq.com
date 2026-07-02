@@ -17,11 +17,11 @@ export default async function Contact() {
   const hasInfo = contact.email || contact.phone || contact.address || contact.extra?.length > 0
 
   return (
-    <section id="contact" className="max-w-5xl mx-auto px-4 py-20">
+    <section id="contact" className="max-w-5xl mx-auto px-4 py-6 sm:py-20">
       <h2 className="text-2xl font-bold text-[var(--foreground)] mb-2">Get in touch</h2>
-      <div className="w-10 h-0.5 bg-[var(--accent)] mb-10" />
+      <div className="w-10 h-0.5 bg-[var(--accent)] mb-6 sm:mb-10" />
 
-      <div className="grid sm:grid-cols-2 gap-12 items-start">
+      <div className="grid sm:grid-cols-2 gap-8 sm:gap-12 items-start">
         {/* Left: description + contact info + social links */}
         <div>
           <p className="text-[var(--muted)] leading-relaxed mb-8">{contact.description}</p>

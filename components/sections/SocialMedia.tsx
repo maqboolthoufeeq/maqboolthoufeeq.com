@@ -29,10 +29,10 @@ export default async function SocialMedia() {
   ]
 
   return (
-    <section id="social" className="max-w-5xl mx-auto px-4 py-20">
+    <section id="social" className="max-w-5xl mx-auto px-4 py-6 sm:py-20">
       <h2 className="text-2xl font-bold text-[var(--foreground)]">Watch</h2>
       <p className="text-sm text-[var(--muted)] mt-1">Reels and videos, playable right here.</p>
-      <div className="w-10 h-0.5 bg-[var(--accent)] mt-3 mb-10" />
+      <div className="w-10 h-0.5 bg-[var(--accent)] mt-3 mb-6 sm:mb-10" />
 
       <Suspense fallback={null}>
         <MediaShowcase rows={rows} />

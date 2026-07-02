@@ -11,14 +11,14 @@ export default async function Projects() {
   })
 
   return (
-    <section id="projects" className="max-w-5xl mx-auto px-4 py-20">
+    <section id="projects" className="max-w-5xl mx-auto px-4 py-6 sm:py-20">
       <div className="flex items-end justify-between mb-2">
         <h2 className="text-2xl font-bold text-[var(--foreground)]">Projects</h2>
         <Link href="/projects" className="text-sm text-[var(--accent)] hover:underline">
           All projects →
         </Link>
       </div>
-      <div className="w-10 h-0.5 bg-[var(--accent)] mb-10" />
+      <div className="w-10 h-0.5 bg-[var(--accent)] mb-6 sm:mb-10" />
 
       {projects.length === 0 ? (
         <p className="text-[var(--muted)]">No featured projects yet.</p>

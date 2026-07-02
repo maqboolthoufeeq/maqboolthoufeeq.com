@@ -139,9 +139,16 @@ export default function MediaModal({ groups }: { groups: ModalGroup[] }) {
     return () => window.removeEventListener('keydown', onKey)
   }, [selected, desktop, close, goItem, goTopic])
 
+  // Lock page scroll and flag the open viewer on <body> so page-level floating
+  // UI (e.g. the admin FAB) can hide instead of catching taps through the
+  // player's pointer-events-none overlay regions.
   useEffect(() => {
     document.body.style.overflow = selected ? 'hidden' : ''
-    return () => { document.body.style.overflow = '' }
+    document.body.classList.toggle('media-viewer-open', !!selected)
+    return () => {
+      document.body.style.overflow = ''
+      document.body.classList.remove('media-viewer-open')
+    }
   }, [selected])
 
   if (!selected) return null

@@ -54,11 +54,19 @@ export default function PostCard({
   view = 'grid',
   index = 0,
   isAdmin = false,
+  excerptMode = 'auto',
 }: {
   post: Post
   view?: 'grid' | 'list'
   index?: number
   isAdmin?: boolean
+  /**
+   * Grid-card excerpt behaviour:
+   *  • 'auto'   — hidden on the 2-col mobile view, 2 lines on sm+ (default)
+   *  • 'short'  — a tiny 1-line teaser on every width (used by the 2-col grid)
+   *  • 'hidden' — no excerpt at all
+   */
+  excerptMode?: 'auto' | 'short' | 'hidden'
 }) {
   const tags = post.tags ?? []
   const hasTags = tags.length > 0
@@ -117,9 +125,15 @@ export default function PostCard({
         <h2 className="font-semibold text-base sm:text-lg text-[var(--foreground)] transition-colors group-hover:text-[var(--accent)] line-clamp-2 min-h-[3rem] sm:min-h-[3.5rem]">
           <TitleLink slug={post.slug} title={post.title} />
         </h2>
-        <p className="max-sm:hidden mt-2 text-sm text-[var(--muted)] leading-relaxed line-clamp-2 min-h-[2.5rem]">
-          {post.excerpt}
-        </p>
+        {excerptMode === 'short' ? (
+          <p className="mt-1.5 text-xs sm:text-sm text-[var(--muted)] leading-snug line-clamp-1 min-h-[1.15rem]">
+            {post.excerpt}
+          </p>
+        ) : excerptMode === 'auto' ? (
+          <p className="max-sm:hidden mt-2 text-sm text-[var(--muted)] leading-relaxed line-clamp-2 min-h-[2.5rem]">
+            {post.excerpt}
+          </p>
+        ) : null}
         <div className="mt-auto pt-3">
           <Meta post={post} />
           {hasTags && (

@@ -1,8 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createResetToken, sendResetEmail } from '@/lib/admin-auth'
+import { rateLimit, getClientIp } from '@/lib/rate-limit'
 
 export async function POST(req: NextRequest) {
   const { email } = await req.json()
+
+  // Per-IP and global caps: this endpoint emails the owner, so without a
+  // global cap an attacker rotating IPs could flood the admin mailbox.
+  const [ipOk, globalOk] = await Promise.all([
+    rateLimit(`reset-req:${getClientIp(req)}`, 3, 60 * 60 * 1000),
+    rateLimit('reset-req:global', 6, 60 * 60 * 1000),
+  ])
+  if (!ipOk || !globalOk) {
+    return NextResponse.json({ error: 'Too many requests. Try again later.' }, { status: 429 })
+  }
 
   // Always return success to prevent email enumeration
   if (email !== process.env.ADMIN_EMAIL) {

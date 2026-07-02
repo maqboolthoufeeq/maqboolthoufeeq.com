@@ -36,6 +36,9 @@ model Post {
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   tags        Tag[]     @relation("PostTags")
+
+  // Blog listings filter published=true ordered by publishedAt desc.
+  @@index([published, publishedAt])
 }
 
 model Tag {
@@ -205,6 +208,7 @@ model AdminToken {
   type      String   // 'otp' | 'reset' | 'preauth'
   expiresAt DateTime
   used      Boolean  @default(false)
+  attempts  Int      @default(0) // failed guesses against this token (OTP brute-force cap)
   createdAt DateTime @default(now())
 }
 
@@ -234,6 +238,17 @@ model ContactRequest {
   attachmentSize Int?
   read           Boolean  @default(false)
   createdAt      DateTime @default(now())
+
+  // The contact endpoint counts recent submissions per IP on every POST.
+  @@index([ip, createdAt])
+}
+
+// Fixed-window rate-limit counters (see lib/rate-limit.ts). One row per key
+// (e.g. "login:<ip>"); expired rows are opportunistically deleted.
+model RateLimit {
+  key     String   @id
+  count   Int      @default(0)
+  resetAt DateTime
 }
 
 model OAuthClient {

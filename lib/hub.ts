@@ -1,3 +1,4 @@
+import { cache } from 'react'
 import { prisma } from './prisma'
 import { sanitizePostHtml } from './sanitize'
 import { type HubGalleryImage, type HubItemType, isHubItemType, markdownToHtml } from './hub-content'
@@ -241,7 +242,7 @@ const TAG_SELECT = { select: { id: true, name: true, slug: true } } as const
  * a flat search index over every published topic + block (with breadcrumb), and
  * the category facets. Visibility cascades under unpublished ancestors.
  */
-export async function getHubLanding(): Promise<HubLandingData> {
+export const getHubLanding = cache(async (): Promise<HubLandingData> => {
   const [topics, items, categories] = await Promise.all([
     prisma.hubTopic.findMany({
       where: { published: true },
@@ -253,7 +254,7 @@ export async function getHubLanding(): Promise<HubLandingData> {
       orderBy: [{ order: 'asc' }, { createdAt: 'desc' }],
       include: { category: CATEGORY_SELECT, tags: TAG_SELECT },
     }),
-    prisma.hubCategory.findMany({ orderBy: [{ order: 'asc' }, { name: 'asc' }] }),
+    loadHubCategories(),
   ])
 
   // Index topics for visibility-cascade + breadcrumb computation.
@@ -347,7 +348,7 @@ export async function getHubLanding(): Promise<HubLandingData> {
     entries,
     categories: categories.map((c) => ({ id: c.id, name: c.name, slug: c.slug, color: c.color })),
   }
-}
+})
 
 /** Full detail for one topic page (blocks, subtopics, ancestor breadcrumb); null when the slug is unknown or the topic / any ancestor is unpublished. */
 export async function getHubTopicDetail(slug: string): Promise<HubTopicDetail | null> {
@@ -403,9 +404,14 @@ export async function getHubTopicDetail(slug: string): Promise<HubTopicDetail | 
   }
 }
 
+/** Category rows in display order, fetched once per request (several sections ask). */
+const loadHubCategories = cache(() =>
+  prisma.hubCategory.findMany({ orderBy: [{ order: 'asc' }, { name: 'asc' }] }),
+)
+
 /** All hub categories (admin facets), in display order. */
 export async function getHubCategories(): Promise<HubCategoryRef[]> {
-  const rows = await prisma.hubCategory.findMany({ orderBy: [{ order: 'asc' }, { name: 'asc' }] })
+  const rows = await loadHubCategories()
   return rows.map((c) => ({ id: c.id, name: c.name, slug: c.slug, color: c.color }))
 }
 
@@ -416,10 +422,10 @@ export async function getPublishedHubTopicSlugs(): Promise<string[]> {
 }
 
 /** True when at least one published topic exists (gates the nav link + section). */
-export async function hasPublishedHub(): Promise<boolean> {
+export const hasPublishedHub = cache(async (): Promise<boolean> => {
   const count = await prisma.hubTopic.count({ where: { published: true } })
   return count > 0
-}
+})
 
 /* ─── Admin reads ────────────────────────────────────────────────────────── */
 

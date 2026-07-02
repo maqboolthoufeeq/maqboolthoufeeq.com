@@ -318,20 +318,25 @@ function MobileFeed({
         ))}
       </div>
 
-      {/* Up / down — only while a sound iframe is playing (it captures touch, so
-          swiping can't advance). Otherwise we show nothing: the whole surface is
-          a native scroll area, so these buttons would just be dead-zones that eat
-          the user's swipe (esp. a right-thumb swipe in the lower-right). Container
-          is pointer-events-none so only the buttons themselves block touch. */}
+      {/* While a sound iframe is playing it captures every touch, so a native
+          swipe can never advance the feed. We restore swiping with transparent
+          edge zones layered *above* the iframe (they catch vertical swipes and
+          navigate), leaving the centre free for the player's own controls, plus
+          explicit ↑/↓ buttons for discoverability. None of this renders when no
+          reel is playing — then the whole surface is a native scroll area. */}
       {items.length > 1 && soundId !== null && (
-        <div className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 z-[82] flex flex-col gap-2">
-          <button onClick={() => scrollToIndex(activeIdx - 1)} aria-label="Previous" className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm hover:bg-black/60">
-            <ChevronUp size={18} />
-          </button>
-          <button onClick={() => scrollToIndex(activeIdx + 1)} aria-label="Next" className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm hover:bg-black/60">
-            <ChevronDown size={18} />
-          </button>
-        </div>
+        <>
+          <SwipeZone side="left" onPrev={() => scrollToIndex(activeIdx - 1)} onNext={() => scrollToIndex(activeIdx + 1)} />
+          <SwipeZone side="right" onPrev={() => scrollToIndex(activeIdx - 1)} onNext={() => scrollToIndex(activeIdx + 1)} />
+          <div className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 z-[82] flex flex-col gap-2">
+            <button onClick={() => scrollToIndex(activeIdx - 1)} aria-label="Previous" className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm hover:bg-black/60">
+              <ChevronUp size={18} />
+            </button>
+            <button onClick={() => scrollToIndex(activeIdx + 1)} aria-label="Next" className="pointer-events-auto flex h-9 w-9 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-sm hover:bg-black/60">
+              <ChevronDown size={18} />
+            </button>
+          </div>
+        </>
       )}
 
       {/* Details bottom sheet */}
@@ -339,6 +344,37 @@ function MobileFeed({
         <DetailsSheet item={detailsItem} laneTitle={laneTitle} onClose={() => setDetailsId(null)} />
       )}
     </div>
+  )
+}
+
+/**
+ * A transparent, mid-height edge strip that sits above the playing iframe and
+ * turns a vertical swipe into prev/next navigation. It only occupies the middle
+ * band of the left/right edge, so it never covers the top chips, the close
+ * button, or the bottom "Instagram / Details" actions. `touchAction: 'none'`
+ * keeps the browser from hijacking the gesture so our delta math stays reliable.
+ */
+function SwipeZone({ side, onPrev, onNext }: { side: 'left' | 'right'; onPrev: () => void; onNext: () => void }) {
+  const startY = useRef<number | null>(null)
+  return (
+    <div
+      aria-hidden
+      className={[
+        'pointer-events-auto absolute z-[81] top-[12%] bottom-[24%] w-[20vw] max-w-[96px]',
+        side === 'left' ? 'left-0' : 'right-0',
+      ].join(' ')}
+      style={{ touchAction: 'none' }}
+      onTouchStart={(e) => { startY.current = e.touches[0]?.clientY ?? null }}
+      onTouchEnd={(e) => {
+        const start = startY.current
+        startY.current = null
+        if (start == null) return
+        const dy = (e.changedTouches[0]?.clientY ?? start) - start
+        if (Math.abs(dy) < 40) return // ignore taps / tiny drags
+        if (dy < 0) onNext()
+        else onPrev()
+      }}
+    />
   )
 }
 

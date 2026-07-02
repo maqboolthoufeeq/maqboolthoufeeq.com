@@ -38,14 +38,20 @@ export default function AdminFab() {
     return () => window.removeEventListener('keydown', onKey)
   }, [open])
 
+  // The container is pointer-events-none: the collapsed speed-dial <ul> keeps
+  // its layout box (items are merely opacity-0), and that invisible rectangle
+  // must never swallow taps/scrolls meant for the page — or for the fullscreen
+  // media viewer, which is why the whole FAB also sits *below* modal layers
+  // (z-60 < the viewer's z-70) and hides while the viewer flags <body> with
+  // `media-viewer-open`. Interactive children opt back in to pointer events.
   return (
-    <div className="fixed bottom-5 right-5 z-[70] flex flex-col items-end gap-3 print:hidden">
+    <div className="pointer-events-none fixed bottom-5 right-5 z-[60] flex flex-col items-end gap-3 print:hidden [body.media-viewer-open_&]:hidden">
       {/* Dim backdrop — click anywhere to close */}
       {open && (
         <button
           aria-label="Close menu"
           onClick={() => setOpen(false)}
-          className="fixed inset-0 -z-10 cursor-default bg-black/20 backdrop-blur-[1px] animate-sheet-fade"
+          className="pointer-events-auto fixed inset-0 -z-10 cursor-default bg-black/20 backdrop-blur-[1px] animate-sheet-fade"
         />
       )}
 
@@ -59,7 +65,7 @@ export default function AdminFab() {
               className={[
                 'flex items-center gap-3 transition-all duration-200 ease-out',
                 open
-                  ? 'translate-y-0 opacity-100'
+                  ? 'pointer-events-auto translate-y-0 opacity-100'
                   : 'pointer-events-none translate-y-3 opacity-0',
               ].join(' ')}
               style={{ transitionDelay: open ? `${i * 40}ms` : '0ms' }}
@@ -87,7 +93,7 @@ export default function AdminFab() {
         aria-expanded={open}
         aria-haspopup="menu"
         aria-label={open ? 'Close admin menu' : 'Open admin menu'}
-        className="tap-scale flex h-14 w-14 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-xl shadow-black/25 transition-transform hover:opacity-95"
+        className="pointer-events-auto tap-scale flex h-14 w-14 items-center justify-center rounded-full bg-[var(--accent)] text-white shadow-xl shadow-black/25 transition-transform hover:opacity-95"
       >
         {open ? <X size={26} strokeWidth={2.4} /> : <Plus size={26} strokeWidth={2.4} />}
       </button>

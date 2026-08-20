@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Pencil, Trash2, Loader2 } from 'lucide-react'
+import PublishEverywhereButton from '@/components/admin/PublishEverywhereButton'
 
 type Props = {
   id: string
@@ -57,6 +58,7 @@ export default function PostAdminControls({ id, title, variant = 'card' }: Props
         >
           <Pencil size={15} /> Edit
         </Link>
+        <PublishEverywhereButton contentType="post" contentId={id} title={title} />
         <button
           type="button"
           onClick={onDelete}

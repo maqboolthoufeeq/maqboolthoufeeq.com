@@ -16,6 +16,7 @@ import {
   Clapperboard,
   Link2,
   Megaphone,
+  Share2,
   LogOut,
   X,
   ExternalLink,
@@ -279,6 +280,12 @@ function MoreSheet({ onClose }: { onClose: () => void }) {
             label="Announcements"
             description="Top banner notices & history"
             onClick={() => go('/admin/banners')}
+          />
+          <SheetItem
+            icon={Share2}
+            label="Integrations"
+            description="Connect platforms & publish everywhere"
+            onClick={() => go('/admin/integrations')}
           />
           <SheetItem
             icon={Tags}
